@@ -6,6 +6,10 @@ const PskovGame = () => {
     phase: 'resources',
     currentPlayer: 0, // for construction phase
     selectedRegion: 'pskov', // for construction phase
+    currentEvent: null, // current event card
+    eventVotes: [null, null, null], // votes for current event (null = not voted, true = yes, false = no)
+    eventResolved: false, // has current event been resolved
+    debugEventIndex: 0, // for debug mode - cycles through events in order
     constructionActions: [
       { improvement: false, equipment: false },
       { improvement: false, equipment: false },
@@ -67,6 +71,15 @@ const PskovGame = () => {
           noble_manor: 0,
           noble_monastery: 0
         }
+      },
+      bearhill: { 
+        controller: 'order', 
+        buildings: {
+          commoner_huts: 0,
+          commoner_church: 0,
+          noble_manor: 0,
+          noble_monastery: 0
+        }
       }
     },
     players: [
@@ -85,7 +98,129 @@ const PskovGame = () => {
     military: 'Military Actions'
   };
 
-  // Calculate victory points for each player
+  // Debug mode - set to true for predictable event order
+  const DEBUG_MODE = true;
+
+  // Event deck
+  const eventDeck = [
+    {
+      id: 'good_harvest',
+      name: 'Good Harvest',
+      description: 'The fields have produced an abundant harvest. All players receive +1○.',
+      type: 'immediate',
+      effect: (gameState) => {
+        const newPlayers = gameState.players.map(player => ({
+          ...player,
+          money: player.money + 1
+        }));
+        return { ...gameState, players: newPlayers };
+      }
+    },
+    {
+      id: 'drought',
+      name: 'Drought',
+      description: 'The crops are failing due to lack of rain. Emergency food supplies cost 6○ total.',
+      type: 'veche',
+      question: 'Who will help buy emergency food supplies? Cost will be split evenly among participants.',
+      yesEffect: (gameState) => {
+        const participants = gameState.eventVotes.filter(v => v === true).length;
+        const costPerParticipant = participants > 0 ? 6 / participants : 0;
+
+        // Check if all participants can afford their share
+        let allCanAfford = true;
+        gameState.players.forEach((player, index) => {
+          if (gameState.eventVotes[index] === true && player.money < costPerParticipant) {
+            allCanAfford = false;
+          }
+        });
+
+        if (!allCanAfford || participants === 0) {
+          // Purchase fails - not enough money or no participants
+          return gameState; // No changes
+        }
+
+        // Purchase succeeds - deduct money from participants
+        const newPlayers = gameState.players.map((player, index) => {
+          if (gameState.eventVotes[index] === true) {
+            return { ...player, money: player.money - costPerParticipant };
+          }
+          return player;
+        });
+
+        return { ...gameState, players: newPlayers };
+      },
+      noEffect: (gameState) => {
+        // No immediate effect - would cause famine next turn (for later implementation)
+        return gameState;
+      }
+    }
+  ];
+
+  // Draw event (debug mode vs random)
+  const drawEvent = (currentDebugIndex = 0) => {
+    if (DEBUG_MODE) {
+      return eventDeck[currentDebugIndex % eventDeck.length];
+    } else {
+      return eventDeck[Math.floor(Math.random() * eventDeck.length)];
+    }
+  };
+
+  // Vote on current event
+  const voteOnEvent = (playerIndex, vote) => {
+    setGameState(prev => {
+      const newVotes = [...prev.eventVotes];
+      newVotes[playerIndex] = vote;
+      return { ...prev, eventVotes: newVotes };
+    });
+  };
+
+  // Check if participation is complete and get result
+  const getParticipationResult = () => {
+    const votes = gameState.eventVotes;
+    const completedVotes = votes.filter(v => v !== null);
+
+    if (completedVotes.length === 3) {
+      const participants = votes.filter(v => v === true).length;
+      return participants > 0 ? 'success' : 'failed'; // At least 1 participant needed
+    }
+    return null; // Not all players decided yet
+  };
+
+  // Get current participation info
+  const getParticipationInfo = () => {
+    const currentParticipants = gameState.eventVotes.filter(v => v === true).length;
+    const totalCost = 6;
+    const costPerParticipant = currentParticipants > 0 ? totalCost / currentParticipants : totalCost;
+
+    return {
+      participants: currentParticipants,
+      costPerParticipant: costPerParticipant,
+      totalCost: totalCost
+    };
+  };
+
+  // Resolve current event
+  const resolveEvent = () => {
+    setGameState(prev => {
+      let newState = { ...prev };
+
+      if (prev.currentEvent.type === 'immediate') {
+        newState = prev.currentEvent.effect(newState);
+      } else if (prev.currentEvent.type === 'veche') {
+        const result = getParticipationResult();
+        if (result === 'success') {
+          newState = prev.currentEvent.yesEffect(newState);
+        } else {
+          newState = prev.currentEvent.noEffect(newState);
+        }
+      }
+
+      return {
+        ...newState,
+        eventResolved: true
+      };
+    });
+  };
   const calculateVictoryPoints = (player) => {
     return player.improvements; // Each improvement = 1 victory point
   };
@@ -213,6 +348,7 @@ const PskovGame = () => {
       const isLastPhase = currentPhaseIndex === phases.length - 1;
       const isResourcesPhase = prev.phase === 'resources';
       const isConstructionPhase = prev.phase === 'construction';
+      const nextPhase = isLastPhase ? phases[0] : phases[currentPhaseIndex + 1];
 
       let newState = { ...prev };
 
@@ -223,6 +359,17 @@ const PskovGame = () => {
           ...player,
           money: player.money + 0.5 + (republicRegions * 0.25) + (player.improvements * 0.25)
         }));
+      }
+
+      // Draw event when moving TO events phase
+      if (nextPhase === 'events') {
+        newState.currentEvent = drawEvent(prev.debugEventIndex);
+        newState.eventVotes = [null, null, null];
+        newState.eventResolved = false;
+        // Increment debug event index for next time
+        if (DEBUG_MODE) {
+          newState.debugEventIndex = (prev.debugEventIndex + 1) % eventDeck.length;
+        }
       }
 
       // Reset current player and construction actions when leaving construction
@@ -236,42 +383,26 @@ const PskovGame = () => {
         ];
       }
 
+      // Clear event when leaving events phase
+      if (prev.phase === 'events') {
+        newState.currentEvent = null;
+        newState.eventVotes = [null, null, null];
+        newState.eventResolved = false;
+      }
+
       return {
         ...newState,
-        phase: isLastPhase ? phases[0] : phases[currentPhaseIndex + 1],
+        phase: nextPhase,
         turn: isLastPhase ? prev.turn + 1 : prev.turn
       };
     });
   };
 
   const nextPlayer = () => {
-    setGameState(prev => {
-      const nextPlayerIndex = prev.currentPlayer + 1;
-      if (nextPlayerIndex >= 3) {
-        // All players done, advance to next phase
-        const currentPhaseIndex = phases.indexOf(prev.phase);
-        const isLastPhase = currentPhaseIndex === phases.length - 1;
-
-        return {
-          ...prev,
-          currentPlayer: 0,
-          selectedRegion: 'pskov',
-          constructionActions: [
-            { improvement: false, equipment: false },
-            { improvement: false, equipment: false },
-            { improvement: false, equipment: false }
-          ],
-          phase: isLastPhase ? phases[0] : phases[currentPhaseIndex + 1],
-          turn: isLastPhase ? prev.turn + 1 : prev.turn
-        };
-      } else {
-        // Next player's turn
-        return {
-          ...prev,
-          currentPlayer: nextPlayerIndex
-        };
-      }
-    });
+    setGameState(prev => ({
+      ...prev,
+      currentPlayer: (prev.currentPlayer + 1) % 3
+    }));
   };
 
   const buyItem = (playerIndex, item, cost) => {
@@ -301,6 +432,10 @@ const PskovGame = () => {
       phase: 'resources',
       currentPlayer: 0,
       selectedRegion: 'pskov',
+      currentEvent: null,
+      eventVotes: [null, null, null],
+      eventResolved: false,
+      debugEventIndex: 0,
       constructionActions: [
         { improvement: false, equipment: false },
         { improvement: false, equipment: false },
@@ -362,6 +497,15 @@ const PskovGame = () => {
             noble_manor: 0,
             noble_monastery: 0
           }
+        },
+        bearhill: { 
+          controller: 'order', 
+          buildings: {
+            commoner_huts: 0,
+            commoner_church: 0,
+            noble_manor: 0,
+            noble_monastery: 0
+          }
         }
       },
       players: [
@@ -389,6 +533,18 @@ const PskovGame = () => {
         <h1 className="text-3xl font-bold text-center">Medieval Pskov</h1>
         <p className="text-center mt-2">Defend your city from the Teutonic Order</p>
       </div>
+
+      {/* Debug Info */}
+      {DEBUG_MODE && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+          <h4 className="font-medium text-yellow-800">🐛 Debug Mode Active</h4>
+          <p className="text-yellow-700 text-sm">
+            Events cycle in order: Good Harvest → Drought → Good Harvest...
+            <br />
+            Next event: {eventDeck[gameState.debugEventIndex]?.name}
+          </p>
+        </div>
+      )}
 
       {/* Game Status */}
       <div className="bg-white rounded-lg p-4 mb-6 shadow">
@@ -447,8 +603,11 @@ const PskovGame = () => {
           <div className="mb-4">
             <h4 className="font-medium mb-2">Select Region:</h4>
             <div className="grid grid-cols-3 gap-2">
-              {Object.keys(gameState.regions).map(regionName => {
-                const isAvailable = gameState.players[gameState.currentPlayer].faction !== 'Merchants' || regionName === 'pskov';
+              {Object.entries(gameState.regions).map(([regionName, region]) => {
+                const isMerchantRestricted = gameState.players[gameState.currentPlayer].faction === 'Merchants' && regionName !== 'pskov';
+                const isOrderControlled = region.controller === 'order';
+                const isAvailable = !isMerchantRestricted && !isOrderControlled;
+
                 return (
                   <button
                     key={regionName}
@@ -462,11 +621,17 @@ const PskovGame = () => {
                         : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
                     }`}
                   >
-                    {regionName.charAt(0).toUpperCase() + regionName.slice(1)}
-                    {!isAvailable && (
+                    {regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1)}
+                    {isMerchantRestricted && (
                       <>
                         <br />
                         <span className="text-xs">(Merchants only)</span>
+                      </>
+                    )}
+                    {isOrderControlled && (
+                      <>
+                        <br />
+                        <span className="text-xs">(Order controlled)</span>
                       </>
                     )}
                   </button>
@@ -557,22 +722,165 @@ const PskovGame = () => {
             onClick={nextPlayer}
             className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
           >
-            {gameState.currentPlayer === 2 ? 'End Construction' : 'Next Player'}
+            Next Player
           </button>
+        </div>
+      )}
+
+      {/* Construction Complete Message */}
+      {gameState.phase === 'construction' && gameState.currentPlayer === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h4 className="font-medium text-blue-800 mb-2">Construction Phase Complete</h4>
+          <p className="text-blue-700 text-sm">All players have taken their construction turns. Click "Next Phase" to proceed to Events.</p>
+        </div>
+      )}
+
+      {/* Events Phase Interface */}
+      {gameState.phase === 'events' && gameState.currentEvent && (
+        <div className="bg-white rounded-lg p-4 mb-6 shadow">
+          <h3 className="text-lg font-semibold mb-3">Event: {gameState.currentEvent.name}</h3>
+
+          <div className="bg-gray-50 p-4 rounded mb-4">
+            <p className="text-gray-700 mb-3">{gameState.currentEvent.description}</p>
+
+            {gameState.currentEvent.type === 'veche' && !gameState.eventResolved && (
+              <div>
+                <h4 className="font-medium mb-2">Council Decision:</h4>
+                <p className="text-sm text-gray-600 mb-3">{gameState.currentEvent.question}</p>
+
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  {gameState.players.map((player, index) => {
+                    const hasDecided = gameState.eventVotes[index] !== null;
+                    const canAffordMinimum = player.money >= 2; // Minimum cost when all 3 participate
+
+                    return (
+                      <div key={index} className="text-center">
+                        <h5 className="font-medium mb-1">{player.faction}</h5>
+                        <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => voteOnEvent(index, true)}
+                            disabled={hasDecided || !canAffordMinimum}
+                            className={`w-full px-3 py-1 rounded text-sm ${
+                              gameState.eventVotes[index] === true 
+                                ? 'bg-green-600 text-white' 
+                                : canAffordMinimum
+                                ? 'bg-green-500 hover:bg-green-600 text-white'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            {gameState.eventVotes[index] === true ? 'Participating' : 
+                             !canAffordMinimum ? 'Need 2○ min' : 'Participate'}
+                          </button>
+                          <button
+                            onClick={() => voteOnEvent(index, false)}
+                            disabled={hasDecided}
+                            className={`w-full px-3 py-1 rounded text-sm ${
+                              gameState.eventVotes[index] === false 
+                                ? 'bg-red-600 text-white' 
+                                : 'bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-300'
+                            }`}
+                          >
+                            {gameState.eventVotes[index] === false ? 'Not Participating' : 'Don\'t Participate'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {getParticipationResult() && (
+                  <div className="text-center">
+                    {(() => {
+                      const participants = gameState.eventVotes.filter(v => v === true).length;
+                      const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+
+                      // Check if all participants can afford their share
+                      let allCanAfford = true;
+                      let insufficientFunds = [];
+                      gameState.players.forEach((player, index) => {
+                        if (gameState.eventVotes[index] === true && player.money < costPerParticipant) {
+                          allCanAfford = false;
+                          insufficientFunds.push(player.faction);
+                        }
+                      });
+
+                      const purchaseSucceeds = participants > 0 && allCanAfford;
+
+                      return (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-600 mb-1">
+                            {participants > 0 ? (
+                              <>Participants: {participants} • Cost per participant: {costPerParticipant.toFixed(1)}○</>
+                            ) : (
+                              <>No participants</>
+                            )}
+                          </p>
+
+                          {!allCanAfford && participants > 0 && (
+                            <p className="text-sm text-red-600 mb-1">
+                              {insufficientFunds.join(', ')} cannot afford {costPerParticipant.toFixed(1)}○
+                            </p>
+                          )}
+
+                          <p className={`text-sm font-medium ${purchaseSucceeds ? 'text-green-600' : 'text-red-600'}`}>
+                            Result: {purchaseSucceeds ? 'FOOD PURCHASED' : 'PURCHASE FAILED'}
+                          </p>
+                        </div>
+                      );
+                    })()}
+                    <button
+                      onClick={resolveEvent}
+                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+                    >
+                      Apply Result
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {gameState.currentEvent.type === 'immediate' && !gameState.eventResolved && (
+              <div className="text-center">
+                <button
+                  onClick={resolveEvent}
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+                >
+                  Apply Effect
+                </button>
+              </div>
+            )}
+
+            {gameState.eventResolved && (
+              <div className="text-center">
+                <p className="text-green-600 font-medium mb-2">✓ Event Resolved</p>
+                <p className="text-sm text-gray-600">Click "Next Phase" to continue</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* Regions Status */}
       <div className="bg-white rounded-lg p-4 mb-6 shadow">
-        <h3 className="text-lg font-semibold mb-3">Republic Regions ({Object.values(gameState.regions).filter(r => r.controller === 'republic').length}/6)</h3>
+        <h3 className="text-lg font-semibold mb-3">
+          Republic Regions ({Object.values(gameState.regions).filter(r => r.controller === 'republic').length}/6) • 
+          Order Regions ({Object.values(gameState.regions).filter(r => r.controller === 'order').length})
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Object.entries(gameState.regions).map(([name, region]) => {
             const totalBuildings = Object.values(region.buildings).reduce((sum, count) => sum + count, 0);
+            const displayName = name === 'bearhill' ? 'Bear Hill' : name.charAt(0).toUpperCase() + name.slice(1);
             return (
               <div key={name} className={`p-3 rounded border ${
                 region.controller === 'republic' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
               }`}>
-                <h4 className="font-medium">{name.charAt(0).toUpperCase() + name.slice(1)}</h4>
+                <h4 className="font-medium">
+                  {displayName}
+                  <span className="text-xs ml-2 px-2 py-1 rounded">
+                    {region.controller === 'republic' ? '🏛️ Republic' : '⚔️ Order'}
+                  </span>
+                </h4>
                 <div className="text-sm text-gray-600">
                   {totalBuildings} building{totalBuildings !== 1 ? 's' : ''}
                   {name === 'pskov' && region.buildings.merchant_mansion > 0 && (
@@ -624,15 +932,15 @@ const PskovGame = () => {
             </p>
             <button
               onClick={nextPhase}
-              disabled={gameState.turn > 20 || gameState.phase === 'construction'}
+              disabled={gameState.turn > 20 || (gameState.phase === 'events' && !gameState.eventResolved)}
               className={`px-6 py-3 rounded font-semibold transition-colors ${
-                gameState.turn > 20 || gameState.phase === 'construction'
+                gameState.turn > 20 || (gameState.phase === 'events' && !gameState.eventResolved)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-amber-600 hover:bg-amber-700 text-white'
               }`}
             >
               {gameState.turn > 20 ? 'Game Complete' : 
-               gameState.phase === 'construction' ? 'Use Construction Panel Above' :
+               gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
                'Next Phase'}
             </button>
           </div>
