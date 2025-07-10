@@ -10,6 +10,8 @@ const PskovGame = () => {
     eventVotes: [null, null, null], // votes for current event (null = not voted, true = yes, false = no)
     eventResolved: false, // has current event been resolved
     debugEventIndex: 0, // for debug mode - cycles through events in order
+    chudVotingPhase: 'option_selection', // 'option_selection' or 'participation'
+    chudSelectedOption: null, // which option won the vote
     constructionActions: [
       { improvement: false, equipment: false },
       { improvement: false, equipment: false },
@@ -104,6 +106,59 @@ const PskovGame = () => {
   // Event deck
   const eventDeck = [
     {
+      id: 'izhorian_delegation',
+      name: 'Delegation from the Izhorians',
+      description: 'A delegation from the Izhorian people arrives at your gates seeking an audience.',
+      type: 'three_option',
+      options: [
+        { id: 'accept', name: 'Accept into service', cost: 6 },
+        { id: 'rob', name: 'Rob them', cost: 0 },
+        { id: 'send_back', name: 'Send them away', cost: 0 }
+      ],
+      effects: {
+        accept: (gameState) => {
+          const participants = gameState.eventVotes.filter(v => v === 'accept').length;
+          const totalCost = 6;
+          const costPerParticipant = participants > 0 ? totalCost / participants : 0;
+
+          // Check if all participants can afford their share
+          let allCanAfford = true;
+          gameState.players.forEach((player, index) => {
+            if (gameState.eventVotes[index] === 'accept' && player.money < costPerParticipant) {
+              allCanAfford = false;
+            }
+          });
+
+          if (!allCanAfford || participants === 0) {
+            // Can't afford or no participants, default to send_back
+            return gameState;
+          }
+
+          // Success - deduct money
+          const newPlayers = gameState.players.map((player, index) => {
+            if (gameState.eventVotes[index] === 'accept') {
+              return { ...player, money: player.money - costPerParticipant };
+            }
+            return player;
+          });
+
+          return { ...gameState, players: newPlayers };
+          // TODO: Add +5 strength for 5 turns when we implement effects tracking
+        },
+        rob: (gameState) => {
+          const newPlayers = gameState.players.map(player => ({
+            ...player,
+            money: player.money + 3
+          }));
+          return { ...gameState, players: newPlayers };
+          // TODO: Add Order +5 strength for 5 turns when we implement effects tracking
+        },
+        send_back: (gameState) => {
+          return gameState; // No effect
+        }
+      }
+    },
+    {
       id: 'good_harvest',
       name: 'Good Harvest',
       description: 'The fields have produced an abundant harvest. All players receive +1○.',
@@ -165,13 +220,53 @@ const PskovGame = () => {
     }
   };
 
-  // Vote on current event
+  // Vote on current event (for regular voting and Chud option selection)
   const voteOnEvent = (playerIndex, vote) => {
     setGameState(prev => {
       const newVotes = [...prev.eventVotes];
       newVotes[playerIndex] = vote;
       return { ...prev, eventVotes: newVotes };
     });
+  };
+
+  // For Chud events - vote on which option to choose
+  const voteOnChudOption = (playerIndex, optionId) => {
+    setGameState(prev => {
+      const newVotes = [...prev.eventVotes];
+      newVotes[playerIndex] = optionId;
+      return { ...prev, eventVotes: newVotes };
+    });
+  };
+
+  // Get three-option voting result
+  const getThreeOptionResult = () => {
+    const votes = gameState.eventVotes;
+    const completedVotes = votes.filter(v => v !== null);
+
+    if (completedVotes.length === 3) {
+      // Count votes for each option
+      const voteCounts = {};
+      votes.forEach(vote => {
+        if (vote) {
+          voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+        }
+      });
+
+      // Find option with most votes (majority)
+      let winningOption = 'send_back'; // Default if no majority
+      let maxVotes = 0;
+      Object.entries(voteCounts).forEach(([option, count]) => {
+        if (count >= 2) { // Need at least 2 votes for majority
+          if (count > maxVotes) {
+            maxVotes = count;
+            winningOption = option;
+          }
+        }
+      });
+
+      return winningOption;
+    }
+    return null;
   };
 
   // Check if participation is complete and get result
@@ -212,6 +307,28 @@ const PskovGame = () => {
           newState = prev.currentEvent.yesEffect(newState);
         } else {
           newState = prev.currentEvent.noEffect(newState);
+        }
+      } else if (prev.currentEvent.type === 'three_option') {
+        const winningOption = getThreeOptionResult();
+        if (winningOption === 'accept') {
+          // Check if accept voters can afford it
+          const acceptVoters = prev.eventVotes.filter(v => v === 'accept').length;
+          const costPerVoter = acceptVoters > 0 ? 6 / acceptVoters : 0;
+          let allCanAfford = true;
+          prev.players.forEach((player, index) => {
+            if (prev.eventVotes[index] === 'accept' && player.money < costPerVoter) {
+              allCanAfford = false;
+            }
+          });
+
+          if (allCanAfford && acceptVoters > 0) {
+            newState = prev.currentEvent.effects.accept(newState);
+          } else {
+            // Default to send_back if can't afford
+            newState = prev.currentEvent.effects.send_back(newState);
+          }
+        } else {
+          newState = prev.currentEvent.effects[winningOption](newState);
         }
       }
 
@@ -366,6 +483,8 @@ const PskovGame = () => {
         newState.currentEvent = drawEvent(prev.debugEventIndex);
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
+        newState.chudVotingPhase = 'option_selection';
+        newState.chudSelectedOption = null;
         // Increment debug event index for next time
         if (DEBUG_MODE) {
           newState.debugEventIndex = (prev.debugEventIndex + 1) % eventDeck.length;
@@ -388,6 +507,8 @@ const PskovGame = () => {
         newState.currentEvent = null;
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
+        newState.chudVotingPhase = 'option_selection';
+        newState.chudSelectedOption = null;
       }
 
       return {
@@ -539,7 +660,7 @@ const PskovGame = () => {
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
           <h4 className="font-medium text-yellow-800">🐛 Debug Mode Active</h4>
           <p className="text-yellow-700 text-sm">
-            Events cycle in order: Good Harvest → Drought → Good Harvest...
+            Events cycle in order: Izhorian Delegation → Good Harvest → Drought...
             <br />
             Next event: {eventDeck[gameState.debugEventIndex]?.name}
           </p>
@@ -742,6 +863,90 @@ const PskovGame = () => {
 
           <div className="bg-gray-50 p-4 rounded mb-4">
             <p className="text-gray-700 mb-3">{gameState.currentEvent.description}</p>
+
+            {gameState.currentEvent.type === 'three_option' && !gameState.eventResolved && (
+              <div>
+                <h4 className="font-medium mb-2">Council Decision:</h4>
+                <p className="text-sm text-gray-600 mb-4">Choose how to respond to the delegation:</p>
+
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  {gameState.players.map((player, index) => {
+                    const hasVoted = gameState.eventVotes[index] !== null;
+                    const canAffordAccept = player.money >= 2; // Minimum cost when all 3 participate
+
+                    return (
+                      <div key={index} className="text-center">
+                        <h5 className="font-medium mb-1">{player.faction}</h5>
+                        <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
+                        <div className="space-y-2">
+                          {gameState.currentEvent.options.map(option => (
+                            <button
+                              key={option.id}
+                              onClick={() => voteOnEvent(index, option.id)}
+                              disabled={hasVoted || (option.id === 'accept' && !canAffordAccept)}
+                              className={`w-full px-2 py-1 rounded text-xs ${
+                                gameState.eventVotes[index] === option.id
+                                  ? 'bg-amber-600 text-white'
+                                  : option.id === 'accept' && !canAffordAccept
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
+                              }`}
+                            >
+                              {gameState.eventVotes[index] === option.id ? 
+                                `Voted: ${option.name}` : 
+                                option.id === 'accept' && !canAffordAccept ?
+                                'Need 2○ min' :
+                                option.name
+                              }
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {getThreeOptionResult() && (
+                  <div className="text-center">
+                    {(() => {
+                      const winningOption = getThreeOptionResult();
+                      const optionName = gameState.currentEvent.options.find(opt => opt.id === winningOption)?.name;
+                      const acceptVoters = gameState.eventVotes.filter(v => v === 'accept').length;
+
+                      let resultText = `Decision: ${optionName}`;
+                      if (winningOption === 'accept') {
+                        // Check if accept voters can afford it
+                        let allCanAfford = true;
+                        const costPerVoter = acceptVoters > 0 ? 6 / acceptVoters : 0;
+                        gameState.players.forEach((player, index) => {
+                          if (gameState.eventVotes[index] === 'accept' && player.money < costPerVoter) {
+                            allCanAfford = false;
+                          }
+                        });
+
+                        if (!allCanAfford || acceptVoters === 0) {
+                          resultText = "Decision: Accept into service → FAILED (insufficient funds) → Send them away";
+                        } else {
+                          resultText = `Decision: Accept into service (${acceptVoters} participants, ${costPerVoter.toFixed(1)}○ each)`;
+                        }
+                      }
+
+                      return (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-600 mb-2">{resultText}</p>
+                        </div>
+                      );
+                    })()}
+                    <button
+                      onClick={resolveEvent}
+                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+                    >
+                      Apply Decision
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {gameState.currentEvent.type === 'veche' && !gameState.eventResolved && (
               <div>
