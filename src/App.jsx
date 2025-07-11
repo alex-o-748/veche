@@ -227,7 +227,6 @@ const PskovGame = () => {
 
   // Event deck with all events
   const eventDeck = [
-    // Start with the requested sequence: Plague → Boyars → Embassy → Relics → Merchants Robbed
     {
       id: 'plague',
       name: 'Plague',
@@ -330,9 +329,16 @@ const PskovGame = () => {
               ...gameState, 
               regions: newRegions,
               players: newPlayers,
+              activeEffects: [...gameState.activeEffects, {
+                id: `uprising_penalty_${Date.now()}`,
+                type: 'strength_penalty',
+                target: 'all',
+                value: -50, // TODO -50% implemented as flat -50 points for now
+                turnsRemaining: 2,
+                description: 'Uprising strength penalty'
+              }],
               lastEventResult: `UPRISING! All factions lose 50% strength. Buildings destroyed: ${destroyedBuildings.join(', ')}`
             };
-            // TODO: Implement -50% strength for all factions
           } else {
             return { 
               ...gameState,
@@ -462,7 +468,7 @@ const PskovGame = () => {
       description: 'Holy relics have been discovered. Are they genuine or deception?',
       type: 'voting',
       options: [
-        { id: 'build_temple', name: 'Build temple', requiresMinMoney: 1 },
+        { id: 'build_temple', name: 'Build a church', requiresMinMoney: 1 },
         { id: 'deception', name: 'It\'s all deception' }
       ],
       effects: {
@@ -471,12 +477,39 @@ const PskovGame = () => {
             ...player,
             money: Math.max(0, player.money - 3)
           }));
-          return { ...gameState, players: newPlayers };
-          // TODO: Implement +5 strength for 3 turns
-        },
+          // ADD: Morale boost from relics
+          const relicsBoostEffect = {
+            id: `relics_boost_${Date.now()}`,
+            type: 'strength_bonus',
+            target: 'all',
+            value: 5,
+            turnsRemaining: 3,
+            description: 'Holy relics morale boost'
+          };
+
+          return { 
+            ...gameState, 
+            players: newPlayers,
+            activeEffects: [...gameState.activeEffects, relicsBoostEffect],
+            lastEventResult: 'Church built for holy relics! +5 strength for 3 turns.'
+          };
+          },
         deception: (gameState) => {
-          // TODO: Implement -5 strength for 3 turns
-          return gameState;
+          // ADD: Morale penalty from cynicism
+          const cynicismEffect = {
+            id: `cynicism_penalty_${Date.now()}`,
+            type: 'strength_penalty',
+            target: 'all',
+            value: -5,
+            turnsRemaining: 3,
+            description: 'Religious cynicism penalty'
+          };
+
+          return { 
+            ...gameState,
+            activeEffects: [...gameState.activeEffects, cynicismEffect],
+            lastEventResult: 'Relics declared false! Religious cynicism spreads. -5 strength for 3 turns.'
+          };
         }
       }
     },
@@ -503,16 +536,47 @@ const PskovGame = () => {
             }
             return player;
           });
-          return { ...gameState, players: newPlayers };
-          // TODO: Implement "on roll 1-3 merchants income -50% strength -50%"
+          const rollFailed = Math.random() < 0.5;
+          if (rollFailed) {
+            const merchantWeaknessEffect = {
+              id: `merchant_weakness_${Date.now()}`,
+              type: 'strength_penalty',
+              target: 'Merchants',
+              value: -10, // TODO -50% strength implemented as flat -10 points for now
+              turnsRemaining: 3,
+              description: 'Merchant trading weakness'
+            };
+            return { 
+              ...gameState, 
+              players: newPlayers,
+              activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
+              lastEventResult: 'Compensation demand failed! Merchants weakened for 3 turns.'
+            };
+          } else {
+            return { 
+              ...gameState, 
+              players: newPlayers,
+              lastEventResult: 'Compensation received successfully.'
+            };
+          }
         },
         trade_risk: (gameState) => {
-          // TODO: Implement "merchants income -50%, strength -50%"
-          return gameState;
+          const merchantWeaknessEffect = {
+            id: `merchant_weakness_${Date.now()}`,
+            type: 'strength_penalty',
+            target: 'Merchants',
+            value: -25, // -50% strength
+            turnsRemaining: 3,
+            description: 'Trade route disruption'
+          };
+          return { 
+            ...gameState,
+            activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
+            lastEventResult: 'Trade routes disrupted! Merchants lose 50% strength for 3 turns.'
+          };
         }
       }
     },          
-    // EXISTING EVENTS
     {
       id: 'izhorian_delegation',
       name: 'Delegation from the Izhorians',
@@ -536,15 +600,44 @@ const PskovGame = () => {
             }
             return player;
           });
+          // Alliance strength bonus
+          const izhoraAllianceEffect = {
+            id: `izhora_alliance_${Date.now()}`,
+            type: 'strength_bonus',
+            target: 'all',
+            value: 5,
+            turnsRemaining: 6,
+            description: 'Izhora allied forces'
+          };
 
-          return { ...gameState, players: newPlayers };
-        },
+          return { 
+            ...gameState, 
+            players: newPlayers,
+            activeEffects: [...gameState.activeEffects, izhoraAllianceEffect],
+            lastEventResult: 'Izhorians accepted into service! +5 strength for 6 turns.'
+          };
+          },
         rob: (gameState) => {
           const newPlayers = gameState.players.map(player => ({
             ...player,
             money: player.money + 3
           }));
-          return { ...gameState, players: newPlayers };
+          // Izhora hostility penalty
+          const izhoraHostilityEffect = {
+            id: `chud_hostility_${Date.now()}`,
+            type: 'strength_penalty',
+            target: 'all',
+            value: -5,
+            turnsRemaining: 6,
+            description: 'Izhora hostility'
+          };
+
+          return { 
+            ...gameState, 
+            players: newPlayers,
+            activeEffects: [...gameState.activeEffects, izhoraHostilityEffect],
+            lastEventResult: 'Izhorians robbed! They become hostile. -5 strength for 6 turns.'
+          };
         },
         send_back: (gameState) => {
           return gameState;
@@ -573,10 +666,41 @@ const PskovGame = () => {
       question: 'Who will help buy emergency food supplies? Cost will be split evenly among participants.',
       minCostPerPlayer: 2,
       successText: 'FOOD PURCHASED',
-      failureText: 'PURCHASE FAILED'
+      failureText: 'PURCHASE FAILED',
+      effects: {
+        success: (gameState, votes) => {
+          // Apply normal participation logic (money deduction)
+          const participants = votes.filter(v => v === true).length;
+          const costPerParticipant = participants > 0 ? 3 / participants : 0;
+          const newPlayers = gameState.players.map((player, index) => {
+            if (votes[index] === true) {
+              return { ...player, money: player.money - costPerParticipant };
+            }
+            return player;
+          });
+          return { 
+            ...gameState, 
+            players: newPlayers,
+            lastEventResult: 'Emergency food purchased! Famine avoided.'
+          };
+        },
+        failure: (gameState) => {
+          const famineEffect = {
+            id: `drought_famine_${Date.now()}`,
+            type: 'strength_penalty',
+            target: 'Commoners',
+            value: -20, // TODO 50% implemented as flat -30 points for now
+            turnsRemaining: 3,
+            description: 'Famine weakens commoners'
+          };
+          return { 
+            ...gameState,
+            activeEffects: [...gameState.activeEffects, famineEffect],
+            lastEventResult: 'Famine strikes! Commoners lose 50% strength for 3 turns.'
+          };
+        }
+      }
     },
-
-    // NEW IMMEDIATE EVENTS
     {
       id: 'fire',
       name: 'Fire',
@@ -708,12 +832,22 @@ const PskovGame = () => {
       description: 'Heretical ideas spread among the people, weakening military resolve.',
       type: 'immediate',
       effect: (gameState) => {
-        // TODO: Implement -25% military strength for 2 turns
-        return gameState;
+        const heresyEffect = {
+          id: `heresy_penalty_${Date.now()}`,
+          type: 'strength_penalty',
+          target: 'all',
+          value: -10,
+          turnsRemaining: 2,
+          description: 'Heretical discord'
+        };
+    
+        return { 
+          ...gameState,
+          activeEffects: [...gameState.activeEffects, heresyEffect],
+          lastEventResult: 'Heretical ideas spread! All factions lose 10 strength for 2 turns.'
+        };
       }
     },
-
-    // NEW PARTICIPATION EVENTS (Order Attacks)
     {
       id: 'order_attack_90',
       name: 'Order Attack (90)',
@@ -778,7 +912,39 @@ const PskovGame = () => {
       question: 'Who will help fund isolation and treatment? Cost will be split evenly among participants.',
       minCostPerPlayer: 1,
       successText: 'ISOLATION FUNDED',
-      failureText: 'NO ISOLATION - TRUST IN GOD'
+      failureText: 'NO ISOLATION - PLAGUE SPREADS',
+      effects: {
+        success: (gameState, votes) => {
+          const participants = votes.filter(v => v === true).length;
+          const costPerParticipant = participants > 0 ? 3 / participants : 0;
+          const newPlayers = gameState.players.map((player, index) => {
+            if (votes[index] === true) {
+              return { ...player, money: player.money - costPerParticipant };
+            }
+            return player;
+          });
+          return { 
+            ...gameState, 
+            players: newPlayers,
+            lastEventResult: 'Plague contained through isolation measures!'
+          };
+        },
+        failure: (gameState) => {
+          const plagueEffect = {
+            id: `plague_weakness_${Date.now()}`,
+            type: 'strength_penalty',
+            target: 'all',
+            value: -10, // -25% strength for all
+            turnsRemaining: 2,
+            description: 'Plague weakens population'
+          };
+          return { 
+            ...gameState,
+            activeEffects: [...gameState.activeEffects, plagueEffect],
+            lastEventResult: 'Plague spreads unchecked! All factions lose 25% strength for 2 turns.'
+          };
+        }
+      }
     }
   ];
 
