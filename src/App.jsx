@@ -228,17 +228,6 @@ const PskovGame = () => {
   // Event deck with all events
   const eventDeck = [
     {
-      id: 'plague',
-      name: 'Plague',
-      description: 'A plague spreads through the city. Who will fund isolation and treatment?',
-      type: 'participation',
-      totalCost: 3,
-      question: 'Who will help fund isolation and treatment? Cost will be split evenly among participants.',
-      minCostPerPlayer: 1,
-      successText: 'ISOLATION FUNDED',
-      failureText: 'PLAGUE ALLOWED TO ROAM FREE'
-    },
-    {
       id: 'order_attack_110',
       name: 'Order Attack (110)',
       description: 'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
@@ -267,12 +256,23 @@ const PskovGame = () => {
             }
             return player;
           });
+
+          // ADD: Noble strength penalty for corruption investigation
+          const nobleWeaknessEffect = {
+            id: `noble_corruption_penalty_${Date.now()}`,
+            type: 'strength_penalty',
+            target: 'Nobles',
+            value: -15,
+            turnsRemaining: 3,
+            description: 'Noble corruption investigation penalty'
+          };
+
           return { 
             ...gameState, 
             players: newPlayers,
-            lastEventResult: 'Nobles punished for corruption! -2○ and strength penalty applied.'
+            activeEffects: [...gameState.activeEffects, nobleWeaknessEffect],
+            lastEventResult: 'Nobles punished for corruption! -2○ and -15 strength for 3 turns.'
           };
-          // TODO: Implement -15 noble strength effect
         },
         ignore: (gameState) => {
           // 50% chance of uprising
@@ -333,7 +333,7 @@ const PskovGame = () => {
                 id: `uprising_penalty_${Date.now()}`,
                 type: 'strength_penalty',
                 target: 'all',
-                value: -50, // TODO -50% implemented as flat -50 points for now
+                value: -7, // TODO -50% implemented as flat -25 points for now
                 turnsRemaining: 2,
                 description: 'Uprising strength penalty'
               }],
@@ -372,11 +372,31 @@ const PskovGame = () => {
           });
 
           if (!allCanAfford || participants === 0) {
+            // Fall back to refuse with proper effects
+            const refusalEffects = [
+              {
+                id: `embassy_strength_penalty_${Date.now()}`,
+                type: 'strength_penalty',
+                target: 'all',
+                value: -15,
+                turnsRemaining: 5,
+                description: 'Embassy refusal strength penalty'
+              },
+              {
+                id: `embassy_income_penalty_${Date.now()}`,
+                type: 'income_penalty',
+                target: 'all',
+                value: -0.5, // -50% income
+                turnsRemaining: 5,
+                description: 'Embassy refusal income penalty'
+              }
+            ];
+
             return { 
               ...gameState,
+              activeEffects: [...gameState.activeEffects, ...refusalEffects],
               lastEventResult: 'Embassy refused! Grand Prince is insulted. -50% strength and income for 5 turns.'
             };
-            // TODO: Implement -50% strength and income for 5 turns
           }
 
           const newPlayers = gameState.players.map((player, index) => {
@@ -415,12 +435,12 @@ const PskovGame = () => {
             return player;
           });
 
-          //Create the strength bonus effect
+          // Create the strength bonus effect
           const strengthEffect = {
             id: `embassy_strength_bonus_${Date.now()}`,
             type: 'strength_bonus',
             target: 'all',
-            value: 10,
+            value: 3,
             turnsRemaining: 3,
             description: 'Embassy reception boost'
           };
@@ -431,16 +451,14 @@ const PskovGame = () => {
             activeEffects: [...gameState.activeEffects, strengthEffect],
             lastEventResult: 'Embassy received luxuriously! +10 strength for 3 turns.'
           };
-          // TODO: Implement +10 strength for 3 turns
         },
         refuse: (gameState) => {
-          // CREATE BOTH EFFECTS: strength penalty and income penalty
           const newEffects = [
             {
               id: `embassy_strength_penalty_${Date.now()}`,
               type: 'strength_penalty',
               target: 'all',
-              value: -50, // -50% as flat penalty for now
+              value: -15, // Fixed strength penalty
               turnsRemaining: 5,
               description: 'Embassy refusal strength penalty'
             },
@@ -448,7 +466,7 @@ const PskovGame = () => {
               id: `embassy_income_penalty_${Date.now()}`,
               type: 'income_penalty',
               target: 'all',
-              value: -0.5, // -50% income
+              value: -0.5, // Fixed income penalty (-50%)
               turnsRemaining: 5,
               description: 'Embassy refusal income penalty'
             }
@@ -456,8 +474,8 @@ const PskovGame = () => {
 
           return { 
             ...gameState,
-            activeEffects: [...gameState.activeEffects, ...newEffects], // ADD BOTH EFFECTS
-            lastEventResult: 'Embassy refused! Grand Prince is insulted and prohibits trade with Pskov. -50% strength and income for 5 turns.'
+            activeEffects: [...gameState.activeEffects, ...newEffects],
+            lastEventResult: 'Embassy refused! Grand Prince is insulted.  Strength -15 and income -50% for 5 turns.'
           };
         }
       }
@@ -565,7 +583,7 @@ const PskovGame = () => {
             id: `merchant_weakness_${Date.now()}`,
             type: 'strength_penalty',
             target: 'Merchants',
-            value: -25, // -50% strength
+            value: -10, // -50% strength
             turnsRemaining: 3,
             description: 'Trade route disruption'
           };
@@ -594,6 +612,19 @@ const PskovGame = () => {
           const participants = votes.filter(v => v === 'accept').length;
           const costPerParticipant = participants > 0 ? 6 / participants : 0;
 
+          // ADD: Check if all participants can afford it
+          let allCanAfford = true;
+          gameState.players.forEach((player, index) => {
+            if (votes[index] === 'accept' && player.money < costPerParticipant) {
+              allCanAfford = false;
+            }
+          });
+
+          // ADD: Fallback if anyone can't afford it or no participants
+          if (!allCanAfford || participants === 0) {
+            return gameState.currentEvent.effects.send_back(gameState);
+          }
+          
           const newPlayers = gameState.players.map((player, index) => {
             if (votes[index] === 'accept') {
               return { ...player, money: player.money - costPerParticipant };
@@ -660,39 +691,55 @@ const PskovGame = () => {
     {
       id: 'drought',
       name: 'Drought',
-      description: 'The crops are failing due to lack of rain. Emergency food supplies cost 6○ total.',
-      type: 'participation',
-      totalCost: 6,
-      question: 'Who will help buy emergency food supplies? Cost will be split evenly among participants.',
-      minCostPerPlayer: 2,
-      successText: 'FOOD PURCHASED',
-      failureText: 'PURCHASE FAILED',
+      description: 'The crops are failing due to lack of rain. How will you respond?',
+      type: 'voting',
+      defaultOption: 'no_food',
+      options: [
+        { id: 'buy_food', name: 'Buy emergency food supplies', requiresMinMoney: 2 },
+        { id: 'no_food', name: 'Let the people endure' }
+      ],
       effects: {
-        success: (gameState, votes) => {
-          // Apply normal participation logic (money deduction)
-          const participants = votes.filter(v => v === true).length;
-          const costPerParticipant = participants > 0 ? 3 / participants : 0;
+        buy_food: (gameState, votes) => {
+          const participants = votes.filter(v => v === 'buy_food').length;
+          const costPerParticipant = participants > 0 ? 6 / participants : 0;
+
+          // Check if all participants can afford it
+          let allCanAfford = true;
+          gameState.players.forEach((player, index) => {
+            if (votes[index] === 'buy_food' && player.money < costPerParticipant) {
+              allCanAfford = false;
+            }
+          });
+
+          // If anyone can't afford it or no participants, fall back to no food
+          if (!allCanAfford || participants === 0) {
+            return gameState.currentEvent.effects.no_food(gameState);
+          }
+
+          // Deduct money from participants
           const newPlayers = gameState.players.map((player, index) => {
-            if (votes[index] === true) {
+            if (votes[index] === 'buy_food') {
               return { ...player, money: player.money - costPerParticipant };
             }
             return player;
           });
+
           return { 
             ...gameState, 
             players: newPlayers,
             lastEventResult: 'Emergency food purchased! Famine avoided.'
           };
         },
-        failure: (gameState) => {
+        no_food: (gameState) => {
           const famineEffect = {
             id: `drought_famine_${Date.now()}`,
             type: 'strength_penalty',
             target: 'Commoners',
-            value: -20, // TODO 50% implemented as flat -30 points for now
+            value: -12, // Reduces Commoners from 25 to 13 strength (roughly -50%)
             turnsRemaining: 3,
             description: 'Famine weakens commoners'
           };
+
           return { 
             ...gameState,
             activeEffects: [...gameState.activeEffects, famineEffect],
@@ -906,42 +953,70 @@ const PskovGame = () => {
     {
       id: 'plague',
       name: 'Plague',
-      description: 'A plague spreads through the city. Who will fund isolation and treatment?',
-      type: 'participation',
-      totalCost: 3,
-      question: 'Who will help fund isolation and treatment? Cost will be split evenly among participants.',
-      minCostPerPlayer: 1,
-      successText: 'ISOLATION FUNDED',
-      failureText: 'NO ISOLATION - PLAGUE SPREADS',
+      description: 'A plague spreads through the city. How will you respond?',
+      type: 'voting', // CHANGE: from 'participation' to 'voting'
+      defaultOption: 'no_isolation',
+      options: [
+        { id: 'fund_isolation', name: 'Fund isolation and treatment', requiresMinMoney: 1 },
+        { id: 'no_isolation', name: 'Trust in God - no isolation' }
+      ],
       effects: {
-        success: (gameState, votes) => {
-          const participants = votes.filter(v => v === true).length;
+        fund_isolation: (gameState, votes) => {
+          const participants = votes.filter(v => v === 'fund_isolation').length;
           const costPerParticipant = participants > 0 ? 3 / participants : 0;
+
+          // Check if all participants can afford it
+          let allCanAfford = true;
+          gameState.players.forEach((player, index) => {
+            if (votes[index] === 'fund_isolation' && player.money < costPerParticipant) {
+              allCanAfford = false;
+            }
+          });
+
+          // If anyone can't afford it or no participants, fall back to no isolation
+          if (!allCanAfford || participants === 0) {
+            return gameState.currentEvent.effects.no_isolation(gameState);
+          }
+
+          // Deduct money from participants
           const newPlayers = gameState.players.map((player, index) => {
-            if (votes[index] === true) {
+            if (votes[index] === 'fund_isolation') {
               return { ...player, money: player.money - costPerParticipant };
             }
             return player;
           });
+
+          // ADD: Even with isolation, there's still some plague impact
+          const mildPlagueEffect = {
+            id: `mild_plague_${Date.now()}`,
+            type: 'strength_penalty',
+            target: 'all',
+            value: -5, // -5 strength penalty even with isolation
+            turnsRemaining: 2,
+            description: 'Mild plague effects despite isolation'
+          };
+
           return { 
             ...gameState, 
             players: newPlayers,
-            lastEventResult: 'Plague contained through isolation measures!'
+            activeEffects: [...gameState.activeEffects, mildPlagueEffect],
+            lastEventResult: 'Plague partially contained! All factions lose 5 strength for 2 turns.'
           };
         },
-        failure: (gameState) => {
+        no_isolation: (gameState) => {
           const plagueEffect = {
-            id: `plague_weakness_${Date.now()}`,
+            id: `severe_plague_${Date.now()}`,
             type: 'strength_penalty',
             target: 'all',
-            value: -10, // -25% strength for all
+            value: -25, // -25 strength penalty without isolation
             turnsRemaining: 2,
-            description: 'Plague weakens population'
+            description: 'Severe plague weakens population'
           };
+
           return { 
             ...gameState,
             activeEffects: [...gameState.activeEffects, plagueEffect],
-            lastEventResult: 'Plague spreads unchecked! All factions lose 25% strength for 2 turns.'
+            lastEventResult: 'Plague spreads unchecked! All factions lose 25 strength for 2 turns.'
           };
         }
       }
