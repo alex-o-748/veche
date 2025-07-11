@@ -963,7 +963,7 @@ const PskovGame = () => {
   };
 
   const nextPhase = () => {
-    const currentPhaseIndex = phases.indexOf(prev.phase);
+    const currentPhaseIndex = phases.indexOf(gameState.phase);
     const isLastPhase = currentPhaseIndex === phases.length - 1;
     
     setGameState(prev => {
@@ -1214,6 +1214,31 @@ const PskovGame = () => {
         </div>
       </div>
 
+      {/* Active Effects Display */}
+      {gameState.activeEffects.length > 0 && (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6 shadow">
+          <h3 className="text-lg font-semibold mb-3 text-purple-800">Active Effects</h3>
+          <div className="space-y-2">
+            {gameState.activeEffects.map((effect, index) => (
+              <div key={effect.id} className="bg-white p-3 rounded border border-purple-100">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-purple-900">{effect.description}</span>
+                  <span className="text-sm text-purple-600">
+                    {effect.turnsRemaining} turn{effect.turnsRemaining !== 1 ? 's' : ''} remaining
+                  </span>
+                </div>
+                <div className="text-sm text-purple-700 mt-1">
+                  {effect.type === 'strength_bonus' && `+${effect.value} strength`}
+                  {effect.type === 'strength_penalty' && `${effect.value} strength`}
+                  {effect.type === 'income_penalty' && `${effect.value * 100}% income`}
+                  {effect.target === 'all' ? ' (All factions)' : ` (${effect.target})`}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
       {/* Players */}
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         {gameState.players.map((player, index) => (
@@ -1229,14 +1254,22 @@ const PskovGame = () => {
               )}
             </h3>
             <div className="space-y-1 text-sm">
-              <div>Money: {player.money} ○</div>
+              <div>Money: {player.money.toFixed(1)} ○</div>
               <div>Improvements: {player.improvements}</div>
               <div>Weapons: {player.weapons}</div>
               <div>Armor: {player.armor}</div>
               <div className="text-gray-600">
-                {player.faction === 'Nobles' && 'Base Strength: 40'}
-                {player.faction === 'Merchants' && 'Base Strength: 15'}
-                {player.faction === 'Commoners' && 'Base Strength: 25'}
+                {player.faction === 'Nobles' && `Base Strength: 40`}
+                {player.faction === 'Merchants' && `Base Strength: 15`}
+                {player.faction === 'Commoners' && `Base Strength: 25`}
+                {(() => {
+                  const modifier = getStrengthModifier(player.faction);
+                  return modifier !== 0 ? (
+                    <span className={modifier > 0 ? 'text-green-600' : 'text-red-600'}>
+                      {modifier > 0 ? ` (+${modifier})` : ` (${modifier})`}
+                    </span>
+                  ) : null;
+                })()}
               </div>
             </div>
           </div>
