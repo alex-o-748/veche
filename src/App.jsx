@@ -14,6 +14,7 @@ const PskovGame = () => {
     eventResolved: false, // has current event been resolved
     debugEventIndex: 0, // for debug mode - cycles through events in order
     lastEventResult: null, // stores result message for immediate events
+    activeEffects: [], // tracks ongoing effects
     regions: {
       pskov: { 
         controller: 'republic', 
@@ -100,6 +101,54 @@ const PskovGame = () => {
     events: 'Events',
     veche: 'Veche (Council)',
     military: 'Military Actions'
+  };
+
+  // Effects management functions
+  const addEffect = (newEffect) => {
+    setGameState(prev => ({
+      ...prev,
+      activeEffects: [...prev.activeEffects, {
+        ...newEffect,
+        id: `${newEffect.type}_${Date.now()}` // Generate unique ID
+      }]
+    }));
+  };
+
+  const updateEffects = () => {
+    setGameState(prev => ({
+      ...prev,
+      activeEffects: prev.activeEffects
+        .map(effect => ({
+          ...effect,
+          turnsRemaining: effect.turnsRemaining - 1
+        }))
+        .filter(effect => effect.turnsRemaining > 0)
+    }));
+  };
+
+  // Calculate strength modifiers from active effects
+  const getStrengthModifier = (faction) => {
+    return gameState.activeEffects.reduce((total, effect) => {
+      if (effect.type === 'strength_bonus' || effect.type === 'strength_penalty') {
+        if (effect.target === 'all' || effect.target === faction) {
+          return total + effect.value;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  // Calculate income modifiers from active effects
+  const getIncomeModifier = (faction) => {
+    let modifier = 1.0; // Start with 100%
+    gameState.activeEffects.forEach(effect => {
+      if (effect.type === 'income_penalty') {
+        if (effect.target === 'all' || effect.target === faction) {
+          modifier *= (1 + effect.value); // value should be negative (e.g., -0.5 for -50%)
+        }
+      }
+    });
+    return modifier;
   };
 
   // Event system abstraction
@@ -360,19 +409,50 @@ const PskovGame = () => {
             return player;
           });
 
+          //Create the strength bonus effect
+          const strengthEffect = {
+            id: `embassy_strength_bonus_${Date.now()}`,
+            type: 'strength_bonus',
+            target: 'all',
+            value: 10,
+            turnsRemaining: 3,
+            description: 'Embassy reception boost'
+          };
+
           return { 
             ...gameState, 
             players: newPlayers,
+            activeEffects: [...gameState.activeEffects, strengthEffect],
             lastEventResult: 'Embassy received luxuriously! +10 strength for 3 turns.'
           };
           // TODO: Implement +10 strength for 3 turns
         },
         refuse: (gameState) => {
+          // CREATE BOTH EFFECTS: strength penalty and income penalty
+          const newEffects = [
+            {
+              id: `embassy_strength_penalty_${Date.now()}`,
+              type: 'strength_penalty',
+              target: 'all',
+              value: -50, // -50% as flat penalty for now
+              turnsRemaining: 5,
+              description: 'Embassy refusal strength penalty'
+            },
+            {
+              id: `embassy_income_penalty_${Date.now()}`,
+              type: 'income_penalty',
+              target: 'all',
+              value: -0.5, // -50% income
+              turnsRemaining: 5,
+              description: 'Embassy refusal income penalty'
+            }
+          ];
+
           return { 
             ...gameState,
-            lastEventResult: 'Embassy refused! Grand Prince is insulted. -50% strength and income for 5 turns.'
+            activeEffects: [...gameState.activeEffects, ...newEffects], // ADD BOTH EFFECTS
+            lastEventResult: 'Embassy refused! Grand Prince is insulted and prohibits trade with Pskov. -50% strength and income for 5 turns.'
           };
-          // TODO: Implement -50% strength and income for 5 turns
         }
       }
     },
@@ -883,9 +963,10 @@ const PskovGame = () => {
   };
 
   const nextPhase = () => {
+    const currentPhaseIndex = phases.indexOf(prev.phase);
+    const isLastPhase = currentPhaseIndex === phases.length - 1;
+    
     setGameState(prev => {
-      const currentPhaseIndex = phases.indexOf(prev.phase);
-      const isLastPhase = currentPhaseIndex === phases.length - 1;
       const isResourcesPhase = prev.phase === 'resources';
       const isConstructionPhase = prev.phase === 'construction';
       const nextPhase = isLastPhase ? phases[0] : phases[currentPhaseIndex + 1];
@@ -895,10 +976,15 @@ const PskovGame = () => {
       // Auto-calculate income during resources phase
       if (isResourcesPhase) {
         const republicRegions = Object.values(prev.regions).filter(r => r.controller === 'republic').length;
-        newState.players = prev.players.map(player => ({
-          ...player,
-          money: player.money + 0.5 + (republicRegions * 0.25) + (player.improvements * 0.25)
-        }));
+        newState.players = prev.players.map((player, index) => {
+          const baseIncome = 0.5 + (republicRegions * 0.25) + (player.improvements * 0.25);
+          const incomeModifier = getIncomeModifier(player.faction);
+          const finalIncome = baseIncome * incomeModifier;
+          return {
+            ...player,
+            money: player.money + finalIncome
+          };
+        });
       }
 
       // Draw event when moving TO events phase
@@ -936,6 +1022,10 @@ const PskovGame = () => {
         turn: isLastPhase ? prev.turn + 1 : prev.turn
       };
     });
+
+    if (isLastPhase) {
+      setTimeout(() => updateEffects(), 100);
+    }
   };
 
   const nextPlayer = () => {
