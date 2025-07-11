@@ -1,22 +1,19 @@
 import React, { useState } from 'react';
 
 const PskovGame = () => {
+  // Debug mode - set to true for predictable event order
+  const DEBUG_MODE = true;
+
   const [gameState, setGameState] = useState({
     turn: 1,
     phase: 'resources',
     currentPlayer: 0, // for construction phase
     selectedRegion: 'pskov', // for construction phase
     currentEvent: null, // current event card
-    eventVotes: [null, null, null], // votes for current event (null = not voted, true = yes, false = no)
+    eventVotes: [null, null, null], // votes for current event
     eventResolved: false, // has current event been resolved
     debugEventIndex: 0, // for debug mode - cycles through events in order
-    chudVotingPhase: 'option_selection', // 'option_selection' or 'participation'
-    chudSelectedOption: null, // which option won the vote
-    constructionActions: [
-      { improvement: false, equipment: false },
-      { improvement: false, equipment: false },
-      { improvement: false, equipment: false }
-    ], // track purchases for each player this turn
+    lastEventResult: null, // stores result message for immediate events
     regions: {
       pskov: { 
         controller: 'republic', 
@@ -84,6 +81,11 @@ const PskovGame = () => {
         }
       }
     },
+    constructionActions: [
+      { improvement: false, equipment: false },
+      { improvement: false, equipment: false },
+      { improvement: false, equipment: false }
+    ],
     players: [
       { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0 },
       { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0 },
@@ -100,50 +102,362 @@ const PskovGame = () => {
     military: 'Military Actions'
   };
 
-  // Debug mode - set to true for predictable event order
-  const DEBUG_MODE = true;
+  // Event system abstraction
+  const eventTypes = {
+    immediate: {
+      resolve: (event, gameState) => {
+        return event.effect(gameState);
+      }
+    },
+    participation: {
+      resolve: (event, gameState, votes) => {
+        const participants = votes.filter(v => v === true).length;
+        const costPerParticipant = participants > 0 ? event.totalCost / participants : 0;
 
-  // Event deck
-  const eventDeck = [
-    {
-      id: 'izhorian_delegation',
-      name: 'Delegation from the Izhorians',
-      description: 'A delegation from the Izhorian people arrives at your gates seeking an audience.',
-      type: 'three_option',
-      options: [
-        { id: 'accept', name: 'Accept into service', cost: 6 },
-        { id: 'rob', name: 'Rob them', cost: 0 },
-        { id: 'send_back', name: 'Send them away', cost: 0 }
-      ],
-      effects: {
-        accept: (gameState) => {
-          const participants = gameState.eventVotes.filter(v => v === 'accept').length;
-          const totalCost = 6;
-          const costPerParticipant = participants > 0 ? totalCost / participants : 0;
+        let allCanAfford = true;
+        gameState.players.forEach((player, index) => {
+          if (votes[index] === true && player.money < costPerParticipant) {
+            allCanAfford = false;
+          }
+        });
 
-          // Check if all participants can afford their share
+        if (!allCanAfford || participants === 0) {
+          return gameState;
+        }
+
+        const newPlayers = gameState.players.map((player, index) => {
+          if (votes[index] === true) {
+            return { ...player, money: player.money - costPerParticipant };
+          }
+          return player;
+        });
+
+        return { ...gameState, players: newPlayers };
+      }
+    },
+    voting: {
+      resolve: (event, gameState, votes) => {
+        const voteCounts = {};
+        votes.forEach(vote => {
+          if (vote) {
+            voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+          }
+        });
+
+        let winningOption = event.defaultOption || 'send_back';
+        let maxVotes = 0;
+        Object.entries(voteCounts).forEach(([option, count]) => {
+          if (count >= 2) {
+            if (count > maxVotes) {
+              maxVotes = count;
+              winningOption = option;
+            }
+          }
+        });
+
+        if (winningOption === 'accept' && event.acceptCost) {
+          const acceptVoters = votes.filter(v => v === 'accept').length;
+          const costPerVoter = acceptVoters > 0 ? event.acceptCost / acceptVoters : 0;
+
           let allCanAfford = true;
           gameState.players.forEach((player, index) => {
-            if (gameState.eventVotes[index] === 'accept' && player.money < costPerParticipant) {
+            if (votes[index] === 'accept' && player.money < costPerVoter) {
+              allCanAfford = false;
+            }
+          });
+
+          if (!allCanAfford || acceptVoters === 0) {
+            winningOption = event.defaultOption || 'send_back';
+          }
+        }
+
+        return event.effects[winningOption](gameState, votes);
+      }
+    }
+  };
+
+  // Event deck with all events
+  const eventDeck = [
+    // Start with the requested sequence: Plague → Boyars → Embassy → Relics → Merchants Robbed
+    {
+      id: 'plague',
+      name: 'Plague',
+      description: 'A plague spreads through the city. Who will fund isolation and treatment?',
+      type: 'participation',
+      totalCost: 3,
+      question: 'Who will help fund isolation and treatment? Cost will be split evenly among participants.',
+      minCostPerPlayer: 1,
+      successText: 'ISOLATION FUNDED',
+      failureText: 'PLAGUE ALLOWED TO ROAM FREE'
+    },
+    {
+      id: 'order_attack_110',
+      name: 'Order Attack (110)',
+      description: 'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
+      type: 'participation',
+      totalCost: 3,
+      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      minCostPerPlayer: 1,
+      successText: 'DEFENSE FUNDED',
+      failureText: 'NO DEFENSE - SURRENDER'
+    },
+    {
+      id: 'boyars_take_bribes',
+      name: 'Nobles Take Bribes',
+      description: 'Noble corruption has been discovered. How will you handle this?',
+      type: 'voting',
+      defaultOption: 'ignore',
+      options: [
+        { id: 'investigate', name: 'Investigate and punish' },
+        { id: 'ignore', name: 'This is the way it is' }
+      ],
+      effects: {
+        investigate: (gameState) => {
+          const newPlayers = gameState.players.map((player, index) => {
+            if (player.faction === 'Nobles') {
+              return { ...player, money: Math.max(0, player.money - 2) };
+            }
+            return player;
+          });
+          return { 
+            ...gameState, 
+            players: newPlayers,
+            lastEventResult: 'Nobles punished for corruption! -2○ and strength penalty applied.'
+          };
+          // TODO: Implement -15 noble strength effect
+        },
+        ignore: (gameState) => {
+          // 50% chance of uprising
+          const uprisingRoll = Math.random();
+          if (uprisingRoll < 0.5) {
+            // Uprising occurs - destroy 2 random buildings in Pskov
+            const pskovRegion = gameState.regions.pskov;
+            const buildingTypes = Object.entries(pskovRegion.buildings).filter(([_, count]) => count > 0);
+
+            let newRegions = { ...gameState.regions };
+            let newPlayers = [...gameState.players];
+            let destroyedBuildings = [];
+
+            // Destroy up to 2 buildings
+            for (let i = 0; i < Math.min(2, buildingTypes.length); i++) {
+              if (buildingTypes.length > 0) {
+                const randomIndex = Math.floor(Math.random() * buildingTypes.length);
+                const [buildingType, _] = buildingTypes[randomIndex];
+
+                // Destroy the building
+                if (buildingType.startsWith('merchant_')) {
+                  newRegions.pskov.buildings[buildingType] = Math.max(0, newRegions.pskov.buildings[buildingType] - 1);
+                } else {
+                  newRegions.pskov.buildings[buildingType] = 0;
+                }
+
+                // Update player improvement count
+                newPlayers = newPlayers.map(player => {
+                  if ((buildingType.includes('commoner') && player.faction === 'Commoners') ||
+                      (buildingType.includes('noble') && player.faction === 'Nobles') ||
+                      (buildingType.includes('merchant') && player.faction === 'Merchants')) {
+                    return { ...player, improvements: Math.max(0, player.improvements - 1) };
+                  }
+                  return player;
+                });
+
+                // Track destroyed building for message
+                const buildingNames = {
+                  'commoner_huts': 'Huts',
+                  'commoner_church': 'Village Church',
+                  'noble_manor': 'Manor',
+                  'noble_monastery': 'Monastery',
+                  'merchant_mansion': 'Mansion',
+                  'merchant_church': 'Merchant Church'
+                };
+                destroyedBuildings.push(buildingNames[buildingType] || buildingType);
+
+                // Remove from available buildings for next iteration
+                buildingTypes.splice(randomIndex, 1);
+              }
+            }
+
+            return { 
+              ...gameState, 
+              regions: newRegions,
+              players: newPlayers,
+              lastEventResult: `UPRISING! All factions lose 50% strength. Buildings destroyed: ${destroyedBuildings.join(', ')}`
+            };
+            // TODO: Implement -50% strength for all factions
+          } else {
+            return { 
+              ...gameState,
+              lastEventResult: 'Corruption ignored. The people grumble but no uprising occurs.'
+            };
+          }
+        }
+      }
+    },
+    {
+      id: 'embassy',
+      name: 'Embassy',
+      description: 'An embassy from the Grand Prince arrives. How will you receive them?',
+      type: 'voting',
+      defaultOption: 'modest',
+      options: [
+        { id: 'modest', name: 'Receive modestly', requiresMinMoney: 1 },
+        { id: 'luxurious', name: 'Receive luxuriously', requiresMinMoney: 2 },
+        { id: 'refuse', name: 'Refuse to receive them' }
+      ],
+      effects: {
+        modest: (gameState, votes) => {
+          const participants = votes.filter(v => v === 'modest').length;
+          const costPerParticipant = participants > 0 ? 3 / participants : 0;
+
+          let allCanAfford = true;
+          gameState.players.forEach((player, index) => {
+            if (votes[index] === 'modest' && player.money < costPerParticipant) {
               allCanAfford = false;
             }
           });
 
           if (!allCanAfford || participants === 0) {
-            // Can't afford or no participants, default to send_back
-            return gameState;
+            return { 
+              ...gameState,
+              lastEventResult: 'Embassy refused! Grand Prince is insulted. -50% strength and income for 5 turns.'
+            };
+            // TODO: Implement -50% strength and income for 5 turns
           }
 
-          // Success - deduct money
           const newPlayers = gameState.players.map((player, index) => {
-            if (gameState.eventVotes[index] === 'accept') {
+            if (votes[index] === 'modest') {
+              return { ...player, money: player.money - costPerParticipant };
+            }
+            return player;
+          });
+
+          return { 
+            ...gameState, 
+            players: newPlayers,
+            lastEventResult: 'Embassy received modestly. Relations maintained.'
+          };
+        },
+        luxurious: (gameState, votes) => {
+          const participants = votes.filter(v => v === 'luxurious').length;
+          const costPerParticipant = participants > 0 ? 6 / participants : 0;
+
+          let allCanAfford = true;
+          gameState.players.forEach((player, index) => {
+            if (votes[index] === 'luxurious' && player.money < costPerParticipant) {
+              allCanAfford = false;
+            }
+          });
+
+          if (!allCanAfford || participants === 0) {
+            // Fall back to modest reception
+            return gameState.currentEvent.effects.modest(gameState, votes.map(() => 'modest'));
+          }
+
+          const newPlayers = gameState.players.map((player, index) => {
+            if (votes[index] === 'luxurious') {
+              return { ...player, money: player.money - costPerParticipant };
+            }
+            return player;
+          });
+
+          return { 
+            ...gameState, 
+            players: newPlayers,
+            lastEventResult: 'Embassy received luxuriously! +10 strength for 3 turns.'
+          };
+          // TODO: Implement +10 strength for 3 turns
+        },
+        refuse: (gameState) => {
+          return { 
+            ...gameState,
+            lastEventResult: 'Embassy refused! Grand Prince is insulted. -50% strength and income for 5 turns.'
+          };
+          // TODO: Implement -50% strength and income for 5 turns
+        }
+      }
+    },
+    {
+      id: 'relics_found',
+      name: 'Relics Found',
+      description: 'Holy relics have been discovered. Are they genuine or deception?',
+      type: 'voting',
+      options: [
+        { id: 'build_temple', name: 'Build temple', requiresMinMoney: 1 },
+        { id: 'deception', name: 'It\'s all deception' }
+      ],
+      effects: {
+        build_temple: (gameState) => {
+          const newPlayers = gameState.players.map(player => ({
+            ...player,
+            money: Math.max(0, player.money - 3)
+          }));
+          return { ...gameState, players: newPlayers };
+          // TODO: Implement +5 strength for 3 turns
+        },
+        deception: (gameState) => {
+          // TODO: Implement -5 strength for 3 turns
+          return gameState;
+        }
+      }
+    },
+    {
+      id: 'merchants_robbed',
+      name: 'Merchants Robbed',
+      description: 'Foreign merchants have been robbed near your borders. How will you respond?',
+      type: 'voting',
+      defaultOption: 'trade_risk',
+      options: [
+        { id: 'rob_foreign', name: 'Rob foreign merchants' },
+        { id: 'demand_compensation', name: 'Demand compensation' },
+        { id: 'trade_risk', name: 'Trade is risk' }
+      ],
+      effects: {
+        rob_foreign: (gameState) => {
+          // TODO: Implement "on roll 1-3 Order attack occurs"
+          return gameState;
+        },
+        demand_compensation: (gameState) => {
+          const newPlayers = gameState.players.map(player => {
+            if (player.faction === 'Merchants') {
+              return { ...player, money: Math.max(0, player.money - 1) };
+            }
+            return player;
+          });
+          return { ...gameState, players: newPlayers };
+          // TODO: Implement "on roll 1-3 merchants income -50% strength -50%"
+        },
+        trade_risk: (gameState) => {
+          // TODO: Implement "merchants income -50%, strength -50%"
+          return gameState;
+        }
+      }
+    },          
+    // EXISTING EVENTS
+    {
+      id: 'izhorian_delegation',
+      name: 'Delegation from the Izhorians',
+      description: 'A delegation from the Izhorian people arrives at your gates seeking an audience.',
+      type: 'voting',
+      acceptCost: 6,
+      defaultOption: 'send_back',
+      options: [
+        { id: 'accept', name: 'Accept into service', requiresMinMoney: 2 },
+        { id: 'rob', name: 'Rob them' },
+        { id: 'send_back', name: 'Send them away' }
+      ],
+      effects: {
+        accept: (gameState, votes) => {
+          const participants = votes.filter(v => v === 'accept').length;
+          const costPerParticipant = participants > 0 ? 6 / participants : 0;
+
+          const newPlayers = gameState.players.map((player, index) => {
+            if (votes[index] === 'accept') {
               return { ...player, money: player.money - costPerParticipant };
             }
             return player;
           });
 
           return { ...gameState, players: newPlayers };
-          // TODO: Add +5 strength for 5 turns when we implement effects tracking
         },
         rob: (gameState) => {
           const newPlayers = gameState.players.map(player => ({
@@ -151,10 +465,9 @@ const PskovGame = () => {
             money: player.money + 3
           }));
           return { ...gameState, players: newPlayers };
-          // TODO: Add Order +5 strength for 5 turns when we implement effects tracking
         },
         send_back: (gameState) => {
-          return gameState; // No effect
+          return gameState;
         }
       }
     },
@@ -175,39 +488,217 @@ const PskovGame = () => {
       id: 'drought',
       name: 'Drought',
       description: 'The crops are failing due to lack of rain. Emergency food supplies cost 6○ total.',
-      type: 'veche',
+      type: 'participation',
+      totalCost: 6,
       question: 'Who will help buy emergency food supplies? Cost will be split evenly among participants.',
-      yesEffect: (gameState) => {
-        const participants = gameState.eventVotes.filter(v => v === true).length;
-        const costPerParticipant = participants > 0 ? 6 / participants : 0;
+      minCostPerPlayer: 2,
+      successText: 'FOOD PURCHASED',
+      failureText: 'PURCHASE FAILED'
+    },
 
-        // Check if all participants can afford their share
-        let allCanAfford = true;
-        gameState.players.forEach((player, index) => {
-          if (gameState.eventVotes[index] === true && player.money < costPerParticipant) {
-            allCanAfford = false;
-          }
-        });
+    // NEW IMMEDIATE EVENTS
+    {
+      id: 'fire',
+      name: 'Fire',
+      description: 'A fire breaks out in one of your regions, destroying a building.',
+      type: 'immediate',
+      effect: (gameState) => {
+        // Roll for region (1-6 for republic regions)
+        const republicRegions = Object.entries(gameState.regions).filter(([_, region]) => region.controller === 'republic');
+        if (republicRegions.length === 0) return gameState; // No regions to burn
 
-        if (!allCanAfford || participants === 0) {
-          // Purchase fails - not enough money or no participants
-          return gameState; // No changes
+        const randomRegionIndex = Math.floor(Math.random() * republicRegions.length);
+        const [regionName, region] = republicRegions[randomRegionIndex];
+
+        // Find all buildings in this region
+        const buildingTypes = Object.entries(region.buildings).filter(([_, count]) => count > 0);
+        if (buildingTypes.length === 0) {
+          // No buildings to burn
+          return { 
+            ...gameState, 
+            lastEventResult: `Fire breaks out in ${regionName.charAt(0).toUpperCase() + regionName.slice(1)}, but there are no buildings to burn.`
+          };
         }
 
-        // Purchase succeeds - deduct money from participants
-        const newPlayers = gameState.players.map((player, index) => {
-          if (gameState.eventVotes[index] === true) {
-            return { ...player, money: player.money - costPerParticipant };
+        // Roll for building type
+        const randomBuildingIndex = Math.floor(Math.random() * buildingTypes.length);
+        const [buildingType, _] = buildingTypes[randomBuildingIndex];
+
+        // Destroy the building
+        const newRegions = { ...gameState.regions };
+        if (buildingType.startsWith('merchant_')) {
+          newRegions[regionName].buildings[buildingType] = Math.max(0, newRegions[regionName].buildings[buildingType] - 1);
+        } else {
+          newRegions[regionName].buildings[buildingType] = 0;
+        }
+
+        // Update player improvement count
+        const newPlayers = gameState.players.map(player => {
+          if ((buildingType.includes('commoner') && player.faction === 'Commoners') ||
+              (buildingType.includes('noble') && player.faction === 'Nobles') ||
+              (buildingType.includes('merchant') && player.faction === 'Merchants')) {
+            return { ...player, improvements: Math.max(0, player.improvements - 1) };
           }
           return player;
         });
 
-        return { ...gameState, players: newPlayers };
-      },
-      noEffect: (gameState) => {
-        // No immediate effect - would cause famine next turn (for later implementation)
+        // Create human-readable building name
+        const buildingNames = {
+          'commoner_huts': 'Huts',
+          'commoner_church': 'Village Church',
+          'noble_manor': 'Manor',
+          'noble_monastery': 'Monastery',
+          'merchant_mansion': 'Mansion',
+          'merchant_church': 'Merchant Church'
+        };
+
+        const buildingName = buildingNames[buildingType] || buildingType;
+        const regionDisplayName = regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1);
+
+        return { 
+          ...gameState, 
+          regions: newRegions,
+          players: newPlayers,
+          lastEventResult: `Fire destroys ${buildingName} in ${regionDisplayName}!`
+        };
+      }
+    },
+    {
+      id: 'city_fire',
+      name: 'City Fire',
+      description: 'A fire breaks out in Pskov, destroying a building in the city.',
+      type: 'immediate',
+      effect: (gameState) => {
+        const pskovRegion = gameState.regions.pskov;
+
+        // Find all buildings in Pskov
+        const buildingTypes = Object.entries(pskovRegion.buildings).filter(([_, count]) => count > 0);
+        if (buildingTypes.length === 0) {
+          return { 
+            ...gameState, 
+            lastEventResult: `Fire breaks out in Pskov, but there are no buildings to burn.`
+          };
+        }
+
+        // Roll for building type
+        const randomBuildingIndex = Math.floor(Math.random() * buildingTypes.length);
+        const [buildingType, _] = buildingTypes[randomBuildingIndex];
+
+        // Destroy the building
+        const newRegions = { ...gameState.regions };
+        if (buildingType.startsWith('merchant_')) {
+          newRegions.pskov.buildings[buildingType] = Math.max(0, newRegions.pskov.buildings[buildingType] - 1);
+        } else {
+          newRegions.pskov.buildings[buildingType] = 0;
+        }
+
+        // Update player improvement count
+        const newPlayers = gameState.players.map(player => {
+          if ((buildingType.includes('commoner') && player.faction === 'Commoners') ||
+              (buildingType.includes('noble') && player.faction === 'Nobles') ||
+              (buildingType.includes('merchant') && player.faction === 'Merchants')) {
+            return { ...player, improvements: Math.max(0, player.improvements - 1) };
+          }
+          return player;
+        });
+
+        // Create human-readable building name
+        const buildingNames = {
+          'commoner_huts': 'Huts',
+          'commoner_church': 'Village Church',
+          'noble_manor': 'Manor',
+          'noble_monastery': 'Monastery',
+          'merchant_mansion': 'Mansion',
+          'merchant_church': 'Merchant Church'
+        };
+
+        const buildingName = buildingNames[buildingType] || buildingType;
+
+        return { 
+          ...gameState, 
+          regions: newRegions,
+          players: newPlayers,
+          lastEventResult: `City fire destroys ${buildingName} in Pskov!`
+        };
+      }
+    },
+    {
+      id: 'heresy',
+      name: 'Heresy',
+      description: 'Heretical ideas spread among the people, weakening military resolve.',
+      type: 'immediate',
+      effect: (gameState) => {
+        // TODO: Implement -25% military strength for 2 turns
         return gameState;
       }
+    },
+
+    // NEW PARTICIPATION EVENTS (Order Attacks)
+    {
+      id: 'order_attack_90',
+      name: 'Order Attack (90)',
+      description: 'The Teutonic Order attacks with strength 90. Who will contribute to the defense?',
+      type: 'participation',
+      totalCost: 3,
+      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      minCostPerPlayer: 1,
+      successText: 'DEFENSE FUNDED',
+      failureText: 'NO DEFENSE - SURRENDER'
+    },
+    {
+      id: 'order_attack_95',
+      name: 'Order Attack (95)',
+      description: 'The Teutonic Order attacks with strength 95. Who will contribute to the defense?',
+      type: 'participation',
+      totalCost: 3,
+      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      minCostPerPlayer: 1,
+      successText: 'DEFENSE FUNDED',
+      failureText: 'NO DEFENSE - SURRENDER'
+    },
+    {
+      id: 'order_attack_100',
+      name: 'Order Attack (100)',
+      description: 'The Teutonic Order attacks with strength 100. Who will contribute to the defense?',
+      type: 'participation',
+      totalCost: 3,
+      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      minCostPerPlayer: 1,
+      successText: 'DEFENSE FUNDED',
+      failureText: 'NO DEFENSE - SURRENDER'
+    },
+    {
+      id: 'order_attack_105',
+      name: 'Order Attack (105)',
+      description: 'The Teutonic Order attacks with strength 105. Who will contribute to the defense?',
+      type: 'participation',
+      totalCost: 3,
+      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      minCostPerPlayer: 1,
+      successText: 'DEFENSE FUNDED',
+      failureText: 'NO DEFENSE - SURRENDER'
+    },
+    {
+      id: 'order_attack_110',
+      name: 'Order Attack (110)',
+      description: 'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
+      type: 'participation',
+      totalCost: 3,
+      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      minCostPerPlayer: 1,
+      successText: 'DEFENSE FUNDED',
+      failureText: 'NO DEFENSE - SURRENDER'
+    },
+    {
+      id: 'plague',
+      name: 'Plague',
+      description: 'A plague spreads through the city. Who will fund isolation and treatment?',
+      type: 'participation',
+      totalCost: 3,
+      question: 'Who will help fund isolation and treatment? Cost will be split evenly among participants.',
+      minCostPerPlayer: 1,
+      successText: 'ISOLATION FUNDED',
+      failureText: 'NO ISOLATION - TRUST IN GOD'
     }
   ];
 
@@ -220,7 +711,7 @@ const PskovGame = () => {
     }
   };
 
-  // Vote on current event (for regular voting and Chud option selection)
+  // Vote on current event
   const voteOnEvent = (playerIndex, vote) => {
     setGameState(prev => {
       const newVotes = [...prev.eventVotes];
@@ -229,22 +720,12 @@ const PskovGame = () => {
     });
   };
 
-  // For Chud events - vote on which option to choose
-  const voteOnChudOption = (playerIndex, optionId) => {
-    setGameState(prev => {
-      const newVotes = [...prev.eventVotes];
-      newVotes[playerIndex] = optionId;
-      return { ...prev, eventVotes: newVotes };
-    });
-  };
-
-  // Get three-option voting result
-  const getThreeOptionResult = () => {
+  // Get voting result for any multi-option event
+  const getVotingResult = () => {
     const votes = gameState.eventVotes;
     const completedVotes = votes.filter(v => v !== null);
 
     if (completedVotes.length === 3) {
-      // Count votes for each option
       const voteCounts = {};
       votes.forEach(vote => {
         if (vote) {
@@ -252,11 +733,10 @@ const PskovGame = () => {
         }
       });
 
-      // Find option with most votes (majority)
-      let winningOption = 'send_back'; // Default if no majority
+      let winningOption = null;
       let maxVotes = 0;
       Object.entries(voteCounts).forEach(([option, count]) => {
-        if (count >= 2) { // Need at least 2 votes for majority
+        if (count >= 2) {
           if (count > maxVotes) {
             maxVotes = count;
             winningOption = option;
@@ -264,7 +744,7 @@ const PskovGame = () => {
         }
       });
 
-      return winningOption;
+      return winningOption || 'send_back';
     }
     return null;
   };
@@ -276,70 +756,14 @@ const PskovGame = () => {
 
     if (completedVotes.length === 3) {
       const participants = votes.filter(v => v === true).length;
-      return participants > 0 ? 'success' : 'failed'; // At least 1 participant needed
+      return participants > 0 ? 'success' : 'failed';
     }
-    return null; // Not all players decided yet
+    return null;
   };
 
-  // Get current participation info
-  const getParticipationInfo = () => {
-    const currentParticipants = gameState.eventVotes.filter(v => v === true).length;
-    const totalCost = 6;
-    const costPerParticipant = currentParticipants > 0 ? totalCost / currentParticipants : totalCost;
-
-    return {
-      participants: currentParticipants,
-      costPerParticipant: costPerParticipant,
-      totalCost: totalCost
-    };
-  };
-
-  // Resolve current event
-  const resolveEvent = () => {
-    setGameState(prev => {
-      let newState = { ...prev };
-
-      if (prev.currentEvent.type === 'immediate') {
-        newState = prev.currentEvent.effect(newState);
-      } else if (prev.currentEvent.type === 'veche') {
-        const result = getParticipationResult();
-        if (result === 'success') {
-          newState = prev.currentEvent.yesEffect(newState);
-        } else {
-          newState = prev.currentEvent.noEffect(newState);
-        }
-      } else if (prev.currentEvent.type === 'three_option') {
-        const winningOption = getThreeOptionResult();
-        if (winningOption === 'accept') {
-          // Check if accept voters can afford it
-          const acceptVoters = prev.eventVotes.filter(v => v === 'accept').length;
-          const costPerVoter = acceptVoters > 0 ? 6 / acceptVoters : 0;
-          let allCanAfford = true;
-          prev.players.forEach((player, index) => {
-            if (prev.eventVotes[index] === 'accept' && player.money < costPerVoter) {
-              allCanAfford = false;
-            }
-          });
-
-          if (allCanAfford && acceptVoters > 0) {
-            newState = prev.currentEvent.effects.accept(newState);
-          } else {
-            // Default to send_back if can't afford
-            newState = prev.currentEvent.effects.send_back(newState);
-          }
-        } else {
-          newState = prev.currentEvent.effects[winningOption](newState);
-        }
-      }
-
-      return {
-        ...newState,
-        eventResolved: true
-      };
-    });
-  };
+  // Calculate victory points for each player
   const calculateVictoryPoints = (player) => {
-    return player.improvements; // Each improvement = 1 victory point
+    return player.improvements;
   };
 
   // Check if game is over and determine winner
@@ -352,7 +776,6 @@ const PskovGame = () => {
         index
       }));
 
-      // Sort by victory points (descending), then by money (descending)
       playerScores.sort((a, b) => {
         if (b.victoryPoints !== a.victoryPoints) {
           return b.victoryPoints - a.victoryPoints;
@@ -483,9 +906,6 @@ const PskovGame = () => {
         newState.currentEvent = drawEvent(prev.debugEventIndex);
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
-        newState.chudVotingPhase = 'option_selection';
-        newState.chudSelectedOption = null;
-        // Increment debug event index for next time
         if (DEBUG_MODE) {
           newState.debugEventIndex = (prev.debugEventIndex + 1) % eventDeck.length;
         }
@@ -507,8 +927,7 @@ const PskovGame = () => {
         newState.currentEvent = null;
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
-        newState.chudVotingPhase = 'option_selection';
-        newState.chudSelectedOption = null;
+        newState.lastEventResult = null;
       }
 
       return {
@@ -547,6 +966,26 @@ const PskovGame = () => {
     });
   };
 
+  // Resolve current event using abstracted system
+  const resolveEvent = () => {
+    setGameState(prev => {
+      const event = prev.currentEvent;
+      const eventType = eventTypes[event.type];
+
+      if (!eventType) {
+        console.error('Unknown event type:', event.type);
+        return prev;
+      }
+
+      const newState = eventType.resolve(event, prev, prev.eventVotes);
+
+      return {
+        ...newState,
+        eventResolved: true
+      };
+    });
+  };
+
   const resetGame = () => {
     setGameState({
       turn: 1,
@@ -557,11 +996,7 @@ const PskovGame = () => {
       eventVotes: [null, null, null],
       eventResolved: false,
       debugEventIndex: 0,
-      constructionActions: [
-        { improvement: false, equipment: false },
-        { improvement: false, equipment: false },
-        { improvement: false, equipment: false }
-      ],
+      lastEventResult: null,
       regions: {
         pskov: { 
           controller: 'republic', 
@@ -629,6 +1064,11 @@ const PskovGame = () => {
           }
         }
       },
+      constructionActions: [
+        { improvement: false, equipment: false },
+        { improvement: false, equipment: false },
+        { improvement: false, equipment: false }
+      ],
       players: [
         { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0 },
         { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0 },
@@ -660,7 +1100,7 @@ const PskovGame = () => {
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
           <h4 className="font-medium text-yellow-800">🐛 Debug Mode Active</h4>
           <p className="text-yellow-700 text-sm">
-            Events cycle in order: Izhorian Delegation → Good Harvest → Drought...
+            Events cycle in order: Izhorian Delegation → Good Harvest → Drought → Fire → City Fire → Heresy → Order Attacks → Plague → Boyars → Embassy → Relics → Merchants Robbed...
             <br />
             Next event: {eventDeck[gameState.debugEventIndex]?.name}
           </p>
@@ -864,7 +1304,7 @@ const PskovGame = () => {
           <div className="bg-gray-50 p-4 rounded mb-4">
             <p className="text-gray-700 mb-3">{gameState.currentEvent.description}</p>
 
-            {gameState.currentEvent.type === 'three_option' && !gameState.eventResolved && (
+            {gameState.currentEvent.type === 'voting' && !gameState.eventResolved && (
               <div>
                 <h4 className="font-medium mb-2">Council Decision:</h4>
                 <p className="text-sm text-gray-600 mb-4">Choose how to respond to the delegation:</p>
@@ -872,52 +1312,54 @@ const PskovGame = () => {
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {gameState.players.map((player, index) => {
                     const hasVoted = gameState.eventVotes[index] !== null;
-                    const canAffordAccept = player.money >= 2; // Minimum cost when all 3 participate
 
                     return (
                       <div key={index} className="text-center">
                         <h5 className="font-medium mb-1">{player.faction}</h5>
                         <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
                         <div className="space-y-2">
-                          {gameState.currentEvent.options.map(option => (
-                            <button
-                              key={option.id}
-                              onClick={() => voteOnEvent(index, option.id)}
-                              disabled={hasVoted || (option.id === 'accept' && !canAffordAccept)}
-                              className={`w-full px-2 py-1 rounded text-xs ${
-                                gameState.eventVotes[index] === option.id
-                                  ? 'bg-amber-600 text-white'
-                                  : option.id === 'accept' && !canAffordAccept
-                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                  : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
-                              }`}
-                            >
-                              {gameState.eventVotes[index] === option.id ? 
-                                `Voted: ${option.name}` : 
-                                option.id === 'accept' && !canAffordAccept ?
-                                'Need 2○ min' :
-                                option.name
-                              }
-                            </button>
-                          ))}
+                          {gameState.currentEvent.options.map(option => {
+                            const canAfford = !option.requiresMinMoney || player.money >= option.requiresMinMoney;
+
+                            return (
+                              <button
+                                key={option.id}
+                                onClick={() => voteOnEvent(index, option.id)}
+                                disabled={hasVoted || !canAfford}
+                                className={`w-full px-2 py-1 rounded text-xs ${
+                                  gameState.eventVotes[index] === option.id
+                                    ? 'bg-amber-600 text-white'
+                                    : !canAfford
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
+                                }`}
+                              >
+                                {gameState.eventVotes[index] === option.id ? 
+                                  `Voted: ${option.name}` : 
+                                  !canAfford ?
+                                  `Need ${option.requiresMinMoney}○ min` :
+                                  option.name
+                                }
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     );
                   })}
                 </div>
 
-                {getThreeOptionResult() && (
+                {getVotingResult() && (
                   <div className="text-center">
                     {(() => {
-                      const winningOption = getThreeOptionResult();
+                      const winningOption = getVotingResult();
                       const optionName = gameState.currentEvent.options.find(opt => opt.id === winningOption)?.name;
                       const acceptVoters = gameState.eventVotes.filter(v => v === 'accept').length;
 
                       let resultText = `Decision: ${optionName}`;
-                      if (winningOption === 'accept') {
-                        // Check if accept voters can afford it
+                      if (winningOption === 'accept' && gameState.currentEvent.acceptCost) {
                         let allCanAfford = true;
-                        const costPerVoter = acceptVoters > 0 ? 6 / acceptVoters : 0;
+                        const costPerVoter = acceptVoters > 0 ? gameState.currentEvent.acceptCost / acceptVoters : 0;
                         gameState.players.forEach((player, index) => {
                           if (gameState.eventVotes[index] === 'accept' && player.money < costPerVoter) {
                             allCanAfford = false;
@@ -948,7 +1390,7 @@ const PskovGame = () => {
               </div>
             )}
 
-            {gameState.currentEvent.type === 'veche' && !gameState.eventResolved && (
+            {gameState.currentEvent.type === 'participation' && !gameState.eventResolved && (
               <div>
                 <h4 className="font-medium mb-2">Council Decision:</h4>
                 <p className="text-sm text-gray-600 mb-3">{gameState.currentEvent.question}</p>
@@ -956,7 +1398,7 @@ const PskovGame = () => {
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {gameState.players.map((player, index) => {
                     const hasDecided = gameState.eventVotes[index] !== null;
-                    const canAffordMinimum = player.money >= 2; // Minimum cost when all 3 participate
+                    const canAfford = player.money >= gameState.currentEvent.minCostPerPlayer;
 
                     return (
                       <div key={index} className="text-center">
@@ -965,17 +1407,18 @@ const PskovGame = () => {
                         <div className="space-y-2">
                           <button
                             onClick={() => voteOnEvent(index, true)}
-                            disabled={hasDecided || !canAffordMinimum}
+                            disabled={hasDecided || !canAfford}
                             className={`w-full px-3 py-1 rounded text-sm ${
                               gameState.eventVotes[index] === true 
                                 ? 'bg-green-600 text-white' 
-                                : canAffordMinimum
+                                : canAfford
                                 ? 'bg-green-500 hover:bg-green-600 text-white'
                                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }`}
                           >
                             {gameState.eventVotes[index] === true ? 'Participating' : 
-                             !canAffordMinimum ? 'Need 2○ min' : 'Participate'}
+                             !canAfford ? `Need ${gameState.currentEvent.minCostPerPlayer}○ min` :
+                             'Participate'}
                           </button>
                           <button
                             onClick={() => voteOnEvent(index, false)}
@@ -998,9 +1441,8 @@ const PskovGame = () => {
                   <div className="text-center">
                     {(() => {
                       const participants = gameState.eventVotes.filter(v => v === true).length;
-                      const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+                      const costPerParticipant = participants > 0 ? (gameState.currentEvent.totalCost / participants) : 0;
 
-                      // Check if all participants can afford their share
                       let allCanAfford = true;
                       let insufficientFunds = [];
                       gameState.players.forEach((player, index) => {
@@ -1029,7 +1471,10 @@ const PskovGame = () => {
                           )}
 
                           <p className={`text-sm font-medium ${purchaseSucceeds ? 'text-green-600' : 'text-red-600'}`}>
-                            Result: {purchaseSucceeds ? 'FOOD PURCHASED' : 'PURCHASE FAILED'}
+                            Result: {purchaseSucceeds ? 
+                              (gameState.currentEvent.successText || 'SUCCESS') : 
+                              (gameState.currentEvent.failureText || 'FAILED')
+                            }
                           </p>
                         </div>
                       );
@@ -1059,6 +1504,9 @@ const PskovGame = () => {
             {gameState.eventResolved && (
               <div className="text-center">
                 <p className="text-green-600 font-medium mb-2">✓ Event Resolved</p>
+                {gameState.lastEventResult && (
+                  <p className="text-sm text-gray-700 mb-2 font-medium">{gameState.lastEventResult}</p>
+                )}
                 <p className="text-sm text-gray-600">Click "Next Phase" to continue</p>
               </div>
             )}
@@ -1133,6 +1581,7 @@ const PskovGame = () => {
             <p className="text-sm text-gray-600 mb-2">
               {gameState.turn >= 20 ? 'Game Complete! Check results below.' : 
                gameState.phase === 'construction' ? 'Players take turns in construction phase' :
+               gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
                'Click to advance to next phase'}
             </p>
             <button
