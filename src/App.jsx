@@ -15,9 +15,20 @@ const PskovGame = () => {
     debugEventIndex: 0, // for debug mode - cycles through events in order
     lastEventResult: null, // stores result message for immediate events
     activeEffects: [], // tracks ongoing effects
+    //MILITARY STATE VARIABLES:
+    battleState: null, // current battle information
+    militaryAction: null, // 'defend', 'attack', or null
+    militaryParticipants: [], // which players are participating
+    targetRegion: null, // region being attacked/defended
+    orderStrength: 0, // strength of order forces
+    // attack planning variables:
+    attackPlanning: null, // 'planning' when planning an attack, null otherwise
+    attackTarget: null, // which region is being targeted
+    attackVotes: [null, null, null], // attack funding votes
     regions: {
       pskov: { 
         controller: 'republic', 
+        fortress: true,
         buildings: {
           commoner_huts: 0,
           commoner_church: 0,
@@ -29,6 +40,7 @@ const PskovGame = () => {
       },
       ostrov: { 
         controller: 'republic', 
+        fortress: false,
         buildings: {
           commoner_huts: 0,
           commoner_church: 0,
@@ -38,6 +50,7 @@ const PskovGame = () => {
       },
       izborsk: { 
         controller: 'republic', 
+        fortress: false,
         buildings: {
           commoner_huts: 0,
           commoner_church: 0,
@@ -47,6 +60,7 @@ const PskovGame = () => {
       },
       skrynnitsy: { 
         controller: 'republic', 
+        fortress: false,
         buildings: {
           commoner_huts: 0,
           commoner_church: 0,
@@ -56,6 +70,7 @@ const PskovGame = () => {
       },
       gdov: { 
         controller: 'republic', 
+        fortress: false,
         buildings: {
           commoner_huts: 0,
           commoner_church: 0,
@@ -65,6 +80,7 @@ const PskovGame = () => {
       },
       pechory: { 
         controller: 'republic', 
+        fortress: false,
         buildings: {
           commoner_huts: 0,
           commoner_church: 0,
@@ -74,6 +90,7 @@ const PskovGame = () => {
       },
       bearhill: { 
         controller: 'order', 
+        fortress: false,
         buildings: {
           commoner_huts: 0,
           commoner_church: 0,
@@ -94,13 +111,12 @@ const PskovGame = () => {
     ]
   });
 
-  const phases = ['resources', 'construction', 'events', 'veche', 'military'];
+  const phases = ['resources', 'construction', 'events', 'veche'];
   const phaseNames = {
     resources: 'Resources',
     construction: 'Construction', 
     events: 'Events',
-    veche: 'Veche (Council)',
-    military: 'Military Actions'
+    veche: 'City Assembly',
   };
 
   // Effects management functions
@@ -151,6 +167,207 @@ const PskovGame = () => {
     return modifier;
   };
 
+  // Military calculation functions
+  const calculatePlayerStrength = (playerIndex, isDefending = false, regionName = null) => {
+    const player = gameState.players[playerIndex];
+
+    // Base strength by faction
+    let strength = 0;
+    if (player.faction === 'Nobles') strength = 40;
+    else if (player.faction === 'Merchants') strength = 15;
+    else if (player.faction === 'Commoners') strength = 25;
+
+    // Equipment bonuses
+    strength += player.weapons * 5;
+    strength += player.armor * 5;
+
+    // Fortress bonus when defending
+    if (isDefending && regionName && gameState.regions[regionName]?.fortress) {
+      strength += 10;
+    }
+
+    // Active effects
+    strength += getStrengthModifier(player.faction);
+
+    return Math.max(0, strength);
+  };
+
+  const calculateTotalPskovStrength = (participants, isDefending = false, regionName = null) => {
+    return participants.reduce((total, playerIndex) => {
+      return total + calculatePlayerStrength(playerIndex, isDefending, regionName);
+    }, 0);
+  };
+
+  const getVictoryChance = (strengthDiff) => {
+    if (strengthDiff >= 20) return 95;      // almost certain
+    if (strengthDiff >= 15) return 85;      // very high chance
+    if (strengthDiff >= 10) return 70;      // high chance
+    if (strengthDiff >= 5) return 60;       // good chance
+    if (strengthDiff >= 0) return 50;       // even
+    if (strengthDiff >= -5) return 40;      // slightly unfavorable
+    if (strengthDiff >= -10) return 30;     // low chance
+    if (strengthDiff >= -15) return 15;     // very low chance
+    return 5;                               // almost no chance
+  };
+
+  const rollForVictory = (strengthDiff) => {
+    const chancePercent = getVictoryChance(strengthDiff);
+    const roll = Math.random() * 100;
+    return roll < chancePercent;
+  };
+
+  // Battle outcome functions
+  const surrenderRegion = (gameState, regionName) => {
+
+    console.log("=== SURRENDER REGION START ===");
+    console.log("Surrendering region:", regionName);
+    console.log("Regions before surrender:", Object.entries(gameState.regions).map(([name, region]) => `${name}: ${region.controller}`));
+
+    if (regionName === 'pskov') {
+      // Game over - Pskov captured
+      return {
+        ...gameState,
+        gameOver: true,
+        lastEventResult: '💀 GAME OVER: Pskov has fallen to the Teutonic Order!'
+      };
+    }
+
+    // Lose the region and destroy all buildings except fortresses
+    const newRegions = { ...gameState.regions };
+    newRegions[regionName].controller = 'order';
+
+    // Destroy buildings and update player improvement counts
+    const newPlayers = [...gameState.players];
+    Object.entries(newRegions[regionName].buildings).forEach(([buildingType, count]) => {
+      if (count > 0) {
+        newRegions[regionName].buildings[buildingType] = 0;
+
+        // Update player improvement count
+        newPlayers.forEach((player, index) => {
+          if ((buildingType.includes('commoner') && player.faction === 'Commoners') ||
+              (buildingType.includes('noble') && player.faction === 'Nobles') ||
+              (buildingType.includes('merchant') && player.faction === 'Merchants')) {
+            newPlayers[index] = { ...player, improvements: Math.max(0, player.improvements - count) };
+          }
+        });
+      }
+    });
+
+    const regionDisplayName = regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1);
+
+    console.log("Regions after surrender:", Object.entries(newRegions).map(([name, region]) => `${name}: ${region.controller}`));
+    console.log("=== SURRENDER REGION END ===");
+    
+    return {
+      ...gameState,
+      regions: newRegions,
+      players: newPlayers,
+      lastEventResult: `${regionDisplayName} surrendered to the Order! All buildings destroyed.`
+    };
+  };
+
+  const executeBattle = (gameState, orderStrength, targetRegion, defendingPlayers) => {
+    // Calculate Pskov strength
+    const pskovStrength = calculateTotalPskovStrength(defendingPlayers, true, targetRegion);
+
+    // Add fortress bonus if defending
+    let finalPskovStrength = pskovStrength;
+    if (gameState.regions[targetRegion]?.fortress) {
+      finalPskovStrength += 10;
+    }
+
+    // Calculate strength difference and roll for victory
+    const strengthDiff = finalPskovStrength - orderStrength;
+    const pskovWins = rollForVictory(strengthDiff);
+    const chancePercent = getVictoryChance(strengthDiff);
+
+    const regionDisplayName = targetRegion === 'bearhill' ? 'Bear Hill' : targetRegion.charAt(0).toUpperCase() + targetRegion.slice(1);
+
+    if (pskovWins) {
+      // Successful defense
+      return {
+        ...gameState,
+        lastEventResult: `🛡️ VICTORY! ${regionDisplayName} successfully defended! (${chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength})`
+      };
+    } else {
+      // Failed defense - lose region
+      const result = surrenderRegion(gameState, targetRegion);
+      return {
+        ...result,
+        lastEventResult: `💀 DEFEAT! ${regionDisplayName} lost to the Order! (${chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength}) ${result.lastEventResult}`
+      };
+    }
+  };
+
+  const initiateAttack = (targetRegion) => {
+    setGameState(prev => ({
+      ...prev,
+      attackPlanning: 'planning',
+      attackTarget: targetRegion,
+      attackVotes: [null, null, null]
+    }));
+  };
+
+  const executeAttack = () => {
+    const { attackTarget, attackVotes } = gameState;
+    const participants = attackVotes.filter(v => v === true).length;
+    const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+
+    // Deduct money from participants
+    const newPlayers = gameState.players.map((player, index) => {
+      if (attackVotes[index] === true) {
+        return { ...player, money: player.money - costPerParticipant };
+      }
+      return player;
+    });
+
+    // Get attacking players
+    const attackingPlayers = [];
+    attackVotes.forEach((vote, index) => {
+      if (vote === true) attackingPlayers.push(index);
+    });
+
+    // Calculate Order strength (base 100 + fortress bonus)
+    const orderStrength = 100 + (gameState.regions[attackTarget]?.fortress ? 10 : 0);
+
+    // Calculate Pskov strength (attacking, so no fortress bonus for defenders)
+    const pskovStrength = calculateTotalPskovStrength(attackingPlayers, false, null);
+
+    // Execute battle
+    const strengthDiff = pskovStrength - orderStrength;
+    const pskovWins = rollForVictory(strengthDiff);
+    const chancePercent = getVictoryChance(strengthDiff);
+    const regionDisplayName = attackTarget === 'bearhill' ? 'Bear Hill' : attackTarget.charAt(0).toUpperCase() + attackTarget.slice(1);
+
+    setGameState(prev => {
+      if (pskovWins) {
+        // Successful attack - recapture region
+        const newRegions = { ...prev.regions };
+        newRegions[attackTarget].controller = 'republic';
+
+        return {
+          ...prev,
+          players: newPlayers,
+          regions: newRegions,
+          attackPlanning: null,
+          attackTarget: null,
+          attackVotes: [null, null, null],
+          lastEventResult: `⚔️ VICTORY! ${regionDisplayName} recaptured from the Order! (${chancePercent}% chance, Strength: ${pskovStrength} vs ${orderStrength})`
+        };
+      } else {
+        // Failed attack
+        return {
+          ...prev,
+          players: newPlayers,
+          attackPlanning: null,
+          attackTarget: null,
+          attackVotes: [null, null, null],
+          lastEventResult: `💀 DEFEAT! Attack on ${regionDisplayName} failed! (${chancePercent}% chance, Strength: ${pskovStrength} vs ${orderStrength})`
+        };
+      }
+    });
+  };
+
   // Event system abstraction
   const eventTypes = {
     immediate: {
@@ -182,6 +399,76 @@ const PskovGame = () => {
         });
 
         return { ...gameState, players: newPlayers };
+      }
+    },
+    order_attack: {
+      resolve: (event, gameState, votes) => {
+        console.log("=== ORDER ATTACK START ===");
+        console.log("Initial regions:", Object.entries(gameState.regions).map(([name, region]) => `${name}: ${region.controller}`));
+  
+        // Determine target region (random republic region, excluding Pskov initially) - TODO implement proper map logic
+        const republicRegions = Object.entries(gameState.regions)
+          .filter(([name, region]) => region.controller === 'republic' && name !== 'pskov');
+
+        console.log("Available republic regions for attack:", republicRegions.map(([name, _]) => name));
+        
+        let targetRegion;
+        if (republicRegions.length === 0) {
+          // Only Pskov left - attack Pskov
+          targetRegion = 'pskov';
+        } else {
+          // Random target region
+          const randomIndex = Math.floor(Math.random() * republicRegions.length);
+          const [regionName, _] = republicRegions[randomIndex];
+          targetRegion = regionName;
+        }
+
+        console.log("Selected target region:", targetRegion);
+
+        const participants = votes.filter(v => v === true).length;
+        const costPerParticipant = participants > 0 ? 3 / participants : 0;
+
+        console.log("Participants:", participants, "Cost per participant:", costPerParticipant);
+        console.log("Votes:", votes);
+
+        // Check if defense is funded
+        let allCanAfford = true;
+        let defendingPlayers = [];
+
+        gameState.players.forEach((player, index) => {
+          if (votes[index] === true) {
+            if (player.money < costPerParticipant) {
+              allCanAfford = false;
+            } else {
+              defendingPlayers.push(index);
+            }
+          }
+        });
+
+        const defenseFunded = participants > 0 && allCanAfford;
+
+        console.log("Defense funded:", defenseFunded);
+
+        if (!defenseFunded) {
+          // Surrender - lose the region immediately
+          return surrenderRegion(gameState, targetRegion);
+        }
+
+        // Deduct money from participants
+        const newPlayers = gameState.players.map((player, index) => {
+          if (votes[index] === true) {
+            return { ...player, money: player.money - costPerParticipant };
+          }
+          return player;
+        });
+
+        // Execute the battle
+        const gameStateWithPayment = {
+          ...gameState,
+          players: newPlayers
+        };
+
+        return executeBattle(gameStateWithPayment, event.orderStrength, targetRegion, defendingPlayers);
       }
     },
     voting: {
@@ -231,8 +518,8 @@ const PskovGame = () => {
       id: 'order_attack_110',
       name: 'Order Attack (110)',
       description: 'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
-      type: 'participation',
-      totalCost: 3,
+      type: 'order_attack',  // CHANGE FROM 'participation' TO 'order_attack'
+      orderStrength: 110,    // ADD THIS
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
       minCostPerPlayer: 1,
       successText: 'DEFENSE FUNDED',
@@ -1299,22 +1586,23 @@ const PskovGame = () => {
 
   // Resolve current event using abstracted system
   const resolveEvent = () => {
-    setGameState(prev => {
-      const event = prev.currentEvent;
-      const eventType = eventTypes[event.type];
+    console.trace("resolveEvent called from:");
 
-      if (!eventType) {
-        console.error('Unknown event type:', event.type);
-        return prev;
-      }
+    const event = gameState.currentEvent;
+    const eventType = eventTypes[event.type];
 
-      const newState = eventType.resolve(event, prev, prev.eventVotes);
+    if (!eventType) {
+      console.error('Unknown event type:', event.type);
+      return;
+    }
 
-      return {
-        ...newState,
-        eventResolved: true
-      };
-    });
+    // Execute the resolution ONCE, outside of setGameState
+    const newState = eventType.resolve(event, gameState, gameState.eventVotes);
+
+    setGameState(prev => ({
+      ...newState,
+      eventResolved: true
+    }));
   };
 
   const resetGame = () => {
@@ -1413,7 +1701,7 @@ const PskovGame = () => {
       resources: 'Players receive income from controlled regions and improvements',
       construction: 'Players can build improvements, fortresses, and buy equipment',
       events: 'Draw and resolve an event card',
-      veche: 'Council meeting to make collective decisions',
+      veche: 'Assembly of citizens making collective decisions',
       military: 'Resolve any military conflicts with the Teutonic Order'
     };
     return descriptions[phase];
@@ -1865,6 +2153,72 @@ const PskovGame = () => {
               </div>
             )}
 
+            {gameState.currentEvent.type === 'order_attack' && !gameState.eventResolved && (
+              <div>
+                <h4 className="font-medium mb-2">Order Attack!</h4>
+                <p className="text-sm text-gray-600 mb-3">The Teutonic Order attacks with strength {gameState.currentEvent.orderStrength}. Fund defense or surrender the region?</p>
+
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  {gameState.players.map((player, index) => {
+                    const hasDecided = gameState.eventVotes[index] !== null;
+                    const canAfford = player.money >= gameState.currentEvent.minCostPerPlayer;
+
+                    return (
+                      <div key={index} className="text-center">
+                        <h5 className="font-medium mb-1">{player.faction}</h5>
+                        <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => voteOnEvent(index, true)}
+                            disabled={hasDecided || !canAfford}
+                            className={`w-full px-3 py-1 rounded text-sm ${
+                              gameState.eventVotes[index] === true 
+                                ? 'bg-green-600 text-white' 
+                                : canAfford
+                                ? 'bg-green-500 hover:bg-green-600 text-white'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            {gameState.eventVotes[index] === true ? 'Defending' : 
+                             !canAfford ? `Need ${gameState.currentEvent.minCostPerPlayer}○ min` :
+                             'Fund Defense'}
+                          </button>
+                          <button
+                            onClick={() => voteOnEvent(index, false)}
+                            disabled={hasDecided}
+                            className={`w-full px-3 py-1 rounded text-sm ${
+                              gameState.eventVotes[index] === false 
+                                ? 'bg-red-600 text-white' 
+                                : 'bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-300'
+                            }`}
+                          >
+                            {gameState.eventVotes[index] === false ? 'No Defense' : 'Surrender'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {getParticipationResult() && (
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">
+                      {(() => {
+                        const participants = gameState.eventVotes.filter(v => v === true).length;
+                        return participants > 0 ? `${participants} defenders ready` : 'No defenders - region will be surrendered';
+                      })()}
+                    </p>
+                    <button
+                      onClick={resolveEvent}
+                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+                    >
+                      Resolve Attack
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            
             {gameState.eventResolved && (
               <div className="text-center">
                 <p className="text-green-600 font-medium mb-2">✓ Event Resolved</p>
@@ -1878,6 +2232,234 @@ const PskovGame = () => {
         </div>
       )}
 
+      {/* City Assembly (Veche) Phase Interface */}
+      {gameState.phase === 'veche' && (
+        <div className="bg-white rounded-lg p-4 mb-6 shadow">
+          <h3 className="text-lg font-semibold mb-3">City Assembly (Veche)</h3>
+
+          <div className="bg-amber-50 p-4 rounded mb-4">
+            <p className="text-amber-800 mb-4">The citizens gather to make important decisions for the city.</p>
+
+            {/* Attack Planning */}
+            <div className="mb-6">
+              <h4 className="font-medium mb-3">Military Campaigns</h4>
+              <p className="text-sm text-gray-600 mb-3">Launch attacks to recapture territories from the Order (6○ total cost):</p>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {Object.entries(gameState.regions)
+                  .filter(([name, region]) => region.controller === 'order')
+                  .map(([regionName, region]) => {
+                    const displayName = regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1);
+                    return (
+                      <button
+                        key={regionName}
+                        onClick={() => initiateAttack(regionName)}
+                        disabled={gameState.attackPlanning !== null}
+                        className="bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white p-3 rounded text-sm"
+                      >
+                        <div className="font-medium">Attack {displayName}</div>
+                        <div className="text-xs">
+                          {region.fortress ? 'Has fortress (+10 Order defense)' : 'No fortress'}
+                        </div>
+                        <div className="text-xs">Requires 6○ funding</div>
+                      </button>
+                    );
+                  })}
+              </div>
+
+              {Object.entries(gameState.regions).filter(([name, region]) => region.controller === 'order').length === 0 && (
+                <p className="text-green-600 text-center py-2">✓ All territories under Republic control!</p>
+              )}
+            </div>
+
+            {/* Attack Planning Interface */}
+            {gameState.attackPlanning === 'planning' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <h4 className="font-medium text-red-800 mb-3">
+                  Planning Attack: {gameState.attackTarget === 'bearhill' ? 'Bear Hill' : gameState.attackTarget.charAt(0).toUpperCase() + gameState.attackTarget.slice(1)}
+                </h4>
+
+                <p className="text-red-700 mb-3">
+                  Attacking requires 6○ total funding. Who will contribute to this military campaign?
+                </p>
+
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  {gameState.players.map((player, index) => {
+                    const hasDecided = gameState.attackVotes[index] !== null;
+                    const canAfford = player.money >= 2; // minimum contribution
+
+                    return (
+                      <div key={index} className="text-center">
+                        <h5 className="font-medium mb-1">{player.faction}</h5>
+                        <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => {
+                              setGameState(prev => {
+                                const newVotes = [...prev.attackVotes];
+                                newVotes[index] = true;
+                                return { ...prev, attackVotes: newVotes };
+                              });
+                            }}
+                            disabled={hasDecided || !canAfford}
+                            className={`w-full px-3 py-1 rounded text-sm ${
+                              gameState.attackVotes[index] === true 
+                                ? 'bg-red-600 text-white' 
+                                : canAfford
+                                ? 'bg-red-500 hover:bg-red-600 text-white'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            {gameState.attackVotes[index] === true ? 'Joining Attack' : 
+                             !canAfford ? 'Need 2○ min' :
+                             'Join Attack'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setGameState(prev => {
+                                const newVotes = [...prev.attackVotes];
+                                newVotes[index] = false;
+                                return { ...prev, attackVotes: newVotes };
+                              });
+                            }}
+                            disabled={hasDecided}
+                            className={`w-full px-3 py-1 rounded text-sm ${
+                              gameState.attackVotes[index] === false 
+                                ? 'bg-gray-600 text-white' 
+                                : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
+                            }`}
+                          >
+                            {gameState.attackVotes[index] === false ? 'Not Participating' : 'Decline'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Show result when all votes are in */}
+                {gameState.attackVotes.filter(v => v !== null).length === 3 && (
+                  <div className="text-center">
+                    {(() => {
+                      const participants = gameState.attackVotes.filter(v => v === true).length;
+                      const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+
+                      let allCanAfford = true;
+                      let insufficientFunds = [];
+                      gameState.players.forEach((player, index) => {
+                        if (gameState.attackVotes[index] === true && player.money < costPerParticipant) {
+                          allCanAfford = false;
+                          insufficientFunds.push(player.faction);
+                        }
+                      });
+
+                      const attackSucceeds = participants > 0 && allCanAfford;
+
+                      return (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-600 mb-1">
+                            {participants > 0 ? (
+                              <>Attackers: {participants} • Cost per attacker: {costPerParticipant.toFixed(1)}○</>
+                            ) : (
+                              <>No participants - attack cancelled</>
+                            )}
+                          </p>
+
+                          {!allCanAfford && participants > 0 && (
+                            <p className="text-sm text-red-600 mb-1">
+                              {insufficientFunds.join(', ')} cannot afford {costPerParticipant.toFixed(1)}○
+                            </p>
+                          )}
+
+                          <p className={`text-sm font-medium ${attackSucceeds ? 'text-green-600' : 'text-red-600'}`}>
+                            Result: {attackSucceeds ? 'ATTACK FUNDED' : 'ATTACK CANCELLED'}
+                          </p>
+
+                          <div className="mt-3 space-x-3">
+                            <button
+                              onClick={() => executeAttack()}
+                              disabled={!attackSucceeds}
+                              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-2 rounded"
+                            >
+                              {attackSucceeds ? 'Launch Attack' : 'Cannot Launch'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setGameState(prev => ({
+                                  ...prev,
+                                  attackPlanning: null,
+                                  attackTarget: null,
+                                  attackVotes: [null, null, null]
+                                }));
+                              }}
+                              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Attack Result */}
+            {gameState.lastEventResult && (gameState.lastEventResult.includes('VICTORY!') || gameState.lastEventResult.includes('DEFEAT!')) && (
+              <div className={`p-3 rounded mb-4 ${
+                gameState.lastEventResult.includes('VICTORY!') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}>
+                <p className="font-medium">{gameState.lastEventResult}</p>
+              </div>
+            )}
+
+            {/* Fortress Building */}
+            <div className="mb-6">
+              <h4 className="font-medium mb-3">Fortress Construction</h4>
+              <p className="text-sm text-gray-600 mb-3">Build fortresses for defense (6○ total cost):</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(gameState.regions)
+                  .filter(([name, region]) => region.controller === 'republic' && !region.fortress)
+                  .map(([regionName, region]) => {
+                    const displayName = regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1);
+                    return (
+                      <button
+                        key={regionName}
+                        onClick={() => {
+                          alert(`Would start planning fortress in ${displayName}`);
+                        }}
+                        className="bg-gray-600 hover:bg-gray-700 text-white p-3 rounded text-sm"
+                      >
+                        <div className="font-medium">Build Fortress</div>
+                        <div className="text-xs">{displayName}</div>
+                        <div className="text-xs">+10 defense bonus</div>
+                      </button>
+                    );
+                  })}
+              </div>
+
+              {Object.entries(gameState.regions).filter(([name, region]) => region.controller === 'republic' && !region.fortress).length === 0 && (
+                <p className="text-green-600 text-center py-2">✓ All regions have fortresses!</p>
+              )}
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">No assembly decisions this turn</p>
+              <button
+                onClick={() => nextPhase()}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+              >
+                End Assembly
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+      
       {/* Regions Status */}
       <div className="bg-white rounded-lg p-4 mb-6 shadow">
         <h3 className="text-lg font-semibold mb-3">
@@ -1897,11 +2479,19 @@ const PskovGame = () => {
                   <span className="text-xs ml-2 px-2 py-1 rounded">
                     {region.controller === 'republic' ? '🏛️ Republic' : '⚔️ Order'}
                   </span>
+                  {region.fortress && (
+                    <span className="text-xs ml-1 px-2 py-1 rounded bg-gray-600 text-white">
+                      🏰 Fortress
+                    </span>
+                  )}
                 </h4>
                 <div className="text-sm text-gray-600">
                   {totalBuildings} building{totalBuildings !== 1 ? 's' : ''}
                   {name === 'pskov' && region.buildings.merchant_mansion > 0 && (
                     <span className="block">Merchants: {region.buildings.merchant_mansion + region.buildings.merchant_church} buildings</span>
+                  )}
+                  {region.fortress && (
+                    <span className="block text-blue-600">+10 defense bonus</span>
                   )}
                 </div>
               </div>
