@@ -15,6 +15,7 @@ const PskovGame = () => {
     debugEventIndex: 0, // for debug mode - cycles through events in order
     lastEventResult: null, // stores result message for immediate events
     activeEffects: [], // tracks ongoing effects
+    pendingOrderAttack: null, // queued order attack (strength value) from events like rob_foreign
     //MILITARY STATE VARIABLES:
     battleState: null, // current battle information
     militaryAction: null, // 'defend', 'attack', or null
@@ -831,8 +832,23 @@ const PskovGame = () => {
       ],
       effects: {
         rob_foreign: (gameState) => {
-          // TODO: Implement "on roll 1-3 Order attack occurs"
-          return gameState;
+          // Roll a d6 - on 1-3, Order attack occurs
+          const roll = Math.floor(Math.random() * 6) + 1;
+
+          if (roll <= 3) {
+            // Order retaliates! Queue an Order attack for the next events phase
+            return {
+              ...gameState,
+              pendingOrderAttack: 100,
+              lastEventResult: `Merchants robbed! The Order is enraged (rolled ${roll}/6). An Order attack with strength 100 will occur in the next events phase!`
+            };
+          } else {
+            // Successful robbery without retaliation
+            return {
+              ...gameState,
+              lastEventResult: `Merchants robbed successfully (rolled ${roll}/6). The Order does not respond.`
+            };
+          }
         },
         demand_compensation: (gameState) => {
           const newPlayers = gameState.players.map(player => {
@@ -1517,12 +1533,28 @@ const PskovGame = () => {
 
       // Draw event when moving TO events phase
       if (nextPhase === 'events') {
-        newState.currentEvent = drawEvent(prev.debugEventIndex);
+        // Check if there's a pending Order attack from a previous event
+        if (prev.pendingOrderAttack) {
+          newState.currentEvent = {
+            id: `order_attack_triggered_${Date.now()}`,
+            name: `Order Attack (${prev.pendingOrderAttack})`,
+            description: `The Teutonic Order attacks with strength ${prev.pendingOrderAttack}. Who will contribute to the defense?`,
+            type: 'order_attack',
+            orderStrength: prev.pendingOrderAttack,
+            question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+            minCostPerPlayer: 1,
+            successText: 'DEFENSE FUNDED',
+            failureText: 'NO DEFENSE - SURRENDER'
+          };
+          newState.pendingOrderAttack = null; // Clear the pending attack
+        } else {
+          newState.currentEvent = drawEvent(prev.debugEventIndex);
+          if (DEBUG_MODE) {
+            newState.debugEventIndex = (prev.debugEventIndex + 1) % eventDeck.length;
+          }
+        }
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
-        if (DEBUG_MODE) {
-          newState.debugEventIndex = (prev.debugEventIndex + 1) % eventDeck.length;
-        }
       }
 
       // Reset current player and construction actions when leaving construction
@@ -1616,6 +1648,8 @@ const PskovGame = () => {
       eventResolved: false,
       debugEventIndex: 0,
       lastEventResult: null,
+      activeEffects: [],
+      pendingOrderAttack: null,
       regions: {
         pskov: { 
           controller: 'republic', 
