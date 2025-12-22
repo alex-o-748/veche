@@ -7,7 +7,7 @@ const MAP_ADJACENCY = {
   bearhill: ['order_lands', 'pechory'],
   pechory: ['bearhill', 'izborsk'],
   izborsk: ['pechory', 'ostrov', 'pskov'],
-  ostrov: ['pechory', 'izborsk', 'pskov'],
+  ostrov: ['izborsk', 'pskov'],
   pskov: ['izborsk', 'ostrov', 'skrynnitsy'],
   skrynnitsy: ['pskov', 'gdov'],
   gdov: ['order_lands', 'skrynnitsy']
