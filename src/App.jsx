@@ -25,6 +25,10 @@ const PskovGame = () => {
     attackPlanning: null, // 'planning' when planning an attack, null otherwise
     attackTarget: null, // which region is being targeted
     attackVotes: [null, null, null], // attack funding votes
+    // fortress planning variables:
+    fortressPlanning: null, // 'planning' when planning fortress construction, null otherwise
+    fortressTarget: null, // which region is getting the fortress
+    fortressVotes: [null, null, null], // fortress funding votes
     regions: {
       pskov: { 
         controller: 'republic', 
@@ -366,6 +370,66 @@ const PskovGame = () => {
         };
       }
     });
+  };
+
+  // Fortress building functions
+  const initiateFortressBuild = (targetRegion) => {
+    setGameState(prev => ({
+      ...prev,
+      fortressPlanning: 'planning',
+      fortressTarget: targetRegion,
+      fortressVotes: [null, null, null]
+    }));
+  };
+
+  const executeFortressBuild = () => {
+    const { fortressTarget, fortressVotes } = gameState;
+    const participants = fortressVotes.filter(v => v === true).length;
+    const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+
+    // Check if all participants can afford their share
+    let allCanAfford = true;
+    gameState.players.forEach((player, index) => {
+      if (fortressVotes[index] === true && player.money < costPerParticipant) {
+        allCanAfford = false;
+      }
+    });
+
+    if (participants === 0 || !allCanAfford) {
+      // Not enough funding - cancel
+      setGameState(prev => ({
+        ...prev,
+        fortressPlanning: null,
+        fortressTarget: null,
+        fortressVotes: [null, null, null],
+        lastEventResult: '❌ Fortress construction cancelled - insufficient funding!'
+      }));
+      return;
+    }
+
+    // Deduct money from participants
+    const newPlayers = gameState.players.map((player, index) => {
+      if (fortressVotes[index] === true) {
+        return { ...player, money: player.money - costPerParticipant };
+      }
+      return player;
+    });
+
+    // Build the fortress
+    const newRegions = { ...gameState.regions };
+    newRegions[fortressTarget].fortress = true;
+
+    const regionDisplayName = fortressTarget === 'bearhill' ? 'Bear Hill' : fortressTarget.charAt(0).toUpperCase() + fortressTarget.slice(1);
+
+    setGameState(prev => ({
+      ...prev,
+      players: newPlayers,
+      regions: newRegions,
+      fortressPlanning: null,
+      fortressTarget: null,
+      fortressVotes: [null, null, null],
+      lastEventResult: `🏰 Fortress built in ${regionDisplayName}! (+10 defense bonus)`
+    }));
   };
 
   // Event system abstraction
@@ -2455,10 +2519,13 @@ const PskovGame = () => {
                     return (
                       <button
                         key={regionName}
-                        onClick={() => {
-                          alert(`Would start planning fortress in ${displayName}`);
-                        }}
-                        className="bg-gray-600 hover:bg-gray-700 text-white p-3 rounded text-sm"
+                        onClick={() => initiateFortressBuild(regionName)}
+                        disabled={gameState.fortressPlanning !== null}
+                        className={`p-3 rounded text-sm ${
+                          gameState.fortressPlanning !== null
+                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                            : 'bg-gray-600 hover:bg-gray-700 text-white'
+                        }`}
                       >
                         <div className="font-medium">Build Fortress</div>
                         <div className="text-xs">{displayName}</div>
@@ -2470,6 +2537,163 @@ const PskovGame = () => {
 
               {Object.entries(gameState.regions).filter(([name, region]) => region.controller === 'republic' && !region.fortress).length === 0 && (
                 <p className="text-green-600 text-center py-2">✓ All regions have fortresses!</p>
+              )}
+
+              {/* Fortress Planning Interface */}
+              {gameState.fortressPlanning === 'planning' && (
+                <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 mt-4">
+                  <h4 className="font-medium text-gray-800 mb-3">
+                    🏰 Planning Fortress: {gameState.fortressTarget === 'bearhill' ? 'Bear Hill' : gameState.fortressTarget.charAt(0).toUpperCase() + gameState.fortressTarget.slice(1)}
+                  </h4>
+
+                  <p className="text-sm text-gray-600 mb-3">
+                    Building a fortress requires 6○ total funding. Who will contribute?
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    {gameState.players.map((player, index) => {
+                      const hasDecided = gameState.fortressVotes[index] !== null;
+                      const canAfford = player.money >= 2; // minimum contribution
+
+                      return (
+                        <div key={index} className="text-center">
+                          <h5 className="font-medium mb-1">{player.faction}</h5>
+                          <div className="text-xs text-gray-600 mb-2">Money: {player.money.toFixed(2)}○</div>
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => {
+                                setGameState(prev => {
+                                  const newVotes = [...prev.fortressVotes];
+                                  newVotes[index] = true;
+                                  return { ...prev, fortressVotes: newVotes };
+                                });
+                              }}
+                              disabled={hasDecided || !canAfford}
+                              className={`w-full px-3 py-1 rounded text-sm ${
+                                gameState.fortressVotes[index] === true
+                                  ? 'bg-gray-700 text-white'
+                                  : canAfford
+                                  ? 'bg-gray-600 hover:bg-gray-700 text-white'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              }`}
+                            >
+                              {gameState.fortressVotes[index] === true ? 'Contributing' :
+                               !canAfford ? 'Need 2○ min' :
+                               'Contribute'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setGameState(prev => {
+                                  const newVotes = [...prev.fortressVotes];
+                                  newVotes[index] = false;
+                                  return { ...prev, fortressVotes: newVotes };
+                                });
+                              }}
+                              disabled={hasDecided}
+                              className={`w-full px-3 py-1 rounded text-sm ${
+                                gameState.fortressVotes[index] === false
+                                  ? 'bg-gray-600 text-white'
+                                  : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
+                              }`}
+                            >
+                              {gameState.fortressVotes[index] === false ? 'Not Contributing' : 'Decline'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Show result when all votes are in */}
+                  {gameState.fortressVotes.filter(v => v !== null).length === 3 && (
+                    <div className="text-center">
+                      {(() => {
+                        const participants = gameState.fortressVotes.filter(v => v === true).length;
+                        const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+
+                        let allCanAfford = true;
+                        let insufficientFunds = [];
+                        gameState.players.forEach((player, index) => {
+                          if (gameState.fortressVotes[index] === true && player.money < costPerParticipant) {
+                            allCanAfford = false;
+                            insufficientFunds.push(player.faction);
+                          }
+                        });
+
+                        if (participants === 0) {
+                          return (
+                            <div>
+                              <p className="text-gray-600 mb-2">No one wants to fund the fortress construction.</p>
+                              <button
+                                onClick={() => {
+                                  setGameState(prev => ({
+                                    ...prev,
+                                    fortressPlanning: null,
+                                    fortressTarget: null,
+                                    fortressVotes: [null, null, null]
+                                  }));
+                                }}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                              >
+                                Cancel Construction
+                              </button>
+                            </div>
+                          );
+                        } else if (!allCanAfford) {
+                          return (
+                            <div>
+                              <p className="text-red-600 mb-2">
+                                {insufficientFunds.join(', ')} cannot afford their share ({costPerParticipant.toFixed(2)}○ each)!
+                              </p>
+                              <button
+                                onClick={() => {
+                                  setGameState(prev => ({
+                                    ...prev,
+                                    fortressPlanning: null,
+                                    fortressTarget: null,
+                                    fortressVotes: [null, null, null]
+                                  }));
+                                }}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                              >
+                                Cancel Construction
+                              </button>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div>
+                              <p className="text-green-600 mb-2">
+                                {participants} contributor{participants > 1 ? 's' : ''} - {costPerParticipant.toFixed(2)}○ each
+                              </p>
+                              <div className="space-x-2">
+                                <button
+                                  onClick={executeFortressBuild}
+                                  className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded"
+                                >
+                                  🏰 Build Fortress
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setGameState(prev => ({
+                                      ...prev,
+                                      fortressPlanning: null,
+                                      fortressTarget: null,
+                                      fortressVotes: [null, null, null]
+                                    }));
+                                  }}
+                                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
