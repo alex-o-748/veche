@@ -1,5 +1,68 @@
 import React, { useState } from 'react';
 
+// Map adjacency graph - defines which regions are connected
+// "order_lands" represents the Teutonic Order's home territory (always Order-controlled)
+const MAP_ADJACENCY = {
+  order_lands: ['bearhill', 'gdov'],
+  bearhill: ['order_lands', 'pechory'],
+  pechory: ['bearhill', 'izborsk'],
+  izborsk: ['pechory', 'ostrov', 'pskov'],
+  ostrov: ['izborsk', 'pskov'],
+  pskov: ['izborsk', 'ostrov', 'skrynnitsy'],
+  skrynnitsy: ['pskov', 'gdov'],
+  gdov: ['order_lands', 'skrynnitsy']
+};
+
+// Get all valid attack targets for the Order (republic regions adjacent to Order territory)
+const getValidOrderAttackTargets = (regions) => {
+  // Find all Order-controlled regions (including the permanent "order_lands")
+  const orderControlledRegions = ['order_lands']; // Order always controls their home territory
+  Object.entries(regions).forEach(([name, region]) => {
+    if (region.controller === 'order') {
+      orderControlledRegions.push(name);
+    }
+  });
+
+  // Find all republic regions that are adjacent to any Order-controlled region
+  const validTargets = new Set();
+  orderControlledRegions.forEach(orderRegion => {
+    const adjacentRegions = MAP_ADJACENCY[orderRegion] || [];
+    adjacentRegions.forEach(adjacent => {
+      // Only add if it's a republic-controlled region (not order_lands or already order-controlled)
+      if (regions[adjacent] && regions[adjacent].controller === 'republic') {
+        validTargets.add(adjacent);
+      }
+    });
+  });
+
+  return Array.from(validTargets);
+};
+
+// Get all valid attack targets for the Republic (order regions adjacent to Republic territory)
+const getValidRepublicAttackTargets = (regions) => {
+  // Find all Republic-controlled regions
+  const republicControlledRegions = [];
+  Object.entries(regions).forEach(([name, region]) => {
+    if (region.controller === 'republic') {
+      republicControlledRegions.push(name);
+    }
+  });
+
+  // Find all Order regions that are adjacent to any Republic-controlled region
+  const validTargets = new Set();
+  republicControlledRegions.forEach(republicRegion => {
+    const adjacentRegions = MAP_ADJACENCY[republicRegion] || [];
+    adjacentRegions.forEach(adjacent => {
+      // Only add if it's an Order-controlled region (and exists in regions, not order_lands)
+      if (regions[adjacent] && regions[adjacent].controller === 'order') {
+        validTargets.add(adjacent);
+      }
+    });
+  });
+
+  return Array.from(validTargets);
+};
+
 const PskovGame = () => {
   // Debug mode - set to true for predictable event order
   const DEBUG_MODE = true;
@@ -469,22 +532,28 @@ const PskovGame = () => {
       resolve: (event, gameState, votes) => {
         console.log("=== ORDER ATTACK START ===");
         console.log("Initial regions:", Object.entries(gameState.regions).map(([name, region]) => `${name}: ${region.controller}`));
-  
-        // Determine target region (random republic region, excluding Pskov initially) - TODO implement proper map logic
-        const republicRegions = Object.entries(gameState.regions)
-          .filter(([name, region]) => region.controller === 'republic' && name !== 'pskov');
 
-        console.log("Available republic regions for attack:", republicRegions.map(([name, _]) => name));
-        
+        // Get valid attack targets using map adjacency (only regions adjacent to Order territory)
+        const validTargets = getValidOrderAttackTargets(gameState.regions);
+
+        // Filter out Pskov initially (only attack Pskov if it's the only valid target)
+        const nonPskovTargets = validTargets.filter(name => name !== 'pskov');
+
+        console.log("Valid attack targets (adjacent to Order):", validTargets);
+        console.log("Non-Pskov targets:", nonPskovTargets);
+
         let targetRegion;
-        if (republicRegions.length === 0) {
-          // Only Pskov left - attack Pskov
+        if (nonPskovTargets.length > 0) {
+          // Random target from valid adjacent regions (excluding Pskov)
+          const randomIndex = Math.floor(Math.random() * nonPskovTargets.length);
+          targetRegion = nonPskovTargets[randomIndex];
+        } else if (validTargets.includes('pskov')) {
+          // Only Pskov is a valid target - attack Pskov
           targetRegion = 'pskov';
         } else {
-          // Random target region
-          const randomIndex = Math.floor(Math.random() * republicRegions.length);
-          const [regionName, _] = republicRegions[randomIndex];
-          targetRegion = regionName;
+          // No valid targets (shouldn't happen in normal gameplay)
+          console.log("No valid attack targets - Order cannot attack");
+          return { ...gameState, lastEventResult: 'The Teutonic Order could not find a valid target to attack.' };
         }
 
         console.log("Selected target region:", targetRegion);
@@ -2329,32 +2398,39 @@ const PskovGame = () => {
             {/* Attack Planning */}
             <div className="mb-6">
               <h4 className="font-medium mb-3">Military Campaigns</h4>
-              <p className="text-sm text-gray-600 mb-3">Launch attacks to recapture territories from the Order (6○ total cost):</p>
+              <p className="text-sm text-gray-600 mb-3">Launch attacks to recapture adjacent territories from the Order (6○ total cost):</p>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
-                {Object.entries(gameState.regions)
-                  .filter(([name, region]) => region.controller === 'order')
-                  .map(([regionName, region]) => {
+                {(() => {
+                  const validTargets = getValidRepublicAttackTargets(gameState.regions);
+                  const orderRegions = Object.entries(gameState.regions).filter(([name, region]) => region.controller === 'order');
+
+                  return orderRegions.map(([regionName, region]) => {
                     const displayName = regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1);
+                    const isAdjacent = validTargets.includes(regionName);
+
                     return (
                       <button
                         key={regionName}
                         onClick={() => initiateAttack(regionName)}
-                        disabled={gameState.attackPlanning !== null}
-                        className="bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white p-3 rounded text-sm"
+                        disabled={gameState.attackPlanning !== null || !isAdjacent}
+                        className={`${isAdjacent ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-400 cursor-not-allowed'} disabled:bg-gray-300 text-white p-3 rounded text-sm`}
                       >
                         <div className="font-medium">Attack {displayName}</div>
                         <div className="text-xs">
                           {region.fortress ? 'Has fortress (+10 Order defense)' : 'No fortress'}
                         </div>
-                        <div className="text-xs">Requires 6○ funding</div>
+                        <div className="text-xs">
+                          {isAdjacent ? 'Requires 6○ funding' : 'Not adjacent to Republic territory'}
+                        </div>
                       </button>
                     );
-                  })}
+                  });
+                })()}
               </div>
 
               {Object.entries(gameState.regions).filter(([name, region]) => region.controller === 'order').length === 0 && (
-                <p className="text-green-600 text-center py-2">✓ All territories under Republic control!</p>
+                <p className="text-green-600 text-center py-2">All territories under Republic control!</p>
               )}
             </div>
 
