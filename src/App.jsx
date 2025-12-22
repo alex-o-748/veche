@@ -1278,56 +1278,46 @@ const PskovGame = () => {
       id: 'order_attack_90',
       name: 'Order Attack (90)',
       description: 'The Teutonic Order attacks with strength 90. Who will contribute to the defense?',
-      type: 'participation',
-      totalCost: 3,
+      type: 'order_attack',
+      orderStrength: 90,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
-      minCostPerPlayer: 1,
-      successText: 'DEFENSE FUNDED',
-      failureText: 'NO DEFENSE - SURRENDER'
+      minCostPerPlayer: 1
     },
     {
       id: 'order_attack_95',
       name: 'Order Attack (95)',
       description: 'The Teutonic Order attacks with strength 95. Who will contribute to the defense?',
-      type: 'participation',
-      totalCost: 3,
+      type: 'order_attack',
+      orderStrength: 95,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
-      minCostPerPlayer: 1,
-      successText: 'DEFENSE FUNDED',
-      failureText: 'NO DEFENSE - SURRENDER'
+      minCostPerPlayer: 1
     },
     {
       id: 'order_attack_100',
       name: 'Order Attack (100)',
       description: 'The Teutonic Order attacks with strength 100. Who will contribute to the defense?',
-      type: 'participation',
-      totalCost: 3,
+      type: 'order_attack',
+      orderStrength: 100,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
-      minCostPerPlayer: 1,
-      successText: 'DEFENSE FUNDED',
-      failureText: 'NO DEFENSE - SURRENDER'
+      minCostPerPlayer: 1
     },
     {
       id: 'order_attack_105',
       name: 'Order Attack (105)',
       description: 'The Teutonic Order attacks with strength 105. Who will contribute to the defense?',
-      type: 'participation',
-      totalCost: 3,
+      type: 'order_attack',
+      orderStrength: 105,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
-      minCostPerPlayer: 1,
-      successText: 'DEFENSE FUNDED',
-      failureText: 'NO DEFENSE - SURRENDER'
+      minCostPerPlayer: 1
     },
     {
       id: 'order_attack_110',
       name: 'Order Attack (110)',
       description: 'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
-      type: 'participation',
-      totalCost: 3,
+      type: 'order_attack',
+      orderStrength: 110,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
-      minCostPerPlayer: 1,
-      successText: 'DEFENSE FUNDED',
-      failureText: 'NO DEFENSE - SURRENDER'
+      minCostPerPlayer: 1
     },
     {
       id: 'plague',
