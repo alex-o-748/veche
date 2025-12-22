@@ -1627,9 +1627,13 @@ const PskovGame = () => {
     // Execute the resolution ONCE, outside of setGameState
     const newState = eventType.resolve(event, gameState, gameState.eventVotes);
 
+    // Check if a new event was triggered (nested event scenario)
+    const newEventTriggered = newState.currentEvent && newState.currentEvent.id !== event.id;
+
     setGameState(prev => ({
       ...newState,
-      eventResolved: true
+      // Only mark as resolved if no new event was triggered
+      eventResolved: newEventTriggered ? false : true
     }));
   };
 
