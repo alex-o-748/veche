@@ -515,6 +515,98 @@ const PskovGame = () => {
   // Event deck with all events
   const eventDeck = [
     {
+      id: 'merchants_robbed',
+      name: 'Merchants Robbed',
+      description: 'Foreign merchants have been robbed near your borders. How will you respond?',
+      type: 'voting',
+      defaultOption: 'trade_risk',
+      options: [
+        { id: 'rob_foreign', name: 'Rob foreign merchants' },
+        { id: 'demand_compensation', name: 'Demand compensation' },
+        { id: 'trade_risk', name: 'Trade is risk' }
+      ],
+      effects: {
+        rob_foreign: (gameState) => {
+          // Roll 1-6, on 1-3 Order attack occurs
+          const roll = Math.floor(Math.random() * 6) + 1;
+
+          if (roll <= 3) {
+            // Trigger immediate Order attack with strength 100
+            const orderAttackEvent = {
+              id: 'order_attack_rob_foreign',
+              name: 'Order Attack (100)',
+              description: 'The Teutonic Order retaliates for the robbed merchants! They attack with strength 100.',
+              type: 'order_attack',
+              orderStrength: 100,
+              question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+              minCostPerPlayer: 1,
+              successText: 'DEFENSE FUNDED',
+              failureText: 'NO DEFENSE - SURRENDER'
+            };
+
+            return {
+              ...gameState,
+              currentEvent: orderAttackEvent,
+              eventResolved: false,
+              eventVotes: [null, null, null],
+              lastEventResult: `Rolled ${roll}! The Order attacks immediately!`
+            };
+          } else {
+            return {
+              ...gameState,
+              lastEventResult: `Rolled ${roll}. The robbery went unnoticed.`
+            };
+          }
+        },
+        demand_compensation: (gameState) => {
+          const newPlayers = gameState.players.map(player => {
+            if (player.faction === 'Merchants') {
+              return { ...player, money: Math.max(0, player.money - 1) };
+            }
+            return player;
+          });
+          const rollFailed = Math.random() < 0.5;
+          if (rollFailed) {
+            const merchantWeaknessEffect = {
+              id: `merchant_weakness_${Date.now()}`,
+              type: 'strength_penalty',
+              target: 'Merchants',
+              value: -10, // TODO -50% strength implemented as flat -10 points for now
+              turnsRemaining: 3,
+              description: 'Merchant trading weakness'
+            };
+            return {
+              ...gameState,
+              players: newPlayers,
+              activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
+              lastEventResult: 'Compensation demand failed! Merchants weakened for 3 turns.'
+            };
+          } else {
+            return {
+              ...gameState,
+              players: newPlayers,
+              lastEventResult: 'Compensation received successfully.'
+            };
+          }
+        },
+        trade_risk: (gameState) => {
+          const merchantWeaknessEffect = {
+            id: `merchant_weakness_${Date.now()}`,
+            type: 'strength_penalty',
+            target: 'Merchants',
+            value: -10, // -50% strength
+            turnsRemaining: 3,
+            description: 'Trade route disruption'
+          };
+          return {
+            ...gameState,
+            activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
+            lastEventResult: 'Trade routes disrupted! Merchants lose 50% strength for 3 turns.'
+          };
+        }
+      }
+    },
+    {
       id: 'order_attack_110',
       name: 'Order Attack (110)',
       description: 'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
@@ -818,70 +910,6 @@ const PskovGame = () => {
         }
       }
     },
-    {
-      id: 'merchants_robbed',
-      name: 'Merchants Robbed',
-      description: 'Foreign merchants have been robbed near your borders. How will you respond?',
-      type: 'voting',
-      defaultOption: 'trade_risk',
-      options: [
-        { id: 'rob_foreign', name: 'Rob foreign merchants' },
-        { id: 'demand_compensation', name: 'Demand compensation' },
-        { id: 'trade_risk', name: 'Trade is risk' }
-      ],
-      effects: {
-        rob_foreign: (gameState) => {
-          // TODO: Implement "on roll 1-3 Order attack occurs"
-          return gameState;
-        },
-        demand_compensation: (gameState) => {
-          const newPlayers = gameState.players.map(player => {
-            if (player.faction === 'Merchants') {
-              return { ...player, money: Math.max(0, player.money - 1) };
-            }
-            return player;
-          });
-          const rollFailed = Math.random() < 0.5;
-          if (rollFailed) {
-            const merchantWeaknessEffect = {
-              id: `merchant_weakness_${Date.now()}`,
-              type: 'strength_penalty',
-              target: 'Merchants',
-              value: -10, // TODO -50% strength implemented as flat -10 points for now
-              turnsRemaining: 3,
-              description: 'Merchant trading weakness'
-            };
-            return { 
-              ...gameState, 
-              players: newPlayers,
-              activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
-              lastEventResult: 'Compensation demand failed! Merchants weakened for 3 turns.'
-            };
-          } else {
-            return { 
-              ...gameState, 
-              players: newPlayers,
-              lastEventResult: 'Compensation received successfully.'
-            };
-          }
-        },
-        trade_risk: (gameState) => {
-          const merchantWeaknessEffect = {
-            id: `merchant_weakness_${Date.now()}`,
-            type: 'strength_penalty',
-            target: 'Merchants',
-            value: -10, // -50% strength
-            turnsRemaining: 3,
-            description: 'Trade route disruption'
-          };
-          return { 
-            ...gameState,
-            activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
-            lastEventResult: 'Trade routes disrupted! Merchants lose 50% strength for 3 turns.'
-          };
-        }
-      }
-    },          
     {
       id: 'izhorian_delegation',
       name: 'Delegation from the Izhorians',
