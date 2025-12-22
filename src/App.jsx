@@ -831,8 +831,36 @@ const PskovGame = () => {
       ],
       effects: {
         rob_foreign: (gameState) => {
-          // TODO: Implement "on roll 1-3 Order attack occurs"
-          return gameState;
+          // Roll 1-6, on 1-3 Order attack occurs
+          const roll = Math.floor(Math.random() * 6) + 1;
+
+          if (roll <= 3) {
+            // Trigger immediate Order attack with strength 100
+            const orderAttackEvent = {
+              id: 'order_attack_rob_foreign',
+              name: 'Order Attack (100)',
+              description: 'The Teutonic Order retaliates for the robbed merchants! They attack with strength 100.',
+              type: 'order_attack',
+              orderStrength: 100,
+              question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+              minCostPerPlayer: 1,
+              successText: 'DEFENSE FUNDED',
+              failureText: 'NO DEFENSE - SURRENDER'
+            };
+
+            return {
+              ...gameState,
+              currentEvent: orderAttackEvent,
+              eventResolved: false,
+              eventVotes: [null, null, null],
+              lastEventResult: `Rolled ${roll}! The Order attacks immediately!`
+            };
+          } else {
+            return {
+              ...gameState,
+              lastEventResult: `Rolled ${roll}. The robbery went unnoticed.`
+            };
+          }
         },
         demand_compensation: (gameState) => {
           const newPlayers = gameState.players.map(player => {
