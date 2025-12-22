@@ -1630,11 +1630,11 @@ const PskovGame = () => {
     // Check if a new event was triggered (nested event scenario)
     const newEventTriggered = newState.currentEvent && newState.currentEvent.id !== event.id;
 
-    setGameState(prev => ({
+    setGameState({
       ...newState,
       // Only mark as resolved if no new event was triggered
       eventResolved: newEventTriggered ? false : true
-    }));
+    });
   };
 
   const resetGame = () => {
