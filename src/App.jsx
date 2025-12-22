@@ -740,15 +740,22 @@ const PskovGame = () => {
       }
     },
     {
+      id: 'order_attack_95',
+      name: 'Order Attack (95)',
+      description: 'The Teutonic Order attacks with strength 95. Who will contribute to the defense?',
+      type: 'order_attack',
+      orderStrength: 95,
+      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      minCostPerPlayer: 1
+    },
+    {
       id: 'order_attack_110',
       name: 'Order Attack (110)',
       description: 'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
       type: 'order_attack',  // CHANGE FROM 'participation' TO 'order_attack'
       orderStrength: 110,    // ADD THIS
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
-      minCostPerPlayer: 1,
-      successText: 'DEFENSE FUNDED',
-      failureText: 'NO DEFENSE - SURRENDER'
+      minCostPerPlayer: 1
     },
     {
       id: 'boyars_take_bribes',
@@ -1349,15 +1356,6 @@ const PskovGame = () => {
       description: 'The Teutonic Order attacks with strength 90. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 90,
-      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
-      minCostPerPlayer: 1
-    },
-    {
-      id: 'order_attack_95',
-      name: 'Order Attack (95)',
-      description: 'The Teutonic Order attacks with strength 95. Who will contribute to the defense?',
-      type: 'order_attack',
-      orderStrength: 95,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
       minCostPerPlayer: 1
     },
