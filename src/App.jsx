@@ -1885,6 +1885,66 @@ const PskovGame = () => {
         <p className="text-center mt-2">Defend your city from the Teutonic Order</p>
       </div>
 
+      {/* Phase Progress */}
+      <div className="bg-white rounded-lg p-4 mb-6 shadow">
+        <h3 className="text-lg font-semibold mb-3">Phase Progress</h3>
+        <div className="flex space-x-2">
+          {phases.map((phase, index) => (
+            <div
+              key={phase}
+              className={`flex-1 text-center py-2 px-1 rounded text-sm ${
+                phase === gameState.phase
+                  ? 'bg-amber-500 text-white font-semibold'
+                  : index < phases.indexOf(gameState.phase)
+                  ? 'bg-green-200 text-green-800'
+                  : 'bg-gray-200 text-gray-600'
+              }`}
+            >
+              {phaseNames[phase]}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Game Controls */}
+      <div className="bg-white rounded-lg p-4 mb-6 shadow">
+        <div className="flex justify-between items-center">
+          <button
+            onClick={resetGame}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors"
+          >
+            Reset Game
+          </button>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">
+              {gameState.turn >= 20 ? 'Game Complete! Check results below.' :
+               gameState.phase === 'construction' ? 'Players take turns in construction phase' :
+               gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
+               'Click to advance to next phase'}
+            </p>
+            <button
+              onClick={nextPhase}
+              disabled={gameState.turn > 20 || (gameState.phase === 'events' && !gameState.eventResolved)}
+              className={`px-6 py-3 rounded font-semibold transition-colors ${
+                gameState.turn > 20 || (gameState.phase === 'events' && !gameState.eventResolved)
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-amber-600 hover:bg-amber-700 text-white'
+              }`}
+            >
+              {gameState.turn > 20 ? 'Game Complete' :
+               gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
+               'Next Phase'}
+            </button>
+          </div>
+
+          <div className="text-right">
+            <p className="text-sm text-gray-600">Game will end after</p>
+            <p className="font-semibold">Turn 20</p>
+          </div>
+        </div>
+      </div>
+
       {/* Debug Info */}
       {DEBUG_MODE && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
@@ -2169,22 +2229,42 @@ const PskovGame = () => {
 
       {/* Events Phase Interface */}
       {gameState.phase === 'events' && gameState.currentEvent && (
-        <div className="bg-white rounded-lg p-4 mb-6 shadow">
-          <h3 className="text-lg font-semibold mb-3">Event: {gameState.currentEvent.name}</h3>
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-lg">
+          {/* Show loading message while waiting for reveal */}
+          {!gameState.eventImageRevealed && getEventImage(gameState.currentEvent.id) && (
+            <div className="text-center py-12 mb-4">
+              <div className="text-2xl font-bold text-amber-800 mb-3">A new event unfolds...</div>
+              <div className="text-lg text-gray-600">Revealing in a moment...</div>
+            </div>
+          )}
 
-          <div className="bg-gray-50 p-4 rounded mb-4">
-            <div className="flex gap-4 mb-3">
-              {getEventImage(gameState.currentEvent.id) && (
+          {/* Large Event Image Card - Dramatic Reveal */}
+          {getEventImage(gameState.currentEvent.id) && (
+            <div
+              className={`relative mb-6 ${
+                gameState.eventImageRevealed ? 'event-card-revealed' : 'event-card-hidden'
+              }`}
+            >
+              <div className="flex justify-center">
                 <img
                   src={getEventImage(gameState.currentEvent.id)}
                   alt={gameState.currentEvent.name}
-                  className={`w-32 h-32 rounded-lg object-cover shadow-md flex-shrink-0 ${
-                    gameState.eventImageRevealed ? 'event-image-revealed' : 'event-image-hidden'
-                  }`}
+                  className="rounded-xl shadow-2xl object-cover"
+                  style={{ maxHeight: '60vh', width: 'auto', maxWidth: '100%' }}
                 />
-              )}
-              <p className="text-gray-700">{gameState.currentEvent.description}</p>
+              </div>
             </div>
+          )}
+
+          {/* Event Title, Description and Interactions - Only show after reveal */}
+          {(gameState.eventImageRevealed || !getEventImage(gameState.currentEvent.id)) && (
+            <>
+              <h3 className="text-2xl font-bold mb-4 text-center">Event: {gameState.currentEvent.name}</h3>
+
+              <div className="bg-gray-50 p-4 rounded mb-4">
+                <div className="mb-4">
+                  <p className="text-gray-700 text-lg text-center">{gameState.currentEvent.description}</p>
+                </div>
 
             {gameState.currentEvent.type === 'voting' && !gameState.eventResolved && (
               <div>
@@ -2458,7 +2538,9 @@ const PskovGame = () => {
                 <p className="text-sm text-gray-600">Click "Next Phase" to continue</p>
               </div>
             )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -2894,66 +2976,6 @@ const PskovGame = () => {
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Phase Progress */}
-      <div className="bg-white rounded-lg p-4 mb-6 shadow">
-        <h3 className="text-lg font-semibold mb-3">Phase Progress</h3>
-        <div className="flex space-x-2">
-          {phases.map((phase, index) => (
-            <div
-              key={phase}
-              className={`flex-1 text-center py-2 px-1 rounded text-sm ${
-                phase === gameState.phase
-                  ? 'bg-amber-500 text-white font-semibold'
-                  : index < phases.indexOf(gameState.phase)
-                  ? 'bg-green-200 text-green-800'
-                  : 'bg-gray-200 text-gray-600'
-              }`}
-            >
-              {phaseNames[phase]}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Game Controls */}
-      <div className="bg-white rounded-lg p-4 shadow">
-        <div className="flex justify-between items-center">
-          <button
-            onClick={resetGame}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors"
-          >
-            Reset Game
-          </button>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">
-              {gameState.turn >= 20 ? 'Game Complete! Check results below.' : 
-               gameState.phase === 'construction' ? 'Players take turns in construction phase' :
-               gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
-               'Click to advance to next phase'}
-            </p>
-            <button
-              onClick={nextPhase}
-              disabled={gameState.turn > 20 || (gameState.phase === 'events' && !gameState.eventResolved)}
-              className={`px-6 py-3 rounded font-semibold transition-colors ${
-                gameState.turn > 20 || (gameState.phase === 'events' && !gameState.eventResolved)
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-amber-600 hover:bg-amber-700 text-white'
-              }`}
-            >
-              {gameState.turn > 20 ? 'Game Complete' : 
-               gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
-               'Next Phase'}
-            </button>
-          </div>
-
-          <div className="text-right">
-            <p className="text-sm text-gray-600">Game will end after</p>
-            <p className="font-semibold">Turn 20</p>
-          </div>
         </div>
       </div>
 
