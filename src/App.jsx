@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
 
 // Map adjacency graph - defines which regions are connected
@@ -79,6 +79,7 @@ const PskovGame = () => {
     debugEventIndex: 0, // for debug mode - cycles through events in order
     lastEventResult: null, // stores result message for immediate events
     activeEffects: [], // tracks ongoing effects
+    eventImageRevealed: false, // controls event image reveal animation
     //MILITARY STATE VARIABLES:
     battleState: null, // current battle information
     militaryAction: null, // 'defend', 'attack', or null
@@ -178,6 +179,20 @@ const PskovGame = () => {
       { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0 }
     ]
   });
+
+  // Animate event image reveal after 2 seconds
+  useEffect(() => {
+    if (gameState.currentEvent && !gameState.eventImageRevealed) {
+      const timer = setTimeout(() => {
+        setGameState(prev => ({
+          ...prev,
+          eventImageRevealed: true
+        }));
+      }, 2000); // 2 second delay
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.currentEvent, gameState.eventImageRevealed]);
 
   const phases = ['resources', 'construction', 'events', 'veche'];
   const phaseNames = {
@@ -1670,6 +1685,7 @@ const PskovGame = () => {
         newState.currentEvent = drawEvent(prev.debugEventIndex);
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
+        newState.eventImageRevealed = false; // Start with hidden image
         if (DEBUG_MODE) {
           newState.debugEventIndex = (prev.debugEventIndex + 1) % eventDeck.length;
         }
@@ -1692,6 +1708,7 @@ const PskovGame = () => {
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
         newState.lastEventResult = null;
+        newState.eventImageRevealed = false;
       }
 
       return {
@@ -2161,7 +2178,9 @@ const PskovGame = () => {
                 <img
                   src={getEventImage(gameState.currentEvent.id)}
                   alt={gameState.currentEvent.name}
-                  className="w-32 h-32 rounded-lg object-cover shadow-md flex-shrink-0"
+                  className={`w-32 h-32 rounded-lg object-cover shadow-md flex-shrink-0 ${
+                    gameState.eventImageRevealed ? 'event-image-revealed' : 'event-image-hidden'
+                  }`}
                 />
               )}
               <p className="text-gray-700">{gameState.currentEvent.description}</p>
