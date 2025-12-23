@@ -1961,9 +1961,9 @@ const PskovGame = () => {
                     )}
                   </div>
                   <div className="text-gray-600">
-                    {player.faction === 'Nobles' && `Base Strength: 40`}
-                    {player.faction === 'Merchants' && `Base Strength: 15`}
-                    {player.faction === 'Commoners' && `Base Strength: 25`}
+                    {player.faction === 'Nobles' && `Strength: 40`}
+                    {player.faction === 'Merchants' && `Strength: 15`}
+                    {player.faction === 'Commoners' && `Strength: 25`}
                     {(() => {
                       const modifier = getStrengthModifier(player.faction);
                       return modifier !== 0 ? (
