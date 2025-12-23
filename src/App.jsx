@@ -1935,7 +1935,7 @@ const PskovGame = () => {
                 <img
                   src={FACTION_IMAGES[player.faction]}
                   alt={player.faction}
-                  className="w-16 h-16 rounded-lg object-cover shadow-sm"
+                  className="w-24 h-40 rounded-lg object-cover shadow-sm"
                 />
               )}
               <div className="flex-1">
@@ -1961,9 +1961,9 @@ const PskovGame = () => {
                     )}
                   </div>
                   <div className="text-gray-600">
-                    {player.faction === 'Nobles' && `Base Strength: 40`}
-                    {player.faction === 'Merchants' && `Base Strength: 15`}
-                    {player.faction === 'Commoners' && `Base Strength: 25`}
+                    {player.faction === 'Nobles' && `Strength: 40`}
+                    {player.faction === 'Merchants' && `Strength: 15`}
+                    {player.faction === 'Commoners' && `Strength: 25`}
                     {(() => {
                       const modifier = getStrengthModifier(player.faction);
                       return modifier !== 0 ? (
