@@ -1937,7 +1937,7 @@ const PskovGame = () => {
                 <img
                   src={FACTION_IMAGES[player.faction]}
                   alt={player.faction}
-                  className="w-12 h-20 rounded-lg object-cover shadow-sm"
+                  className="w-20 h-32 rounded-lg object-cover shadow-sm"
                 />
               )}
               <div className="flex-1">
