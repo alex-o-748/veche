@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
 
 // Map adjacency graph - defines which regions are connected
 // "order_lands" represents the Teutonic Order's home territory (always Order-controlled)
@@ -1927,33 +1928,54 @@ const PskovGame = () => {
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         {gameState.players.map((player, index) => (
           <div key={index} className={`bg-white rounded-lg p-4 shadow ${
-            gameState.phase === 'construction' && gameState.currentPlayer === index 
-              ? 'ring-4 ring-amber-400' 
+            gameState.phase === 'construction' && gameState.currentPlayer === index
+              ? 'ring-4 ring-amber-400'
               : ''
           }`}>
-            <h3 className="text-lg font-semibold mb-2">
-              {player.faction}
-              {gameState.phase === 'construction' && gameState.currentPlayer === index && (
-                <span className="text-amber-600 ml-2">(Your Turn)</span>
+            <div className="flex items-start gap-3">
+              {FACTION_IMAGES[player.faction] && (
+                <img
+                  src={FACTION_IMAGES[player.faction]}
+                  alt={player.faction}
+                  className="w-16 h-16 rounded-lg object-cover shadow-sm"
+                />
               )}
-            </h3>
-            <div className="space-y-1 text-sm">
-              <div>Money: {player.money.toFixed(1)} ○</div>
-              <div>Improvements: {player.improvements}</div>
-              <div>Weapons: {player.weapons}</div>
-              <div>Armor: {player.armor}</div>
-              <div className="text-gray-600">
-                {player.faction === 'Nobles' && `Base Strength: 40`}
-                {player.faction === 'Merchants' && `Base Strength: 15`}
-                {player.faction === 'Commoners' && `Base Strength: 25`}
-                {(() => {
-                  const modifier = getStrengthModifier(player.faction);
-                  return modifier !== 0 ? (
-                    <span className={modifier > 0 ? 'text-green-600' : 'text-red-600'}>
-                      {modifier > 0 ? ` (+${modifier})` : ` (${modifier})`}
-                    </span>
-                  ) : null;
-                })()}
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold mb-2">
+                  {player.faction}
+                  {gameState.phase === 'construction' && gameState.currentPlayer === index && (
+                    <span className="text-amber-600 ml-2">(Your Turn)</span>
+                  )}
+                </h3>
+                <div className="space-y-1 text-sm">
+                  <div>Money: {player.money.toFixed(1)} ○</div>
+                  <div>Improvements: {player.improvements}</div>
+                  <div className="flex items-center gap-1">
+                    Weapons: {player.weapons}
+                    {player.weapons > 0 && getEquipmentImage('weapons', player.faction) && (
+                      <img src={getEquipmentImage('weapons', player.faction)} alt="weapons" className="w-5 h-5 object-cover rounded" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    Armor: {player.armor}
+                    {player.armor > 0 && getEquipmentImage('armor', player.faction) && (
+                      <img src={getEquipmentImage('armor', player.faction)} alt="armor" className="w-5 h-5 object-cover rounded" />
+                    )}
+                  </div>
+                  <div className="text-gray-600">
+                    {player.faction === 'Nobles' && `Base Strength: 40`}
+                    {player.faction === 'Merchants' && `Base Strength: 15`}
+                    {player.faction === 'Commoners' && `Base Strength: 25`}
+                    {(() => {
+                      const modifier = getStrengthModifier(player.faction);
+                      return modifier !== 0 ? (
+                        <span className={modifier > 0 ? 'text-green-600' : 'text-red-600'}>
+                          {modifier > 0 ? ` (+${modifier})` : ` (${modifier})`}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2020,20 +2042,29 @@ const PskovGame = () => {
                   key={building.type}
                   onClick={() => buildBuilding(building.type)}
                   disabled={
-                    !building.canBuild || 
+                    !building.canBuild ||
                     gameState.players[gameState.currentPlayer].money < building.cost ||
                     gameState.constructionActions[gameState.currentPlayer].improvement
                   }
-                  className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white p-3 rounded text-sm"
+                  className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white p-3 rounded text-sm flex items-center gap-2"
                 >
-                  <div className="font-medium">{building.name}</div>
-                  <div className="text-xs">
-                    {building.type.startsWith('merchant_') 
-                      ? `Built: ${building.built}/7`
-                      : building.built ? 'Already built' : 'Not built'
-                    }
+                  {BUILDING_IMAGES[building.type] && (
+                    <img
+                      src={BUILDING_IMAGES[building.type]}
+                      alt={building.name}
+                      className="w-10 h-10 rounded object-cover flex-shrink-0"
+                    />
+                  )}
+                  <div className="text-left">
+                    <div className="font-medium">{building.name}</div>
+                    <div className="text-xs">
+                      {building.type.startsWith('merchant_')
+                        ? `Built: ${building.built}/7`
+                        : building.built ? 'Already built' : 'Not built'
+                      }
+                    </div>
+                    <div className="text-xs">Cost: {building.cost}○</div>
                   </div>
-                  <div className="text-xs">Cost: {building.cost}○</div>
                 </button>
               ))}
               {getAvailableBuildings().length === 0 && (
@@ -2054,33 +2085,51 @@ const PskovGame = () => {
               <button
                 onClick={() => buyItem(gameState.currentPlayer, 'weapons', 1)}
                 disabled={
-                  gameState.players[gameState.currentPlayer].money < 1 || 
+                  gameState.players[gameState.currentPlayer].money < 1 ||
                   gameState.constructionActions[gameState.currentPlayer].equipment ||
                   gameState.players[gameState.currentPlayer].weapons >= 2
                 }
-                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white p-2 rounded text-sm"
+                className="bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white p-2 rounded text-sm flex items-center gap-2"
               >
-                <div>Buy Weapon (1○)</div>
-                <div className="text-xs">
-                  {gameState.constructionActions[gameState.currentPlayer].equipment ? 'Equipment bought' :
-                   gameState.players[gameState.currentPlayer].weapons >= 2 ? 'Max weapons (2)' :
-                   `Owned: ${gameState.players[gameState.currentPlayer].weapons}/2`}
+                {getEquipmentImage('weapons', gameState.players[gameState.currentPlayer].faction) && (
+                  <img
+                    src={getEquipmentImage('weapons', gameState.players[gameState.currentPlayer].faction)}
+                    alt="Weapon"
+                    className="w-8 h-8 rounded object-cover flex-shrink-0"
+                  />
+                )}
+                <div className="text-left">
+                  <div>Buy Weapon (1○)</div>
+                  <div className="text-xs">
+                    {gameState.constructionActions[gameState.currentPlayer].equipment ? 'Equipment bought' :
+                     gameState.players[gameState.currentPlayer].weapons >= 2 ? 'Max weapons (2)' :
+                     `Owned: ${gameState.players[gameState.currentPlayer].weapons}/2`}
+                  </div>
                 </div>
               </button>
               <button
                 onClick={() => buyItem(gameState.currentPlayer, 'armor', 1)}
                 disabled={
-                  gameState.players[gameState.currentPlayer].money < 1 || 
+                  gameState.players[gameState.currentPlayer].money < 1 ||
                   gameState.constructionActions[gameState.currentPlayer].equipment ||
                   gameState.players[gameState.currentPlayer].armor >= 2
                 }
-                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white p-2 rounded text-sm"
+                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white p-2 rounded text-sm flex items-center gap-2"
               >
-                <div>Buy Armor (1○)</div>
-                <div className="text-xs">
-                  {gameState.constructionActions[gameState.currentPlayer].equipment ? 'Equipment bought' :
-                   gameState.players[gameState.currentPlayer].armor >= 2 ? 'Max armor (2)' :
-                   `Owned: ${gameState.players[gameState.currentPlayer].armor}/2`}
+                {getEquipmentImage('armor', gameState.players[gameState.currentPlayer].faction) && (
+                  <img
+                    src={getEquipmentImage('armor', gameState.players[gameState.currentPlayer].faction)}
+                    alt="Armor"
+                    className="w-8 h-8 rounded object-cover flex-shrink-0"
+                  />
+                )}
+                <div className="text-left">
+                  <div>Buy Armor (1○)</div>
+                  <div className="text-xs">
+                    {gameState.constructionActions[gameState.currentPlayer].equipment ? 'Equipment bought' :
+                     gameState.players[gameState.currentPlayer].armor >= 2 ? 'Max armor (2)' :
+                     `Owned: ${gameState.players[gameState.currentPlayer].armor}/2`}
+                  </div>
                 </div>
               </button>
             </div>
@@ -2109,7 +2158,16 @@ const PskovGame = () => {
           <h3 className="text-lg font-semibold mb-3">Event: {gameState.currentEvent.name}</h3>
 
           <div className="bg-gray-50 p-4 rounded mb-4">
-            <p className="text-gray-700 mb-3">{gameState.currentEvent.description}</p>
+            <div className="flex gap-4 mb-3">
+              {getEventImage(gameState.currentEvent.id) && (
+                <img
+                  src={getEventImage(gameState.currentEvent.id)}
+                  alt={gameState.currentEvent.name}
+                  className="w-32 h-32 rounded-lg object-cover shadow-md flex-shrink-0"
+                />
+              )}
+              <p className="text-gray-700">{gameState.currentEvent.description}</p>
+            </div>
 
             {gameState.currentEvent.type === 'voting' && !gameState.eventResolved && (
               <div>
