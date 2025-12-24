@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
 
 // Map adjacency graph - defines which regions are connected
@@ -79,7 +79,6 @@ const PskovGame = () => {
     debugEventIndex: 0, // for debug mode - cycles through events in order
     lastEventResult: null, // stores result message for immediate events
     activeEffects: [], // tracks ongoing effects
-    eventImageRevealed: false, // controls event image reveal animation
     //MILITARY STATE VARIABLES:
     battleState: null, // current battle information
     militaryAction: null, // 'defend', 'attack', or null
@@ -179,20 +178,6 @@ const PskovGame = () => {
       { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0 }
     ]
   });
-
-  // Animate event image reveal after 2 seconds
-  useEffect(() => {
-    if (gameState.currentEvent && !gameState.eventImageRevealed) {
-      const timer = setTimeout(() => {
-        setGameState(prev => ({
-          ...prev,
-          eventImageRevealed: true
-        }));
-      }, 2000); // 2 second delay
-
-      return () => clearTimeout(timer);
-    }
-  }, [gameState.currentEvent, gameState.eventImageRevealed]);
 
   const phases = ['resources', 'construction', 'events', 'veche'];
   const phaseNames = {
@@ -1685,7 +1670,6 @@ const PskovGame = () => {
         newState.currentEvent = drawEvent(prev.debugEventIndex);
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
-        newState.eventImageRevealed = false; // Start with hidden image
         if (DEBUG_MODE) {
           newState.debugEventIndex = (prev.debugEventIndex + 1) % eventDeck.length;
         }
@@ -1708,7 +1692,6 @@ const PskovGame = () => {
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
         newState.lastEventResult = null;
-        newState.eventImageRevealed = false;
       }
 
       return {
@@ -2230,21 +2213,11 @@ const PskovGame = () => {
       {/* Events Phase Interface */}
       {gameState.phase === 'events' && gameState.currentEvent && (
         <div className="bg-white rounded-lg p-6 mb-6 shadow-lg">
-          {/* Show loading message while waiting for reveal */}
-          {!gameState.eventImageRevealed && getEventImage(gameState.currentEvent.id) && (
-            <div className="text-center py-12 mb-4">
-              <div className="text-2xl font-bold text-amber-800 mb-3">A new event unfolds...</div>
-              <div className="text-lg text-gray-600">Revealing in a moment...</div>
-            </div>
-          )}
+          <h3 className="text-2xl font-bold mb-4 text-center">Event: {gameState.currentEvent.name}</h3>
 
-          {/* Large Event Image Card - Dramatic Reveal */}
+          {/* Large Event Image Card */}
           {getEventImage(gameState.currentEvent.id) && (
-            <div
-              className={`relative mb-6 ${
-                gameState.eventImageRevealed ? 'event-card-revealed' : 'event-card-hidden'
-              }`}
-            >
+            <div className="relative mb-6">
               <div className="flex justify-center">
                 <img
                   src={getEventImage(gameState.currentEvent.id)}
@@ -2256,15 +2229,10 @@ const PskovGame = () => {
             </div>
           )}
 
-          {/* Event Title, Description and Interactions - Only show after reveal */}
-          {(gameState.eventImageRevealed || !getEventImage(gameState.currentEvent.id)) && (
-            <>
-              <h3 className="text-2xl font-bold mb-4 text-center">Event: {gameState.currentEvent.name}</h3>
-
-              <div className="bg-gray-50 p-4 rounded mb-4">
-                <div className="mb-4">
-                  <p className="text-gray-700 text-lg text-center">{gameState.currentEvent.description}</p>
-                </div>
+          <div className="bg-gray-50 p-4 rounded mb-4">
+            <div className="mb-4">
+              <p className="text-gray-700 text-lg text-center">{gameState.currentEvent.description}</p>
+            </div>
 
             {gameState.currentEvent.type === 'voting' && !gameState.eventResolved && (
               <div>
@@ -2538,9 +2506,7 @@ const PskovGame = () => {
                 <p className="text-sm text-gray-600">Click "Next Phase" to continue</p>
               </div>
             )}
-              </div>
-            </>
-          )}
+          </div>
         </div>
       )}
 
