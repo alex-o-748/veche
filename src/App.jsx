@@ -1627,21 +1627,36 @@ const PskovGame = () => {
 
   const buildBuilding = (buildingType) => {
     setGameState(prev => {
-      const newRegions = { ...prev.regions };
-      const newPlayers = [...prev.players];
-      const newConstructionActions = [...prev.constructionActions];
+      const player = prev.players[prev.currentPlayer];
 
-      if (newPlayers[prev.currentPlayer].money >= 2) {
-        newPlayers[prev.currentPlayer].money -= 2;
-        newPlayers[prev.currentPlayer].improvements += 1;
-        newConstructionActions[prev.currentPlayer].improvement = true;
-
-        if (buildingType.startsWith('merchant_')) {
-          newRegions[prev.selectedRegion].buildings[buildingType] += 1;
-        } else {
-          newRegions[prev.selectedRegion].buildings[buildingType] = 1;
-        }
+      if (player.money < 2) {
+        return prev;
       }
+
+      const newPlayers = prev.players.map((p, i) =>
+        i === prev.currentPlayer
+          ? { ...p, money: p.money - 2, improvements: p.improvements + 1 }
+          : p
+      );
+
+      const newConstructionActions = prev.constructionActions.map((ca, i) =>
+        i === prev.currentPlayer
+          ? { ...ca, improvement: true }
+          : ca
+      );
+
+      const currentRegion = prev.regions[prev.selectedRegion];
+      const newBuildings = buildingType.startsWith('merchant_')
+        ? { ...currentRegion.buildings, [buildingType]: currentRegion.buildings[buildingType] + 1 }
+        : { ...currentRegion.buildings, [buildingType]: 1 };
+
+      const newRegions = {
+        ...prev.regions,
+        [prev.selectedRegion]: {
+          ...currentRegion,
+          buildings: newBuildings
+        }
+      };
 
       return {
         ...prev,
