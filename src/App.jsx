@@ -667,9 +667,9 @@ const PskovGame = () => {
       type: 'voting',
       defaultOption: 'trade_risk',
       options: [
-        { id: 'rob_foreign', name: 'Rob foreign merchants' },
-        { id: 'demand_compensation', name: 'Demand compensation' },
-        { id: 'trade_risk', name: 'Trade is risk' }
+        { id: 'rob_foreign', name: 'Rob foreign merchants', effectText: '50% chance: Order attacks (100)' },
+        { id: 'demand_compensation', name: 'Demand compensation', costText: 'Merchants: -1○', effectText: '50% chance: Merchants -10 str/3 turns' },
+        { id: 'trade_risk', name: 'Trade is risk', effectText: 'Merchants: -10 str/3 turns' }
       ],
       effects: {
         rob_foreign: (gameState) => {
@@ -777,8 +777,8 @@ const PskovGame = () => {
       type: 'voting',
       defaultOption: 'ignore',
       options: [
-        { id: 'investigate', name: 'Investigate and punish' },
-        { id: 'ignore', name: 'This is the way it is' }
+        { id: 'investigate', name: 'Investigate and punish', costText: 'Nobles: -2○', effectText: 'Nobles: -15 str/3 turns' },
+        { id: 'ignore', name: 'This is the way it is', effectText: '50% chance: Uprising (buildings destroyed)' }
       ],
       effects: {
         investigate: (gameState) => {
@@ -887,9 +887,9 @@ const PskovGame = () => {
       type: 'voting',
       defaultOption: 'modest',
       options: [
-        { id: 'modest', name: 'Receive modestly', requiresMinMoney: 1 },
-        { id: 'luxurious', name: 'Receive luxuriously', requiresMinMoney: 2 },
-        { id: 'refuse', name: 'Refuse to receive them' }
+        { id: 'modest', name: 'Receive modestly', requiresMinMoney: 1, costText: '3○ split', effectText: 'Relations maintained' },
+        { id: 'luxurious', name: 'Receive luxuriously', requiresMinMoney: 2, costText: '6○ split', effectText: 'All: +3 str/3 turns' },
+        { id: 'refuse', name: 'Refuse to receive them', effectText: 'All: -15 str, -50% income/5 turns' }
       ],
       effects: {
         modest: (gameState, votes) => {
@@ -1018,8 +1018,8 @@ const PskovGame = () => {
       description: 'Holy relics have been discovered. Are they genuine or deception?',
       type: 'voting',
       options: [
-        { id: 'build_temple', name: 'Build a church', requiresMinMoney: 1 },
-        { id: 'deception', name: 'It\'s all deception' }
+        { id: 'build_temple', name: 'Build a church', requiresMinMoney: 1, costText: 'All: -3○', effectText: 'All: +5 str/3 turns' },
+        { id: 'deception', name: 'It\'s all deception', effectText: 'All: -5 str/3 turns' }
       ],
       effects: {
         build_temple: (gameState) => {
@@ -1071,9 +1071,9 @@ const PskovGame = () => {
       acceptCost: 6,
       defaultOption: 'send_back',
       options: [
-        { id: 'accept', name: 'Accept into service', requiresMinMoney: 2 },
-        { id: 'rob', name: 'Rob them' },
-        { id: 'send_back', name: 'Send them away' }
+        { id: 'accept', name: 'Accept into service', requiresMinMoney: 2, costText: '6○ split', effectText: 'All: +5 str/6 turns' },
+        { id: 'rob', name: 'Rob them', effectText: 'All: +3○, then -5 str/6 turns' },
+        { id: 'send_back', name: 'Send them away', effectText: 'No effect' }
       ],
       effects: {
         accept: (gameState, votes) => {
@@ -1163,8 +1163,8 @@ const PskovGame = () => {
       type: 'voting',
       defaultOption: 'no_food',
       options: [
-        { id: 'buy_food', name: 'Buy emergency food supplies', requiresMinMoney: 2 },
-        { id: 'no_food', name: 'Let the people endure' }
+        { id: 'buy_food', name: 'Buy emergency food supplies', requiresMinMoney: 2, costText: '6○ split', effectText: 'Famine avoided' },
+        { id: 'no_food', name: 'Let the people endure', effectText: 'Commoners: -12 str/3 turns' }
       ],
       effects: {
         buy_food: (gameState, votes) => {
@@ -1406,8 +1406,8 @@ const PskovGame = () => {
       type: 'voting', // CHANGE: from 'participation' to 'voting'
       defaultOption: 'no_isolation',
       options: [
-        { id: 'fund_isolation', name: 'Fund isolation and treatment', requiresMinMoney: 1 },
-        { id: 'no_isolation', name: 'Trust in God - no isolation' }
+        { id: 'fund_isolation', name: 'Fund isolation and treatment', requiresMinMoney: 1, costText: '3○ split', effectText: 'All: -5 str/2 turns' },
+        { id: 'no_isolation', name: 'Trust in God - no isolation', effectText: 'All: -25 str/2 turns' }
       ],
       effects: {
         fund_isolation: (gameState, votes) => {
@@ -2293,25 +2293,32 @@ const PskovGame = () => {
                             const canAfford = !option.requiresMinMoney || player.money >= option.requiresMinMoney;
 
                             return (
-                              <button
-                                key={option.id}
-                                onClick={() => voteOnEvent(index, option.id)}
-                                disabled={hasVoted || !canAfford}
-                                className={`w-full px-2 py-1 rounded text-xs ${
-                                  gameState.eventVotes[index] === option.id
-                                    ? 'bg-amber-600 text-white'
-                                    : !canAfford
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
-                                }`}
-                              >
-                                {gameState.eventVotes[index] === option.id ? 
-                                  `Voted: ${option.name}` : 
-                                  !canAfford ?
-                                  `Need ${option.requiresMinMoney}○ min` :
-                                  option.name
-                                }
-                              </button>
+                              <div key={option.id} className="mb-2">
+                                <button
+                                  onClick={() => voteOnEvent(index, option.id)}
+                                  disabled={hasVoted || !canAfford}
+                                  className={`w-full px-2 py-1 rounded text-xs ${
+                                    gameState.eventVotes[index] === option.id
+                                      ? 'bg-amber-600 text-white'
+                                      : !canAfford
+                                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                      : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
+                                  }`}
+                                >
+                                  {gameState.eventVotes[index] === option.id ?
+                                    `Voted: ${option.name}` :
+                                    !canAfford ?
+                                    `Need ${option.requiresMinMoney}○ min` :
+                                    option.name
+                                  }
+                                </button>
+                                {!hasVoted && (
+                                  <div className="text-xs mt-1 text-gray-500">
+                                    {option.costText && <div className="text-red-600">{option.costText}</div>}
+                                    {option.effectText && <div className="text-blue-600">{option.effectText}</div>}
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                         </div>
