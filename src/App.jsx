@@ -1732,19 +1732,26 @@ const PskovGame = () => {
 
   const buyItem = (playerIndex, item, cost) => {
     setGameState(prev => {
-      const newPlayers = [...prev.players];
-      const newConstructionActions = [...prev.constructionActions];
+      const player = prev.players[playerIndex];
 
-      if (newPlayers[playerIndex].money >= cost) {
-        newPlayers[playerIndex].money -= cost;
-        newPlayers[playerIndex][item] += 1;
-
-        if (item === 'weapons' || item === 'armor') {
-          newConstructionActions[playerIndex].equipment = true;
-        }
+      if (player.money < cost) {
+        return prev;
       }
-      return { 
-        ...prev, 
+
+      const newPlayers = prev.players.map((p, i) =>
+        i === playerIndex
+          ? { ...p, money: p.money - cost, [item]: p[item] + 1 }
+          : p
+      );
+
+      const newConstructionActions = (item === 'weapons' || item === 'armor')
+        ? prev.constructionActions.map((action, i) =>
+            i === playerIndex ? { ...action, equipment: true } : action
+          )
+        : prev.constructionActions;
+
+      return {
+        ...prev,
         players: newPlayers,
         constructionActions: newConstructionActions
       };
@@ -2038,17 +2045,7 @@ const PskovGame = () => {
                     )}
                   </div>
                   <div className="text-gray-600">
-                    {player.faction === 'Nobles' && `Strength: 40`}
-                    {player.faction === 'Merchants' && `Strength: 15`}
-                    {player.faction === 'Commoners' && `Strength: 25`}
-                    {(() => {
-                      const modifier = getStrengthModifier(player.faction);
-                      return modifier !== 0 ? (
-                        <span className={modifier > 0 ? 'text-green-600' : 'text-red-600'}>
-                          {modifier > 0 ? ` (+${modifier})` : ` (${modifier})`}
-                        </span>
-                      ) : null;
-                    })()}
+                    Strength: {calculatePlayerStrength(index)}
                   </div>
                 </div>
               </div>
