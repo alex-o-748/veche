@@ -264,10 +264,7 @@ const PskovGame = () => {
     strength += player.weapons * 5;
     strength += player.armor * 5;
 
-    // Fortress bonus when defending
-    if (isDefending && regionName && gameState.regions[regionName]?.fortress) {
-      strength += 10;
-    }
+    // Note: Fortress bonus is applied once to total strength in executeBattle, not per-player
 
     // Active effects
     strength += getStrengthModifier(player.faction);
