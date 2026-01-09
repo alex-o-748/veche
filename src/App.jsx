@@ -2266,7 +2266,23 @@ const PskovGame = () => {
             {gameState.currentEvent.type === 'voting' && !gameState.eventResolved && (
               <div>
                 <h4 className="font-medium mb-2">Council Decision:</h4>
-                <p className="text-sm text-gray-600 mb-4">Choose how to respond to the delegation:</p>
+
+                {/* Options summary with costs/effects - shown once */}
+                <div className="mb-4 p-3 bg-gray-50 rounded">
+                  <p className="text-sm text-gray-600 mb-2">Available options:</p>
+                  {gameState.currentEvent.options.map(option => (
+                    <div key={option.id} className="mb-2 last:mb-0">
+                      <span className="font-medium text-sm">{option.name}</span>
+                      {(option.costText || option.effectText) && (
+                        <span className="text-xs ml-2">
+                          {option.costText && <span className="text-red-600">[{option.costText}]</span>}
+                          {option.costText && option.effectText && ' '}
+                          {option.effectText && <span className="text-blue-600">→ {option.effectText}</span>}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {gameState.players.map((player, index) => {
@@ -2281,32 +2297,25 @@ const PskovGame = () => {
                             const canAfford = !option.requiresMinMoney || player.money >= option.requiresMinMoney;
 
                             return (
-                              <div key={option.id} className="mb-2">
-                                <button
-                                  onClick={() => voteOnEvent(index, option.id)}
-                                  disabled={hasVoted || !canAfford}
-                                  className={`w-full px-2 py-1 rounded text-xs ${
-                                    gameState.eventVotes[index] === option.id
-                                      ? 'bg-amber-600 text-white'
-                                      : !canAfford
-                                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                      : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
-                                  }`}
-                                >
-                                  {gameState.eventVotes[index] === option.id ?
-                                    `Voted: ${option.name}` :
-                                    !canAfford ?
-                                    `Need ${option.requiresMinMoney}○ min` :
-                                    option.name
-                                  }
-                                </button>
-                                {!hasVoted && (
-                                  <div className="text-xs mt-1 text-gray-500">
-                                    {option.costText && <div className="text-red-600">{option.costText}</div>}
-                                    {option.effectText && <div className="text-blue-600">{option.effectText}</div>}
-                                  </div>
-                                )}
-                              </div>
+                              <button
+                                key={option.id}
+                                onClick={() => voteOnEvent(index, option.id)}
+                                disabled={hasVoted || !canAfford}
+                                className={`w-full px-2 py-1 rounded text-xs ${
+                                  gameState.eventVotes[index] === option.id
+                                    ? 'bg-amber-600 text-white'
+                                    : !canAfford
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
+                                }`}
+                              >
+                                {gameState.eventVotes[index] === option.id ?
+                                  `Voted: ${option.name}` :
+                                  !canAfford ?
+                                  `Need ${option.requiresMinMoney}○ min` :
+                                  option.name
+                                }
+                              </button>
                             );
                           })}
                         </div>
