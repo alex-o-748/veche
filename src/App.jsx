@@ -1,68 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
 
-// Map adjacency graph - defines which regions are connected
-// "order_lands" represents the Teutonic Order's home territory (always Order-controlled)
-const MAP_ADJACENCY = {
-  order_lands: ['bearhill', 'gdov'],
-  bearhill: ['order_lands', 'pechory'],
-  pechory: ['bearhill', 'izborsk'],
-  izborsk: ['pechory', 'ostrov', 'pskov'],
-  ostrov: ['izborsk', 'pskov'],
-  pskov: ['izborsk', 'ostrov', 'skrynnitsy'],
-  skrynnitsy: ['pskov', 'gdov'],
-  gdov: ['order_lands', 'skrynnitsy']
-};
+// Import game logic from modular structure
+import {
+  // Constants
+  PHASES,
+  PHASE_NAMES,
+  PHASE_DESCRIPTIONS,
+  BUILDING_NAMES,
+  FORTRESS_DEFENSE_BONUS,
 
-// Get all valid attack targets for the Order (republic regions adjacent to Order territory)
-const getValidOrderAttackTargets = (regions) => {
-  // Find all Order-controlled regions (including the permanent "order_lands")
-  const orderControlledRegions = ['order_lands']; // Order always controls their home territory
-  Object.entries(regions).forEach(([name, region]) => {
-    if (region.controller === 'order') {
-      orderControlledRegions.push(name);
-    }
-  });
+  // Region logic
+  MAP_ADJACENCY,
+  getValidOrderAttackTargets,
+  getValidRepublicAttackTargets,
+  countRepublicRegions,
+  getRegionsForFortress,
 
-  // Find all republic regions that are adjacent to any Order-controlled region
-  const validTargets = new Set();
-  orderControlledRegions.forEach(orderRegion => {
-    const adjacentRegions = MAP_ADJACENCY[orderRegion] || [];
-    adjacentRegions.forEach(adjacent => {
-      // Only add if it's a republic-controlled region (not order_lands or already order-controlled)
-      if (regions[adjacent] && regions[adjacent].controller === 'republic') {
-        validTargets.add(adjacent);
-      }
-    });
-  });
+  // Effects
+  createEffect,
+  getStrengthModifier as getStrengthModifierPure,
+  getIncomeModifier as getIncomeModifierPure,
 
-  return Array.from(validTargets);
-};
+  // Combat
+  calculatePlayerStrength as calculatePlayerStrengthPure,
+  getVictoryChance,
+  rollForVictory as rollForVictoryPure,
+  surrenderRegion as surrenderRegionPure,
+  executeBattle as executeBattlePure,
+  destroyRandomBuildings,
 
-// Get all valid attack targets for the Republic (order regions adjacent to Republic territory)
-const getValidRepublicAttackTargets = (regions) => {
-  // Find all Republic-controlled regions
-  const republicControlledRegions = [];
-  Object.entries(regions).forEach(([name, region]) => {
-    if (region.controller === 'republic') {
-      republicControlledRegions.push(name);
-    }
-  });
+  // Events
+  eventDeck,
+  eventTypes as eventTypesPure,
+  drawEvent as drawEventPure,
 
-  // Find all Order regions that are adjacent to any Republic-controlled region
-  const validTargets = new Set();
-  republicControlledRegions.forEach(republicRegion => {
-    const adjacentRegions = MAP_ADJACENCY[republicRegion] || [];
-    adjacentRegions.forEach(adjacent => {
-      // Only add if it's an Order-controlled region (and exists in regions, not order_lands)
-      if (regions[adjacent] && regions[adjacent].controller === 'order') {
-        validTargets.add(adjacent);
-      }
-    });
-  });
-
-  return Array.from(validTargets);
-};
+  // State
+  createInitialGameState,
+  formatRegionName,
+} from './game';
 
 const PskovGame = () => {
   // Debug mode - set to true for predictable event order
