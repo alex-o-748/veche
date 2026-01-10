@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
+
+// Import Zustand store
+import { useGameStore } from './store/gameStore';
 
 // Import game logic from modular structure
 import {
@@ -41,134 +44,44 @@ import {
 } from './game';
 
 const PskovGame = () => {
-  // Debug mode - set to true for predictable event order
-  const DEBUG_MODE = true;
+  // Get state and actions from Zustand store
+  const gameState = useGameStore((state) => state.gameState);
+  const setGameState = useGameStore((state) => state.setGameState);
+  const initLocalGame = useGameStore((state) => state.initLocalGame);
+  const debugMode = useGameStore((state) => state.debugMode);
 
-  const [gameState, setGameState] = useState({
-    turn: 1,
-    phase: 'resources',
-    currentPlayer: 0, // for construction phase
-    selectedRegion: 'pskov', // for construction phase
-    currentEvent: null, // current event card
-    eventVotes: [null, null, null], // votes for current event
-    eventResolved: false, // has current event been resolved
-    debugEventIndex: 0, // for debug mode - cycles through events in order
-    lastEventResult: null, // stores result message for immediate events
-    activeEffects: [], // tracks ongoing effects
-    eventImageRevealed: false, // controls event image reveal animation
-    //MILITARY STATE VARIABLES:
-    battleState: null, // current battle information
-    militaryAction: null, // 'defend', 'attack', or null
-    militaryParticipants: [], // which players are participating
-    targetRegion: null, // region being attacked/defended
-    orderStrength: 0, // strength of order forces
-    // attack planning variables:
-    attackPlanning: null, // 'planning' when planning an attack, null otherwise
-    attackTarget: null, // which region is being targeted
-    attackVotes: [null, null, null], // attack funding votes
-    // fortress planning variables:
-    fortressPlanning: null, // 'planning' when planning fortress construction, null otherwise
-    fortressTarget: null, // which region is getting the fortress
-    fortressVotes: [null, null, null], // fortress funding votes
-    regions: {
-      pskov: { 
-        controller: 'republic', 
-        fortress: true,
-        buildings: {
-          commoner_huts: 0,
-          commoner_church: 0,
-          noble_manor: 0,
-          noble_monastery: 0,
-          merchant_mansion: 0,
-          merchant_church: 0
-        }
-      },
-      ostrov: { 
-        controller: 'republic', 
-        fortress: false,
-        buildings: {
-          commoner_huts: 0,
-          commoner_church: 0,
-          noble_manor: 0,
-          noble_monastery: 0
-        }
-      },
-      izborsk: { 
-        controller: 'republic', 
-        fortress: false,
-        buildings: {
-          commoner_huts: 0,
-          commoner_church: 0,
-          noble_manor: 0,
-          noble_monastery: 0
-        }
-      },
-      skrynnitsy: { 
-        controller: 'republic', 
-        fortress: false,
-        buildings: {
-          commoner_huts: 0,
-          commoner_church: 0,
-          noble_manor: 0,
-          noble_monastery: 0
-        }
-      },
-      gdov: { 
-        controller: 'republic', 
-        fortress: false,
-        buildings: {
-          commoner_huts: 0,
-          commoner_church: 0,
-          noble_manor: 0,
-          noble_monastery: 0
-        }
-      },
-      pechory: { 
-        controller: 'republic', 
-        fortress: false,
-        buildings: {
-          commoner_huts: 0,
-          commoner_church: 0,
-          noble_manor: 0,
-          noble_monastery: 0
-        }
-      },
-      bearhill: { 
-        controller: 'order', 
-        fortress: false,
-        buildings: {
-          commoner_huts: 0,
-          commoner_church: 0,
-          noble_manor: 0,
-          noble_monastery: 0
-        }
-      }
-    },
-    constructionActions: [
-      { improvement: false, equipment: false },
-      { improvement: false, equipment: false },
-      { improvement: false, equipment: false }
-    ],
-    players: [
-      { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0 },
-      { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0 },
-      { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0 }
-    ]
-  });
+  // Debug mode - set to true for predictable event order
+  const DEBUG_MODE = debugMode;
+
+  // Initialize game on mount
+  useEffect(() => {
+    if (!gameState) {
+      initLocalGame();
+    }
+  }, [gameState, initLocalGame]);
+
+  // Show loading state while initializing
+  if (!gameState) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-amber-50 min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading game...</div>
+      </div>
+    );
+  }
 
   // Animate event image reveal after 2 seconds
   useEffect(() => {
     if (gameState.currentEvent && !gameState.eventImageRevealed) {
       const timer = setTimeout(() => {
-        setGameState(prev => ({
-          ...prev,
+        setGameState({
+          ...gameState,
           eventImageRevealed: true
-        }));
+        });
       }, 2000); // 2 second delay
 
       return () => clearTimeout(timer);
     }
-  }, [gameState.currentEvent, gameState.eventImageRevealed]);
+  }, [gameState, gameState.currentEvent, gameState.eventImageRevealed, setGameState]);
 
   const phases = ['resources', 'construction', 'events', 'veche'];
   const phaseNames = {
@@ -1772,94 +1685,8 @@ const PskovGame = () => {
   };
 
   const resetGame = () => {
-    setGameState({
-      turn: 1,
-      phase: 'resources',
-      currentPlayer: 0,
-      selectedRegion: 'pskov',
-      currentEvent: null,
-      eventVotes: [null, null, null],
-      eventResolved: false,
-      debugEventIndex: 0,
-      lastEventResult: null,
-      regions: {
-        pskov: { 
-          controller: 'republic', 
-          buildings: {
-            commoner_huts: 0,
-            commoner_church: 0,
-            noble_manor: 0,
-            noble_monastery: 0,
-            merchant_mansion: 0,
-            merchant_church: 0
-          }
-        },
-        ostrov: { 
-          controller: 'republic', 
-          buildings: {
-            commoner_huts: 0,
-            commoner_church: 0,
-            noble_manor: 0,
-            noble_monastery: 0
-          }
-        },
-        izborsk: { 
-          controller: 'republic', 
-          buildings: {
-            commoner_huts: 0,
-            commoner_church: 0,
-            noble_manor: 0,
-            noble_monastery: 0
-          }
-        },
-        skrynnitsy: { 
-          controller: 'republic', 
-          buildings: {
-            commoner_huts: 0,
-            commoner_church: 0,
-            noble_manor: 0,
-            noble_monastery: 0
-          }
-        },
-        gdov: { 
-          controller: 'republic', 
-          buildings: {
-            commoner_huts: 0,
-            commoner_church: 0,
-            noble_manor: 0,
-            noble_monastery: 0
-          }
-        },
-        pechory: { 
-          controller: 'republic', 
-          buildings: {
-            commoner_huts: 0,
-            commoner_church: 0,
-            noble_manor: 0,
-            noble_monastery: 0
-          }
-        },
-        bearhill: { 
-          controller: 'order', 
-          buildings: {
-            commoner_huts: 0,
-            commoner_church: 0,
-            noble_manor: 0,
-            noble_monastery: 0
-          }
-        }
-      },
-      constructionActions: [
-        { improvement: false, equipment: false },
-        { improvement: false, equipment: false },
-        { improvement: false, equipment: false }
-      ],
-      players: [
-        { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0 },
-        { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0 },
-        { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0 }
-      ]
-    });
+    // Use the store's initLocalGame to reset to initial state
+    initLocalGame();
   };
 
   const getPhaseDescription = (phase) => {
