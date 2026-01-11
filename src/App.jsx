@@ -53,12 +53,29 @@ const PskovGame = () => {
   // Debug mode - set to true for predictable event order
   const DEBUG_MODE = debugMode;
 
-  // Initialize game on mount
+  // Initialize game on mount (only once)
   useEffect(() => {
-    if (!gameState) {
-      initLocalGame();
+    const store = useGameStore.getState();
+    if (!store.gameState) {
+      store.initLocalGame();
     }
-  }, [gameState, initLocalGame]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency - run only on mount
+
+  // Animate event image reveal after 2 seconds
+  useEffect(() => {
+    if (gameState?.currentEvent && !gameState?.eventImageRevealed) {
+      const timer = setTimeout(() => {
+        // Use functional update to avoid stale closure
+        setGameState(prev => ({
+          ...prev,
+          eventImageRevealed: true
+        }));
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState?.currentEvent, gameState?.eventImageRevealed, setGameState]);
 
   // Show loading state while initializing
   if (!gameState) {
@@ -68,20 +85,6 @@ const PskovGame = () => {
       </div>
     );
   }
-
-  // Animate event image reveal after 2 seconds
-  useEffect(() => {
-    if (gameState.currentEvent && !gameState.eventImageRevealed) {
-      const timer = setTimeout(() => {
-        setGameState({
-          ...gameState,
-          eventImageRevealed: true
-        });
-      }, 2000); // 2 second delay
-
-      return () => clearTimeout(timer);
-    }
-  }, [gameState, gameState.currentEvent, gameState.eventImageRevealed, setGameState]);
 
   const phases = ['resources', 'construction', 'events', 'veche'];
   const phaseNames = {
