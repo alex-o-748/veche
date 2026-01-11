@@ -1,8 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
 
 // Import Zustand store
 import { useGameStore } from './store/gameStore';
+
+// Import UI components
+import { MainMenu, Lobby } from './components';
 
 // Import game logic from modular structure
 import {
@@ -2890,4 +2893,134 @@ const PskovGame = () => {
   );
 };
 
-export default PskovGame;
+/**
+ * App Wrapper Component
+ * 
+ * Manages navigation between screens:
+ * - MainMenu: Choose local or online play
+ * - Lobby: Online multiplayer lobby
+ * - PskovGame: The actual game
+ */
+const App = () => {
+  const [screen, setScreen] = useState('menu'); // 'menu' | 'lobby' | 'game'
+  
+  // Store state
+  const mode = useGameStore((state) => state.mode);
+  const room = useGameStore((state) => state.room);
+  const gameState = useGameStore((state) => state.gameState);
+  const roomId = useGameStore((state) => state.roomId);
+  const playerId = useGameStore((state) => state.playerId);
+  const initLocalGame = useGameStore((state) => state.initLocalGame);
+  const createRoom = useGameStore((state) => state.createRoom);
+  const joinRoom = useGameStore((state) => state.joinRoom);
+  const leaveRoom = useGameStore((state) => state.leaveRoom);
+  const resetStore = useGameStore((state) => state.resetStore);
+
+  // Handle screen transitions based on game state
+  useEffect(() => {
+    if (mode === 'online' && room?.gameStarted && gameState) {
+      // Game has started
+      setScreen('game');
+    } else if (mode === 'online' && roomId && !room?.gameStarted) {
+      // In lobby waiting for game to start
+      setScreen('lobby');
+    }
+  }, [mode, room?.gameStarted, gameState, roomId]);
+
+  // Start local hotseat game
+  const handleStartLocal = () => {
+    initLocalGame();
+    setScreen('game');
+  };
+
+  // Create online room
+  const handleCreateRoom = async (playerName) => {
+    const newRoomId = await createRoom();
+    // After creating, we need to join the room with a faction
+    // For now, go to lobby where they can select faction
+    setScreen('lobby');
+  };
+
+  // Join existing room (first step - just get room code)
+  const handleJoinRoom = async (roomCode, playerName) => {
+    // Store player name for later use when selecting faction
+    sessionStorage.setItem('playerName', playerName);
+    // For now, go to lobby where they can select faction
+    useGameStore.getState().setRoomId(roomCode);
+    setScreen('lobby');
+  };
+
+  // Select faction in lobby (actually joins the room)
+  const handleSelectFaction = async (factionIndex) => {
+    const playerName = sessionStorage.getItem('playerName') || 'Player';
+    const currentRoomId = useGameStore.getState().roomId;
+    await joinRoom(currentRoomId, factionIndex, playerName);
+  };
+
+  // Leave room and go back to menu
+  const handleLeave = () => {
+    leaveRoom();
+    resetStore();
+    setScreen('menu');
+  };
+
+  // Go back to menu
+  const handleBackToMenu = () => {
+    resetStore();
+    setScreen('menu');
+  };
+
+  // Render appropriate screen
+  switch (screen) {
+    case 'menu':
+      return (
+        <MainMenu
+          onStartLocal={handleStartLocal}
+          onCreateRoom={handleCreateRoom}
+          onJoinRoom={handleJoinRoom}
+        />
+      );
+
+    case 'lobby':
+      return (
+        <Lobby
+          onSelectFaction={handleSelectFaction}
+          onLeave={handleLeave}
+        />
+      );
+
+    case 'game':
+      return (
+        <div className="relative">
+          {/* Back to menu button for online games */}
+          {mode === 'online' && (
+            <div className="fixed top-4 right-4 z-50">
+              <button
+                onClick={handleLeave}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded shadow"
+              >
+                Leave Game
+              </button>
+            </div>
+          )}
+          {/* Back to menu button for local games */}
+          {mode === 'local' && (
+            <div className="fixed top-4 right-4 z-50">
+              <button
+                onClick={handleBackToMenu}
+                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded shadow"
+              >
+                Main Menu
+              </button>
+            </div>
+          )}
+          <PskovGame />
+        </div>
+      );
+
+    default:
+      return <MainMenu onStartLocal={handleStartLocal} onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom} />;
+  }
+};
+
+export default App;
