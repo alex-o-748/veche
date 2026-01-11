@@ -17,7 +17,6 @@ import {
 import {
   applyAction,
   GameAction,
-  ActionResult,
   RandomValues,
 } from './game/actions';
 
@@ -67,10 +66,10 @@ interface ServerActionResult {
   error?: string;
 }
 
-// WebSocket with attached player info
-interface PlayerWebSocket extends WebSocket {
-  playerId?: number;
-  playerName?: string;
+// WebSocket attachment data (persisted across hibernation)
+interface WebSocketAttachment {
+  playerId: number;
+  playerName: string;
 }
 
 interface Env {
@@ -79,19 +78,48 @@ interface Env {
 }
 
 export class GameRoom extends DurableObject<Env> {
-  private room: RoomState;
-  private gameState: GameState | null = null;
-  private connections: Map<number, PlayerWebSocket> = new Map();
-
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+  }
 
-    // Initialize room state
-    this.room = {
-      players: [null, null, null],
-      gameStarted: false,
-      createdAt: Date.now(),
-    };
+  // Get room state from storage (with default)
+  private async getRoom(): Promise<RoomState> {
+    const room = await this.ctx.storage.get<RoomState>('room');
+    if (!room) {
+      return {
+        players: [null, null, null],
+        gameStarted: false,
+        createdAt: Date.now(),
+      };
+    }
+    return room;
+  }
+
+  // Save room state to storage
+  private async saveRoom(room: RoomState): Promise<void> {
+    await this.ctx.storage.put('room', room);
+  }
+
+  // Get game state from storage
+  private async getGameState(): Promise<GameState | null> {
+    return await this.ctx.storage.get<GameState>('gameState') || null;
+  }
+
+  // Save game state to storage
+  private async saveGameState(gameState: GameState): Promise<void> {
+    await this.ctx.storage.put('gameState', gameState);
+  }
+
+  // Get WebSocket for a specific player ID
+  private getPlayerSocket(playerId: number): WebSocket | null {
+    const sockets = this.ctx.getWebSockets();
+    for (const ws of sockets) {
+      const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+      if (attachment?.playerId === playerId) {
+        return ws;
+      }
+    }
+    return null;
   }
 
   // Handle HTTP requests
@@ -100,16 +128,22 @@ export class GameRoom extends DurableObject<Env> {
 
     // Initialize room
     if (url.pathname === '/init' && request.method === 'POST') {
+      const room = await this.getRoom();
+      if (room.createdAt === 0) {
+        room.createdAt = Date.now();
+        await this.saveRoom(room);
+      }
       return new Response(JSON.stringify({ success: true }));
     }
 
     // Get room info
     if (url.pathname === '/info' && request.method === 'GET') {
+      const room = await this.getRoom();
       return new Response(
         JSON.stringify({
-          room: this.room,
-          gameStarted: this.room.gameStarted,
-          playerCount: this.room.players.filter((p) => p !== null).length,
+          room: room,
+          gameStarted: room.gameStarted,
+          playerCount: room.players.filter((p) => p !== null).length,
         })
       );
     }
@@ -126,7 +160,7 @@ export class GameRoom extends DurableObject<Env> {
   // Handle WebSocket connection
   private handleWebSocketUpgrade(_request: Request): Response {
     const pair = new WebSocketPair();
-    const [client, server] = [pair[0], pair[1] as PlayerWebSocket];
+    const [client, server] = [pair[0], pair[1]];
 
     // Accept the WebSocket connection with hibernation
     this.ctx.acceptWebSocket(server);
@@ -138,7 +172,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   // WebSocket message handler (called by Durable Object runtime)
-  async webSocketMessage(ws: PlayerWebSocket, message: string | ArrayBuffer): Promise<void> {
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     try {
       const data: ClientMessage = JSON.parse(message as string);
       await this.handleMessage(ws, data);
@@ -151,21 +185,23 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   // WebSocket close handler
-  async webSocketClose(ws: PlayerWebSocket, _code: number, _reason: string): Promise<void> {
-    if (ws.playerId !== undefined) {
-      this.handlePlayerDisconnect(ws.playerId);
+  async webSocketClose(ws: WebSocket, _code: number, _reason: string): Promise<void> {
+    const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+    if (attachment?.playerId !== undefined) {
+      await this.handlePlayerDisconnect(attachment.playerId);
     }
   }
 
   // WebSocket error handler
-  async webSocketError(ws: PlayerWebSocket, _error: unknown): Promise<void> {
-    if (ws.playerId !== undefined) {
-      this.handlePlayerDisconnect(ws.playerId);
+  async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {
+    const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+    if (attachment?.playerId !== undefined) {
+      await this.handlePlayerDisconnect(attachment.playerId);
     }
   }
 
   // Handle incoming messages
-  private async handleMessage(ws: PlayerWebSocket, message: ClientMessage): Promise<void> {
+  private async handleMessage(ws: WebSocket, message: ClientMessage): Promise<void> {
     switch (message.type) {
       case 'join':
         await this.handleJoin(ws, message);
@@ -183,10 +219,11 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   // Player joins the room
-  private async handleJoin(ws: PlayerWebSocket, message: ClientMessage): Promise<void> {
+  private async handleJoin(ws: WebSocket, message: ClientMessage): Promise<void> {
     const { playerName, faction } = message;
+    const room = await this.getRoom();
 
-    if (this.room.gameStarted) {
+    if (room.gameStarted) {
       this.sendToSocket(ws, { type: 'error', error: 'Game already started' });
       return;
     }
@@ -197,68 +234,84 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     // Check if faction is already taken
-    if (this.room.players[faction] !== null) {
+    if (room.players[faction] !== null) {
       this.sendToSocket(ws, { type: 'error', error: 'Faction already taken' });
       return;
     }
 
-    // Assign player to faction slot
-    ws.playerId = faction;
-    ws.playerName = playerName || `Player ${faction + 1}`;
-    this.connections.set(faction, ws);
+    const name = playerName || `Player ${faction + 1}`;
 
-    this.room.players[faction] = {
-      name: ws.playerName,
+    // Store player info in WebSocket attachment (survives hibernation)
+    const attachment: WebSocketAttachment = {
+      playerId: faction,
+      playerName: name,
+    };
+    ws.serializeAttachment(attachment);
+
+    room.players[faction] = {
+      name: name,
       faction: FACTIONS[faction],
       ready: false,
       connected: true,
     };
 
+    await this.saveRoom(room);
+
     // Notify the joining player
     this.sendToSocket(ws, {
       type: 'joined',
       playerId: faction,
-      room: this.room,
+      room: room,
     });
 
     // Broadcast room update to all players
-    this.broadcastRoomUpdate();
+    await this.broadcastRoomUpdate();
   }
 
   // Player toggles ready status
-  private async handleReady(ws: PlayerWebSocket): Promise<void> {
-    if (ws.playerId === undefined) {
+  private async handleReady(ws: WebSocket): Promise<void> {
+    const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+
+    if (!attachment || attachment.playerId === undefined) {
       this.sendToSocket(ws, { type: 'error', error: 'Not in room' });
       return;
     }
 
-    if (this.room.gameStarted) {
+    const room = await this.getRoom();
+
+    if (room.gameStarted) {
       this.sendToSocket(ws, { type: 'error', error: 'Game already started' });
       return;
     }
 
-    const player = this.room.players[ws.playerId];
+    const player = room.players[attachment.playerId];
     if (player) {
       player.ready = !player.ready;
     }
 
-    this.broadcastRoomUpdate();
+    await this.saveRoom(room);
+    await this.broadcastRoomUpdate();
 
     // Check if all 3 players are ready
-    const allReady = this.room.players.every((p) => p !== null && p.ready);
+    const allReady = room.players.every((p) => p !== null && p.ready);
     if (allReady) {
       await this.startGame();
     }
   }
 
   // Handle game action
-  private async handleAction(ws: PlayerWebSocket, message: ClientMessage): Promise<void> {
-    if (ws.playerId === undefined) {
+  private async handleAction(ws: WebSocket, message: ClientMessage): Promise<void> {
+    const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+
+    if (!attachment || attachment.playerId === undefined) {
       this.sendToSocket(ws, { type: 'error', error: 'Not in room' });
       return;
     }
 
-    if (!this.room.gameStarted || !this.gameState) {
+    const room = await this.getRoom();
+    const gameState = await this.getGameState();
+
+    if (!room.gameStarted || !gameState) {
       this.sendToSocket(ws, { type: 'error', error: 'Game not started' });
       return;
     }
@@ -279,7 +332,7 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     // Apply the action using server-authoritative game logic
-    const result = applyAction(this.gameState, action, ws.playerId, randomValues);
+    const result = applyAction(gameState, action, attachment.playerId, randomValues);
 
     if (result.error) {
       this.sendToSocket(ws, {
@@ -290,10 +343,10 @@ export class GameRoom extends DurableObject<Env> {
     }
 
     // Update game state
-    this.gameState = result.newState;
+    await this.saveGameState(result.newState);
 
     // Broadcast updated game state to all players
-    this.broadcastGameState();
+    await this.broadcastGameState();
 
     // Send action result to the acting player
     this.sendToSocket(ws, {
@@ -306,57 +359,66 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   // Player leaves the room
-  private async handleLeave(ws: PlayerWebSocket): Promise<void> {
-    if (ws.playerId !== undefined) {
-      this.handlePlayerDisconnect(ws.playerId);
+  private async handleLeave(ws: WebSocket): Promise<void> {
+    const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+    if (attachment?.playerId !== undefined) {
+      await this.handlePlayerDisconnect(attachment.playerId);
     }
   }
 
   // Handle player disconnect
-  private handlePlayerDisconnect(playerId: number): void {
-    const player = this.room.players[playerId];
+  private async handlePlayerDisconnect(playerId: number): Promise<void> {
+    const room = await this.getRoom();
+    const player = room.players[playerId];
+
     if (player) {
       player.connected = false;
 
       // If game hasn't started, remove the player
-      if (!this.room.gameStarted) {
-        this.room.players[playerId] = null;
+      if (!room.gameStarted) {
+        room.players[playerId] = null;
       }
     }
 
-    this.connections.delete(playerId);
+    await this.saveRoom(room);
 
     // Broadcast disconnect to remaining players
-    this.broadcast({
+    await this.broadcast({
       type: 'player_left',
       playerId,
-      room: this.room,
+      room: room,
     });
 
     // If game is in progress and a player disconnects, they forfeit
-    if (this.room.gameStarted && this.gameState) {
-      // Mark game as over with remaining players as winners
-      // TODO: Implement forfeit logic
+    if (room.gameStarted) {
+      const gameState = await this.getGameState();
+      if (gameState) {
+        // Mark game as over with remaining players as winners
+        // TODO: Implement forfeit logic
+      }
     }
   }
 
   // Start the game
   private async startGame(): Promise<void> {
-    this.room.gameStarted = true;
+    const room = await this.getRoom();
+    room.gameStarted = true;
+    await this.saveRoom(room);
 
     // Create initial game state
-    this.gameState = createInitialGameState();
+    const gameState = createInitialGameState();
+    await this.saveGameState(gameState);
 
     // Broadcast game start to all players
-    this.broadcast({
+    await this.broadcast({
       type: 'game_start',
-      room: this.room,
-      gameState: this.gameState,
+      room: room,
+      gameState: gameState,
     });
   }
 
   // Send message to a specific socket
-  private sendToSocket(ws: PlayerWebSocket, message: ServerMessage): void {
+  private sendToSocket(ws: WebSocket, message: ServerMessage): void {
     try {
       ws.send(JSON.stringify(message));
     } catch (error) {
@@ -365,26 +427,29 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   // Broadcast message to all connected players
-  private broadcast(message: ServerMessage): void {
-    for (const ws of this.connections.values()) {
+  private async broadcast(message: ServerMessage): Promise<void> {
+    const sockets = this.ctx.getWebSockets();
+    for (const ws of sockets) {
       this.sendToSocket(ws, message);
     }
   }
 
   // Broadcast room state update
-  private broadcastRoomUpdate(): void {
-    this.broadcast({
+  private async broadcastRoomUpdate(): Promise<void> {
+    const room = await this.getRoom();
+    await this.broadcast({
       type: 'room_update',
-      room: this.room,
+      room: room,
     });
   }
 
   // Broadcast game state update
-  private broadcastGameState(): void {
-    if (this.gameState) {
-      this.broadcast({
+  private async broadcastGameState(): Promise<void> {
+    const gameState = await this.getGameState();
+    if (gameState) {
+      await this.broadcast({
         type: 'game_state',
-        gameState: this.gameState,
+        gameState: gameState,
       });
     }
   }
