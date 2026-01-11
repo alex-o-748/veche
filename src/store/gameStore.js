@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { createInitialGameState } from '../game';
+import { multiplayer } from '../services/multiplayer';
 
 /**
  * Game Store
@@ -98,6 +99,7 @@ export const useGameStore = create(
 
     // Reset everything (back to menu/lobby)
     resetStore: () => {
+      multiplayer.disconnect();
       set({
         mode: 'local',
         connected: false,
@@ -107,6 +109,51 @@ export const useGameStore = create(
         gameState: null,
         error: null,
       });
+    },
+
+    // ============ Online Multiplayer Actions ============
+
+    // Create a new online room
+    createRoom: async () => {
+      try {
+        set({ error: null });
+        const roomId = await multiplayer.createRoom();
+        set({ roomId });
+        return roomId;
+      } catch (error) {
+        set({ error: error.message });
+        throw error;
+      }
+    },
+
+    // Join an existing room
+    joinRoom: async (roomId, faction, playerName) => {
+      try {
+        set({ error: null, roomId });
+        await multiplayer.connect(roomId, faction, playerName);
+        // The rest is handled by the WebSocket message handlers
+      } catch (error) {
+        set({ error: error.message, roomId: null });
+        throw error;
+      }
+    },
+
+    // Toggle ready status in lobby
+    toggleReady: () => {
+      multiplayer.toggleReady();
+    },
+
+    // Send a game action (for online mode)
+    sendAction: (action) => {
+      const { mode } = get();
+      if (mode === 'online') {
+        multiplayer.sendAction(action);
+      }
+    },
+
+    // Leave the current room
+    leaveRoom: () => {
+      multiplayer.leave();
     },
 
     // ============ Selectors (computed values) ============
