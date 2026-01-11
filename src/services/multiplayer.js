@@ -9,14 +9,18 @@ import { useGameStore } from '../store/gameStore';
 
 // Get the API URL from environment or default to same host
 const getApiUrl = () => {
+  let url;
   // In production, use the deployed worker URL
   if (import.meta.env.VITE_WORKER_URL) {
-    return import.meta.env.VITE_WORKER_URL;
+    url = import.meta.env.VITE_WORKER_URL;
+  } else {
+    // In development, use the same hostname as the frontend but port 8787
+    // This handles cases where you access via IP instead of localhost
+    const hostname = window.location.hostname;
+    url = `http://${hostname}:8787`;
   }
-  // In development, use the same hostname as the frontend but port 8787
-  // This handles cases where you access via IP instead of localhost
-  const hostname = window.location.hostname;
-  return `http://${hostname}:8787`;
+  // Remove trailing slash to avoid double slashes in URLs
+  return url.replace(/\/+$/, '');
 };
 
 const getWsUrl = () => {

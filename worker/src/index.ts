@@ -114,7 +114,10 @@ export default {
       }
 
       // 404 for unknown routes
-      return new Response('Not Found', { status: 404 });
+      return new Response('Not Found', {
+        status: 404,
+        headers: corsHeaders(origin),
+      });
 
     } catch (error) {
       console.error('Worker error:', error);
