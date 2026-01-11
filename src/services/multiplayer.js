@@ -7,14 +7,16 @@
 
 import { useGameStore } from '../store/gameStore';
 
-// Get the API URL from environment or default to localhost
+// Get the API URL from environment or default to same host
 const getApiUrl = () => {
   // In production, use the deployed worker URL
   if (import.meta.env.VITE_WORKER_URL) {
     return import.meta.env.VITE_WORKER_URL;
   }
-  // In development, use localhost
-  return 'http://localhost:8787';
+  // In development, use the same hostname as the frontend but port 8787
+  // This handles cases where you access via IP instead of localhost
+  const hostname = window.location.hostname;
+  return `http://${hostname}:8787`;
 };
 
 const getWsUrl = () => {
