@@ -12,7 +12,7 @@ bindings = [
 # Durable Objects migrations
 [[migrations]]
 tag = "v1"
-new_classes = ["GameRoom"]
+new_sqlite_classes = ["GameRoom"]
 
 # Environment variables (for production, set via wrangler secret)
 [vars]
