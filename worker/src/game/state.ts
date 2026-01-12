@@ -111,7 +111,7 @@ export interface GameState {
 
   // Event phase state
   currentEvent: GameEvent | null;
-  eventVotes: (boolean | null)[];
+  eventVotes: (string | null)[]; // Option IDs for voting events, or 'yes'/'no' for participation
   eventResolved: boolean;
   lastEventResult: string | null;
   eventImageRevealed: boolean;

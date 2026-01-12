@@ -52,6 +52,9 @@ const PskovGame = () => {
   const setGameState = useGameStore((state) => state.setGameState);
   const initLocalGame = useGameStore((state) => state.initLocalGame);
   const debugMode = useGameStore((state) => state.debugMode);
+  const mode = useGameStore((state) => state.mode);
+  const playerId = useGameStore((state) => state.playerId);
+  const sendAction = useGameStore((state) => state.sendAction);
 
   // Debug mode - set to true for predictable event order
   const DEBUG_MODE = debugMode;
@@ -1378,11 +1381,22 @@ const PskovGame = () => {
 
   // Vote on current event
   const voteOnEvent = (playerIndex, vote) => {
-    setGameState(prev => {
-      const newVotes = [...prev.eventVotes];
-      newVotes[playerIndex] = vote;
-      return { ...prev, eventVotes: newVotes };
-    });
+    // In online mode, send action to server
+    if (mode === 'online') {
+      // Only allow voting for own faction
+      if (playerIndex !== playerId) {
+        console.warn('Cannot vote for another player');
+        return;
+      }
+      sendAction({ type: 'VOTE_EVENT', vote });
+    } else {
+      // Local mode: update state directly
+      setGameState(prev => {
+        const newVotes = [...prev.eventVotes];
+        newVotes[playerIndex] = vote;
+        return { ...prev, eventVotes: newVotes };
+      });
+    }
   };
 
   // Get voting result for any multi-option event
@@ -1521,6 +1535,13 @@ const PskovGame = () => {
   };
 
   const buildBuilding = (buildingType) => {
+    // In online mode, send action to server
+    if (mode === 'online') {
+      sendAction({ type: 'BUILD_BUILDING', buildingType });
+      return;
+    }
+
+    // Local mode: update state directly
     setGameState(prev => {
       const player = prev.players[prev.currentPlayer];
 
@@ -1563,9 +1584,16 @@ const PskovGame = () => {
   };
 
   const nextPhase = () => {
+    // In online mode, send action to server
+    if (mode === 'online') {
+      sendAction({ type: 'NEXT_PHASE' });
+      return;
+    }
+
+    // Local mode: update state directly
     const currentPhaseIndex = phases.indexOf(gameState.phase);
     const isLastPhase = currentPhaseIndex === phases.length - 1;
-    
+
     setGameState(prev => {
       const isResourcesPhase = prev.phase === 'resources';
       const isConstructionPhase = prev.phase === 'construction';
@@ -1631,6 +1659,13 @@ const PskovGame = () => {
   };
 
   const nextPlayer = () => {
+    // In online mode, send action to server
+    if (mode === 'online') {
+      sendAction({ type: 'NEXT_PLAYER' });
+      return;
+    }
+
+    // Local mode: update state directly
     setGameState(prev => ({
       ...prev,
       currentPlayer: (prev.currentPlayer + 1) % 3
@@ -1638,6 +1673,18 @@ const PskovGame = () => {
   };
 
   const buyItem = (playerIndex, item, cost) => {
+    // In online mode, send action to server
+    if (mode === 'online') {
+      // Only allow buying for own faction
+      if (playerIndex !== playerId) {
+        console.warn('Cannot buy for another player');
+        return;
+      }
+      sendAction({ type: 'BUY_EQUIPMENT', item });
+      return;
+    }
+
+    // Local mode: update state directly
     setGameState(prev => {
       const player = prev.players[playerIndex];
 
