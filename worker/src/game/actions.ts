@@ -56,7 +56,7 @@ export interface GameAction {
   regionName?: string;
   buildingType?: string;
   item?: 'weapons' | 'armor';
-  vote?: boolean;
+  vote?: string; // Option ID for voting events (e.g., 'rob_foreign', 'trade_risk')
   targetRegion?: string;
 }
 
@@ -356,7 +356,7 @@ function buyEquipment(state: GameState, item: 'weapons' | 'armor'): GameState {
 }
 
 // Vote on event
-function voteOnEvent(state: GameState, playerIndex: number, vote: boolean): GameState {
+function voteOnEvent(state: GameState, playerIndex: number, vote: string): GameState {
   const newVotes = [...state.eventVotes];
   newVotes[playerIndex] = vote;
   return { ...state, eventVotes: newVotes };
@@ -620,8 +620,9 @@ export function applyAction(
 
     case ActionTypes.VOTE_EVENT:
       if (playerId === null) return { newState: state, error: 'Player ID required' };
+      if (!action.vote) return { newState: state, error: 'Vote option required' };
       return {
-        newState: voteOnEvent(state, playerId, action.vote ?? false),
+        newState: voteOnEvent(state, playerId, action.vote),
         result: { type: 'vote_cast' },
       };
 
