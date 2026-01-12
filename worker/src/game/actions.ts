@@ -16,6 +16,7 @@ import {
   Player,
   ActiveEffect,
 } from './state';
+import { drawEvent } from './eventDeck';
 
 // Action Types
 export const ActionTypes = {
@@ -242,14 +243,12 @@ export function nextPhase(state: GameState, debugMode = false): GameState {
 
   // Draw event when moving TO events phase
   if (nextPhaseName === 'events') {
-    // TODO: Implement event drawing with server-side randomness
-    newState.currentEvent = null; // Will be set by server
+    const { event, nextDebugIndex } = drawEvent(debugMode, state.debugEventIndex);
+    newState.currentEvent = event;
     newState.eventVotes = [null, null, null];
     newState.eventResolved = false;
     newState.eventImageRevealed = false;
-    if (debugMode) {
-      newState.debugEventIndex = (state.debugEventIndex + 1) % 17;
-    }
+    newState.debugEventIndex = nextDebugIndex;
   }
 
   // Reset construction state when leaving construction phase
@@ -377,8 +376,9 @@ function setConstructionReady(state: GameState, playerIndex: number): GameState 
 
   if (allReady) {
     // Reset ready status and advance phase
+    // Use debug mode for consistent event order in multiplayer
     return {
-      ...nextPhase(state),
+      ...nextPhase(state, true),
       constructionReady: [false, false, false],
     };
   }
@@ -626,7 +626,8 @@ export function applyAction(
 
   switch (action.type) {
     case ActionTypes.NEXT_PHASE:
-      return { newState: nextPhase(state), result: { type: 'phase_changed' } };
+      // Always use debug mode on server for consistent event order in multiplayer
+      return { newState: nextPhase(state, true), result: { type: 'phase_changed' } };
 
     case ActionTypes.NEXT_PLAYER:
       return { newState: nextPlayer(state), result: { type: 'player_changed' } };
