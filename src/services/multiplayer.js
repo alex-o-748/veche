@@ -6,7 +6,6 @@
  */
 
 import { useGameStore } from '../store/gameStore';
-import { eventDeck } from '../game/events';
 
 // Get the API URL from environment or default to same host
 const getApiUrl = () => {
@@ -28,27 +27,6 @@ const getWsUrl = () => {
   const apiUrl = getApiUrl();
   return apiUrl.replace(/^http/, 'ws');
 };
-
-/**
- * Enrich game state with full event data from client-side event deck
- * Server only sends minimal event data (id, name, type), client needs full data with options/effects
- */
-function enrichGameState(serverGameState) {
-  if (!serverGameState) return serverGameState;
-
-  // If there's a current event, look up the full event data from client-side deck
-  if (serverGameState.currentEvent && serverGameState.currentEvent.id) {
-    const fullEvent = eventDeck.find(e => e.id === serverGameState.currentEvent.id);
-    if (fullEvent) {
-      return {
-        ...serverGameState,
-        currentEvent: fullEvent, // Replace with full event data
-      };
-    }
-  }
-
-  return serverGameState;
-}
 
 class MultiplayerService {
   constructor() {
@@ -190,12 +168,12 @@ class MultiplayerService {
       case 'game_start':
         // Game has started
         store.setRoom(message.room);
-        store.setGameState(enrichGameState(message.gameState));
+        store.setGameState(message.gameState);
         break;
 
       case 'game_state':
         // Game state update
-        store.setGameState(enrichGameState(message.gameState));
+        store.setGameState(message.gameState);
         break;
 
       case 'action_result':
