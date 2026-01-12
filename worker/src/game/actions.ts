@@ -27,6 +27,7 @@ export const ActionTypes = {
   SELECT_REGION: 'SELECT_REGION',
   BUILD_BUILDING: 'BUILD_BUILDING',
   BUY_EQUIPMENT: 'BUY_EQUIPMENT',
+  SET_CONSTRUCTION_READY: 'SET_CONSTRUCTION_READY',
 
   // Events phase
   VOTE_EVENT: 'VOTE_EVENT',
@@ -98,7 +99,7 @@ export function validateAction(
   switch (action.type) {
     case ActionTypes.BUILD_BUILDING:
       if (state.phase !== 'construction') return { error: 'Not in construction phase' };
-      if (state.currentPlayer !== playerId) return { error: 'Not your turn' };
+      // Allow all players to build simultaneously (removed currentPlayer check)
       if (state.players[playerId].money < 2) return { error: 'Not enough money' };
       if (state.constructionActions[playerId].improvement) {
         return { error: 'Already built this turn' };
@@ -107,11 +108,16 @@ export function validateAction(
 
     case ActionTypes.BUY_EQUIPMENT:
       if (state.phase !== 'construction') return { error: 'Not in construction phase' };
-      if (state.currentPlayer !== playerId) return { error: 'Not your turn' };
+      // Allow all players to buy simultaneously (removed currentPlayer check)
       if (state.players[playerId].money < 1) return { error: 'Not enough money' };
       if (state.constructionActions[playerId].equipment) {
         return { error: 'Already bought equipment this turn' };
       }
+      return { valid: true };
+
+    case ActionTypes.SET_CONSTRUCTION_READY:
+      if (state.phase !== 'construction') return { error: 'Not in construction phase' };
+      if (state.constructionReady[playerId]) return { error: 'Already marked as ready' };
       return { valid: true };
 
     case ActionTypes.VOTE_EVENT:
@@ -251,6 +257,12 @@ export function nextPhase(state: GameState, debugMode = false): GameState {
     newState.currentPlayer = 0;
     newState.selectedRegion = 'pskov';
     newState.constructionActions = createInitialConstructionActions();
+    newState.constructionReady = [false, false, false];
+  }
+
+  // Reset ready status when entering construction phase
+  if (nextPhaseName === 'construction') {
+    newState.constructionReady = [false, false, false];
   }
 
   // Clear event state when leaving events phase
@@ -353,6 +365,25 @@ function buyEquipment(state: GameState, item: 'weapons' | 'armor'): GameState {
     players: newPlayers,
     constructionActions: newConstructionActions,
   };
+}
+
+// Set construction ready status
+function setConstructionReady(state: GameState, playerIndex: number): GameState {
+  const newReady = [...state.constructionReady];
+  newReady[playerIndex] = true;
+
+  // Check if all players are ready - if so, auto-advance to next phase
+  const allReady = newReady.every(ready => ready);
+
+  if (allReady) {
+    // Reset ready status and advance phase
+    return {
+      ...nextPhase(state),
+      constructionReady: [false, false, false],
+    };
+  }
+
+  return { ...state, constructionReady: newReady };
 }
 
 // Vote on event
@@ -616,6 +647,13 @@ export function applyAction(
       return {
         newState: buyEquipment(state, action.item || 'weapons'),
         result: { type: 'equipment_bought' },
+      };
+
+    case ActionTypes.SET_CONSTRUCTION_READY:
+      if (playerId === null) return { newState: state, error: 'Player ID required' };
+      return {
+        newState: setConstructionReady(state, playerId),
+        result: { type: 'construction_ready' },
       };
 
     case ActionTypes.VOTE_EVENT:

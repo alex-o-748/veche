@@ -140,6 +140,7 @@ export const createInitialGameState = () => ({
   currentPlayer: 0,
   selectedRegion: 'pskov',
   constructionActions: createInitialConstructionActions(),
+  constructionReady: [false, false, false],
 
   // Event phase state
   currentEvent: null,

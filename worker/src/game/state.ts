@@ -108,6 +108,7 @@ export interface GameState {
   currentPlayer: number;
   selectedRegion: string;
   constructionActions: ConstructionAction[];
+  constructionReady: boolean[]; // Track which players are done with construction
 
   // Event phase state
   currentEvent: GameEvent | null;
@@ -228,6 +229,7 @@ export function createInitialGameState(): GameState {
     currentPlayer: 0,
     selectedRegion: 'pskov',
     constructionActions: createInitialConstructionActions(),
+    constructionReady: [false, false, false],
     currentEvent: null,
     eventVotes: [null, null, null],
     eventResolved: false,

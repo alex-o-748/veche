@@ -1672,6 +1672,28 @@ const PskovGame = () => {
     }));
   };
 
+  const setConstructionReady = () => {
+    // In online mode, send action to server
+    if (mode === 'online') {
+      sendAction({ type: 'SET_CONSTRUCTION_READY' });
+    } else {
+      // Local mode: mark current player as ready and check if all are ready
+      setGameState(prev => {
+        const newReady = [...prev.constructionReady];
+        newReady[prev.currentPlayer] = true;
+
+        // If all players are ready in local mode, auto-advance
+        if (newReady.every(r => r)) {
+          // Trigger nextPhase
+          nextPhase();
+          return prev; // nextPhase will handle the update
+        }
+
+        return { ...prev, constructionReady: newReady };
+      });
+    }
+  };
+
   const buyItem = (playerIndex, item, cost) => {
     // In online mode, send action to server
     if (mode === 'online') {
@@ -1792,23 +1814,35 @@ const PskovGame = () => {
           </button>
 
           <div className="text-center">
+            {/* Helper text */}
             <p className="text-sm text-gray-600 mb-2">
               {gameState.turn >= 20 ? 'Game Complete! Check results below.' :
+               gameState.phase === 'construction' && mode === 'online' ? 'Mark yourself as done to proceed' :
                gameState.phase === 'construction' ? 'Players take turns in construction phase' :
                gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
                'Click to advance to next phase'}
             </p>
+
+            {/* Phase advance button / Ready button */}
             <button
-              onClick={nextPhase}
-              disabled={gameState.turn > 20 || (gameState.phase === 'events' && !gameState.eventResolved)}
+              onClick={gameState.phase === 'construction' && mode === 'online' ? setConstructionReady : nextPhase}
+              disabled={
+                gameState.turn > 20 ||
+                (gameState.phase === 'events' && !gameState.eventResolved) ||
+                (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId])
+              }
               className={`px-6 py-3 rounded font-semibold transition-colors ${
-                gameState.turn > 20 || (gameState.phase === 'events' && !gameState.eventResolved)
+                gameState.turn > 20 ||
+                (gameState.phase === 'events' && !gameState.eventResolved) ||
+                (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId])
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-amber-600 hover:bg-amber-700 text-white'
               }`}
             >
               {gameState.turn > 20 ? 'Game Complete' :
                gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
+               gameState.phase === 'construction' && mode === 'online' ?
+                 (gameState.constructionReady[playerId] ? '✓ Ready' : "I'm Done") :
                'Next Phase'}
             </button>
           </div>
@@ -1893,8 +1927,13 @@ const PskovGame = () => {
               <div className="flex-1">
                 <h3 className="text-lg font-semibold mb-2">
                   {player.faction}
-                  {gameState.phase === 'construction' && gameState.currentPlayer === index && (
+                  {gameState.phase === 'construction' && gameState.currentPlayer === index && mode === 'local' && (
                     <span className="text-amber-600 ml-2">(Your Turn)</span>
+                  )}
+                  {gameState.phase === 'construction' && mode === 'online' && (
+                    <span className={`ml-2 text-sm ${gameState.constructionReady[index] ? 'text-green-600' : 'text-gray-400'}`}>
+                      {gameState.constructionReady[index] ? '✓ Ready' : '⏳ Building'}
+                    </span>
                   )}
                 </h3>
                 <div className="space-y-1 text-sm">
@@ -2075,17 +2114,27 @@ const PskovGame = () => {
             </div>
           </div>
 
-          <button
-            onClick={nextPlayer}
-            className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
-          >
-            Next Player
-          </button>
+          {/* Only show Next Player button in local mode */}
+          {mode === 'local' && (
+            <button
+              onClick={nextPlayer}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+            >
+              Next Player
+            </button>
+          )}
+
+          {/* In online mode, show ready message */}
+          {mode === 'online' && (
+            <div className="text-center text-sm text-gray-600 mt-4">
+              Click "I'm Done" above when finished building to proceed
+            </div>
+          )}
         </div>
       )}
 
-      {/* Construction Complete Message */}
-      {gameState.phase === 'construction' && gameState.currentPlayer === 0 && (
+      {/* Construction Complete Message (local mode only) */}
+      {gameState.phase === 'construction' && gameState.currentPlayer === 0 && mode === 'local' && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h4 className="font-medium text-blue-800 mb-2">Construction Phase Complete</h4>
           <p className="text-blue-700 text-sm">All players have taken their construction turns. Click "Next Phase" to proceed to Events.</p>
