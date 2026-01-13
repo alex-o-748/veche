@@ -96,7 +96,7 @@ export function surrenderRegion(state: GameState, regionName: string): GameState
   // Destroy buildings and update player improvement counts
   const newPlayers = [...state.players];
   Object.entries(region.buildings).forEach(([buildingType, count]) => {
-    if (count > 0) {
+    if (count !== undefined && count > 0) {
       region.buildings = { ...region.buildings, [buildingType]: 0 };
 
       // Update player improvement count
@@ -177,7 +177,7 @@ export function destroyRandomBuildings(
   count: number = 1
 ): { state: GameState; destroyedBuildings: string[] } {
   const region = state.regions[regionName];
-  const buildingTypes = Object.entries(region.buildings).filter(([_, cnt]) => cnt > 0);
+  const buildingTypes = Object.entries(region.buildings).filter(([_, cnt]) => cnt !== undefined && cnt > 0);
 
   if (buildingTypes.length === 0) {
     return {
@@ -202,7 +202,7 @@ export function destroyRandomBuildings(
     // Destroy the building
     const currentBuildings = { ...newRegions[regionName].buildings };
     if (buildingType.startsWith('merchant_')) {
-      currentBuildings[buildingType] = Math.max(0, currentBuildings[buildingType] - 1);
+      currentBuildings[buildingType] = Math.max(0, (currentBuildings[buildingType] || 0) - 1);
     } else {
       currentBuildings[buildingType] = 0;
     }
