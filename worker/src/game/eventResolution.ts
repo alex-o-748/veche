@@ -422,7 +422,7 @@ export function resolveOrderAttackEvent(
   }
 
   // Check who is defending (voted true)
-  const participants = votes.filter((v) => v === 'true').length;
+  const participants = votes.filter((v) => v === true).length;
   const costPerParticipant = participants > 0 ? 3 / participants : 0;
 
   // Check if defense is funded
@@ -430,7 +430,7 @@ export function resolveOrderAttackEvent(
   const defendingPlayers: number[] = [];
 
   state.players.forEach((player, index) => {
-    if (votes[index] === 'true') {
+    if (votes[index] === true) {
       if (player.money < costPerParticipant) {
         allCanAfford = false;
       } else {
@@ -447,7 +447,7 @@ export function resolveOrderAttackEvent(
 
   // Deduct money from participants
   const newPlayers = state.players.map((player, index) => {
-    if (votes[index] === 'true') {
+    if (votes[index] === true) {
       return { ...player, money: player.money - costPerParticipant };
     }
     return player;
