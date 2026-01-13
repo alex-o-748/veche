@@ -1930,9 +1930,15 @@ const PskovGame = () => {
       
       {/* Players */}
       <div className="grid md:grid-cols-3 gap-4 mb-6">
-        {gameState.players.map((player, index) => (
+        {gameState.players.map((player, index) => {
+          // In online mode, highlight the current user's faction
+          // In local mode, highlight the current player's turn
+          const isActivePlayer = gameState.phase === 'construction' &&
+            (mode === 'online' ? index === playerId : index === gameState.currentPlayer);
+
+          return (
           <div key={index} className={`bg-white rounded-lg p-4 shadow ${
-            gameState.phase === 'construction' && gameState.currentPlayer === index
+            isActivePlayer
               ? 'ring-4 ring-amber-400'
               : ''
           }`}>
@@ -1978,14 +1984,20 @@ const PskovGame = () => {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Construction Phase Interface */}
-      {gameState.phase === 'construction' && (
+      {gameState.phase === 'construction' && (() => {
+        // In online mode, use playerId; in local mode, use currentPlayer
+        const activePlayerIndex = mode === 'online' ? playerId : gameState.currentPlayer;
+        const activePlayer = gameState.players[activePlayerIndex];
+
+        return (
         <div className="bg-white rounded-lg p-4 mb-6 shadow">
           <h3 className="text-lg font-semibold mb-3">
-            {gameState.players[gameState.currentPlayer].faction} - Construction Turn
+            {activePlayer.faction} - Construction Turn
           </h3>
 
           {/* Region Selection */}
@@ -1993,7 +2005,7 @@ const PskovGame = () => {
             <h4 className="font-medium mb-2">Select Region:</h4>
             <div className="grid grid-cols-3 gap-2">
               {Object.entries(gameState.regions).map(([regionName, region]) => {
-                const isMerchantRestricted = gameState.players[gameState.currentPlayer].faction === 'Merchants' && regionName !== 'pskov';
+                const isMerchantRestricted = activePlayer.faction === 'Merchants' && regionName !== 'pskov';
                 const isOrderControlled = region.controller === 'order';
                 const isAvailable = !isMerchantRestricted && !isOrderControlled;
 
@@ -2027,7 +2039,7 @@ const PskovGame = () => {
                 );
               })}
             </div>
-            {gameState.players[gameState.currentPlayer].faction === 'Merchants' && gameState.selectedRegion !== 'pskov' && (
+            {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov' && (
               <p className="text-sm text-orange-600 mt-2">Merchants can only build in Pskov!</p>
             )}
           </div>
@@ -2042,8 +2054,8 @@ const PskovGame = () => {
                   onClick={() => buildBuilding(building.type)}
                   disabled={
                     !building.canBuild ||
-                    gameState.players[gameState.currentPlayer].money < building.cost ||
-                    gameState.constructionActions[gameState.currentPlayer].improvement
+                    activePlayer.money < building.cost ||
+                    gameState.constructionActions[activePlayerIndex].improvement
                   }
                   className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white p-3 rounded text-sm flex items-center gap-2"
                 >
@@ -2068,7 +2080,7 @@ const PskovGame = () => {
               ))}
               {getAvailableBuildings().length === 0 && (
                 <p className="text-gray-500 col-span-2 text-center py-4">
-                  {gameState.players[gameState.currentPlayer].faction === 'Merchants' && gameState.selectedRegion !== 'pskov'
+                  {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov'
                     ? 'Merchants can only build in Pskov'
                     : 'No buildings available in this region'
                   }
@@ -2082,17 +2094,17 @@ const PskovGame = () => {
             <h4 className="font-medium mb-2">Equipment (Choose 1 per turn):</h4>
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => buyItem(gameState.currentPlayer, 'weapons', 1)}
+                onClick={() => buyItem(activePlayerIndex, 'weapons', 1)}
                 disabled={
-                  gameState.players[gameState.currentPlayer].money < 1 ||
-                  gameState.constructionActions[gameState.currentPlayer].equipment ||
-                  gameState.players[gameState.currentPlayer].weapons >= 2
+                  activePlayer.money < 1 ||
+                  gameState.constructionActions[activePlayerIndex].equipment ||
+                  activePlayer.weapons >= 2
                 }
                 className="bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white p-2 rounded text-sm flex items-center gap-2"
               >
-                {getEquipmentImage('weapons', gameState.players[gameState.currentPlayer].faction) && (
+                {getEquipmentImage('weapons', activePlayer.faction) && (
                   <img
-                    src={getEquipmentImage('weapons', gameState.players[gameState.currentPlayer].faction)}
+                    src={getEquipmentImage('weapons', activePlayer.faction)}
                     alt="Weapon"
                     className="w-8 h-8 rounded object-cover flex-shrink-0"
                   />
@@ -2100,24 +2112,24 @@ const PskovGame = () => {
                 <div className="text-left">
                   <div>Buy Weapon (1○)</div>
                   <div className="text-xs">
-                    {gameState.constructionActions[gameState.currentPlayer].equipment ? 'Equipment bought' :
-                     gameState.players[gameState.currentPlayer].weapons >= 2 ? 'Max weapons (2)' :
-                     `Owned: ${gameState.players[gameState.currentPlayer].weapons}/2`}
+                    {gameState.constructionActions[activePlayerIndex].equipment ? 'Equipment bought' :
+                     activePlayer.weapons >= 2 ? 'Max weapons (2)' :
+                     `Owned: ${activePlayer.weapons}/2`}
                   </div>
                 </div>
               </button>
               <button
-                onClick={() => buyItem(gameState.currentPlayer, 'armor', 1)}
+                onClick={() => buyItem(activePlayerIndex, 'armor', 1)}
                 disabled={
-                  gameState.players[gameState.currentPlayer].money < 1 ||
-                  gameState.constructionActions[gameState.currentPlayer].equipment ||
-                  gameState.players[gameState.currentPlayer].armor >= 2
+                  activePlayer.money < 1 ||
+                  gameState.constructionActions[activePlayerIndex].equipment ||
+                  activePlayer.armor >= 2
                 }
                 className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white p-2 rounded text-sm flex items-center gap-2"
               >
-                {getEquipmentImage('armor', gameState.players[gameState.currentPlayer].faction) && (
+                {getEquipmentImage('armor', activePlayer.faction) && (
                   <img
-                    src={getEquipmentImage('armor', gameState.players[gameState.currentPlayer].faction)}
+                    src={getEquipmentImage('armor', activePlayer.faction)}
                     alt="Armor"
                     className="w-8 h-8 rounded object-cover flex-shrink-0"
                   />
@@ -2125,9 +2137,9 @@ const PskovGame = () => {
                 <div className="text-left">
                   <div>Buy Armor (1○)</div>
                   <div className="text-xs">
-                    {gameState.constructionActions[gameState.currentPlayer].equipment ? 'Equipment bought' :
-                     gameState.players[gameState.currentPlayer].armor >= 2 ? 'Max armor (2)' :
-                     `Owned: ${gameState.players[gameState.currentPlayer].armor}/2`}
+                    {gameState.constructionActions[activePlayerIndex].equipment ? 'Equipment bought' :
+                     activePlayer.armor >= 2 ? 'Max armor (2)' :
+                     `Owned: ${activePlayer.armor}/2`}
                   </div>
                 </div>
               </button>
@@ -2151,7 +2163,8 @@ const PskovGame = () => {
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* Construction Complete Message (local mode only) */}
       {gameState.phase === 'construction' && gameState.currentPlayer === 0 && mode === 'local' && (
