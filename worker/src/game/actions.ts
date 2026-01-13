@@ -16,7 +16,8 @@ import {
   Player,
   ActiveEffect,
 } from './state';
-import { drawEvent } from './eventDeck';
+import { drawEvent, FullGameEvent } from './eventDeck';
+import { resolveEvent } from './eventResolution';
 
 // Action Types
 export const ActionTypes = {
@@ -666,9 +667,16 @@ export function applyAction(
       };
 
     case ActionTypes.RESOLVE_EVENT:
-      // TODO: Implement event resolution with server-side randomness
+      if (!state.currentEvent) {
+        return { newState: state, error: 'No event to resolve' };
+      }
+      const resolvedState = resolveEvent(
+        state.currentEvent as FullGameEvent,
+        state,
+        state.eventVotes
+      );
       return {
-        newState: { ...state, eventResolved: true },
+        newState: { ...resolvedState, eventResolved: true },
         result: { type: 'event_resolved' },
       };
 
