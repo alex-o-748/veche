@@ -2237,8 +2237,12 @@ const PskovGame = () => {
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {gameState.players.map((player, index) => {
                     const hasVoted = gameState.eventVotes[index] !== null;
-                    // In online mode, only the current player can vote for their faction
+                    // In online mode, only show voting buttons for the current player
                     const isCurrentPlayer = mode === 'online' ? index === playerId : true;
+                    const votedOptionId = gameState.eventVotes[index];
+                    const votedOption = votedOptionId
+                      ? gameState.currentEvent.options.find(opt => opt.id === votedOptionId)
+                      : null;
 
                     return (
                       <div key={index} className={`text-center p-3 rounded ${
@@ -2251,33 +2255,46 @@ const PskovGame = () => {
                           {mode === 'online' && index === playerId && ' (You)'}
                         </h5>
                         <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
-                        <div className="space-y-2">
-                          {gameState.currentEvent.options.map(option => {
-                            const canAfford = !option.requiresMinMoney || player.money >= option.requiresMinMoney;
 
-                            return (
-                              <button
-                                key={option.id}
-                                onClick={() => voteOnEvent(index, option.id)}
-                                disabled={hasVoted || !canAfford || !isCurrentPlayer}
-                                className={`w-full px-2 py-1 rounded text-xs ${
-                                  gameState.eventVotes[index] === option.id
-                                    ? 'bg-amber-600 text-white'
-                                    : !canAfford || !isCurrentPlayer
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
-                                }`}
-                              >
-                                {gameState.eventVotes[index] === option.id ?
-                                  `Voted: ${option.name}` :
-                                  !canAfford ?
-                                  `Need ${option.requiresMinMoney}○ min` :
-                                  option.name
-                                }
-                              </button>
-                            );
-                          })}
-                        </div>
+                        {/* Show interactive buttons for current player (or all players in local mode) */}
+                        {isCurrentPlayer ? (
+                          <div className="space-y-2">
+                            {gameState.currentEvent.options.map(option => {
+                              const canAfford = !option.requiresMinMoney || player.money >= option.requiresMinMoney;
+
+                              return (
+                                <button
+                                  key={option.id}
+                                  onClick={() => voteOnEvent(index, option.id)}
+                                  disabled={hasVoted || !canAfford}
+                                  className={`w-full px-2 py-1 rounded text-xs ${
+                                    gameState.eventVotes[index] === option.id
+                                      ? 'bg-amber-600 text-white'
+                                      : !canAfford
+                                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                      : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
+                                  }`}
+                                >
+                                  {gameState.eventVotes[index] === option.id ?
+                                    `Voted: ${option.name}` :
+                                    !canAfford ?
+                                    `Need ${option.requiresMinMoney}○ min` :
+                                    option.name
+                                  }
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          /* Show status for other players in online mode */
+                          <div className="text-sm text-gray-600 italic py-2">
+                            {hasVoted ? (
+                              <span className="text-amber-700 font-medium">Voted: {votedOption?.name}</span>
+                            ) : (
+                              <span>Waiting to vote...</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
