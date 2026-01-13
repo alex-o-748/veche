@@ -2237,10 +2237,19 @@ const PskovGame = () => {
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {gameState.players.map((player, index) => {
                     const hasVoted = gameState.eventVotes[index] !== null;
+                    // In online mode, only the current player can vote for their faction
+                    const isCurrentPlayer = mode === 'online' ? index === playerId : true;
 
                     return (
-                      <div key={index} className="text-center">
-                        <h5 className="font-medium mb-1">{player.faction}</h5>
+                      <div key={index} className={`text-center p-3 rounded ${
+                        mode === 'online' && index === playerId
+                          ? 'ring-2 ring-amber-400 bg-amber-50'
+                          : ''
+                      }`}>
+                        <h5 className="font-medium mb-1">
+                          {player.faction}
+                          {mode === 'online' && index === playerId && ' (You)'}
+                        </h5>
                         <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
                         <div className="space-y-2">
                           {gameState.currentEvent.options.map(option => {
@@ -2250,11 +2259,11 @@ const PskovGame = () => {
                               <button
                                 key={option.id}
                                 onClick={() => voteOnEvent(index, option.id)}
-                                disabled={hasVoted || !canAfford}
+                                disabled={hasVoted || !canAfford || !isCurrentPlayer}
                                 className={`w-full px-2 py-1 rounded text-xs ${
                                   gameState.eventVotes[index] === option.id
                                     ? 'bg-amber-600 text-white'
-                                    : !canAfford
+                                    : !canAfford || !isCurrentPlayer
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
                                 }`}
