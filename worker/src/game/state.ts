@@ -45,6 +45,16 @@ export const BUILDING_TYPES: Record<string, BuildingType> = {
   merchant_church: { name: 'Church', cost: 2, faction: 'Merchants', maxPerRegion: 7, pskovOnly: true },
 };
 
+// Building names mapping (for display)
+export const BUILDING_NAMES: Record<string, string> = {
+  commoner_huts: 'Huts',
+  commoner_church: 'Village Church',
+  noble_manor: 'Manor',
+  noble_monastery: 'Monastery',
+  merchant_mansion: 'Mansion',
+  merchant_church: 'Merchant Church',
+};
+
 // Region buildings
 export interface RegionBuildings {
   commoner_huts: number;

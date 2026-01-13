@@ -1389,6 +1389,19 @@ const PskovGame = () => {
         return;
       }
       sendAction({ type: 'VOTE_EVENT', vote });
+
+      // After voting, check if all players have voted and auto-resolve
+      // Note: We check the NEXT state since this vote will be added
+      setTimeout(() => {
+        const currentState = useGameStore.getState().gameState;
+        if (currentState && currentState.eventVotes) {
+          const allVoted = currentState.eventVotes.every(v => v !== null);
+          if (allVoted && !currentState.eventResolved) {
+            // Auto-resolve when all players have voted
+            sendAction({ type: 'RESOLVE_EVENT' });
+          }
+        }
+      }, 500); // Wait for server to broadcast updated votes
     } else {
       // Local mode: update state directly
       setGameState(prev => {
@@ -1738,6 +1751,13 @@ const PskovGame = () => {
   const resolveEvent = () => {
     console.trace("resolveEvent called from:");
 
+    // In online mode, send resolve action to server
+    if (mode === 'online') {
+      sendAction({ type: 'RESOLVE_EVENT' });
+      return;
+    }
+
+    // Local mode: resolve using client-side logic
     const event = gameState.currentEvent;
     const eventType = eventTypes[event.type];
 
@@ -2271,12 +2291,16 @@ const PskovGame = () => {
                         </div>
                       );
                     })()}
-                    <button
-                      onClick={resolveEvent}
-                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
-                    >
-                      Apply Decision
-                    </button>
+                    {mode === 'online' ? (
+                      <p className="text-sm text-gray-600 italic">Auto-applying decision...</p>
+                    ) : (
+                      <button
+                        onClick={resolveEvent}
+                        className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+                      >
+                        Apply Decision
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -2371,12 +2395,16 @@ const PskovGame = () => {
                         </div>
                       );
                     })()}
-                    <button
-                      onClick={resolveEvent}
-                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
-                    >
-                      Apply Result
-                    </button>
+                    {mode === 'online' ? (
+                      <p className="text-sm text-gray-600 italic">Auto-applying result...</p>
+                    ) : (
+                      <button
+                        onClick={resolveEvent}
+                        className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+                      >
+                        Apply Result
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -2384,12 +2412,16 @@ const PskovGame = () => {
 
             {gameState.currentEvent.type === 'immediate' && !gameState.eventResolved && (
               <div className="text-center">
-                <button
-                  onClick={resolveEvent}
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
-                >
-                  Apply Effect
-                </button>
+                {mode === 'online' ? (
+                  <p className="text-sm text-gray-600 italic">Auto-applying effect...</p>
+                ) : (
+                  <button
+                    onClick={resolveEvent}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+                  >
+                    Apply Effect
+                  </button>
+                )}
               </div>
             )}
 
@@ -2448,12 +2480,16 @@ const PskovGame = () => {
                         return participants > 0 ? `${participants} defenders ready` : 'No defenders - region will be surrendered';
                       })()}
                     </p>
-                    <button
-                      onClick={resolveEvent}
-                      className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
-                    >
-                      Resolve Attack
-                    </button>
+                    {mode === 'online' ? (
+                      <p className="text-sm text-gray-600 italic">Auto-resolving attack...</p>
+                    ) : (
+                      <button
+                        onClick={resolveEvent}
+                        className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+                      >
+                        Resolve Attack
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

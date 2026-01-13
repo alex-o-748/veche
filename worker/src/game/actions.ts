@@ -16,7 +16,8 @@ import {
   Player,
   ActiveEffect,
 } from './state';
-import { drawEvent } from './eventDeck';
+import { drawEvent, FullGameEvent } from './eventDeck';
+import { resolveEvent } from './eventResolution';
 
 // Action Types
 export const ActionTypes = {
@@ -666,9 +667,16 @@ export function applyAction(
       };
 
     case ActionTypes.RESOLVE_EVENT:
-      // TODO: Implement event resolution with server-side randomness
+      if (!state.currentEvent) {
+        return { newState: state, error: 'No event to resolve' };
+      }
+      const resolvedState = resolveEvent(
+        state.currentEvent as FullGameEvent,
+        state,
+        state.eventVotes
+      );
       return {
-        newState: { ...state, eventResolved: true },
+        newState: { ...resolvedState, eventResolved: true },
         result: { type: 'event_resolved' },
       };
 
@@ -681,7 +689,7 @@ export function applyAction(
     case ActionTypes.VOTE_ATTACK:
       if (playerId === null) return { newState: state, error: 'Player ID required' };
       return {
-        newState: voteOnAttack(state, playerId, action.vote ?? false),
+        newState: voteOnAttack(state, playerId, action.vote === 'true'),
         result: { type: 'attack_vote_cast' },
       };
 
@@ -703,7 +711,7 @@ export function applyAction(
     case ActionTypes.VOTE_FORTRESS:
       if (playerId === null) return { newState: state, error: 'Player ID required' };
       return {
-        newState: voteOnFortress(state, playerId, action.vote ?? false),
+        newState: voteOnFortress(state, playerId, action.vote === 'true'),
         result: { type: 'fortress_vote_cast' },
       };
 
