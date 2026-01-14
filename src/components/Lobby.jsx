@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../store/gameStore';
 
 const FACTIONS = ['Nobles', 'Merchants', 'Commoners'];
@@ -6,11 +7,6 @@ const FACTION_COLORS = {
   Nobles: 'bg-purple-100 border-purple-400 text-purple-800',
   Merchants: 'bg-yellow-100 border-yellow-400 text-yellow-800',
   Commoners: 'bg-green-100 border-green-400 text-green-800',
-};
-const FACTION_DESCRIPTIONS = {
-  Nobles: 'Strongest military force, build manors and monasteries',
-  Merchants: 'Wealthy traders, build mansions and churches in Pskov',
-  Commoners: 'The people, build huts and village churches',
 };
 
 /**
@@ -23,12 +19,17 @@ const FACTION_DESCRIPTIONS = {
  * - Wait for all 3 players to be ready
  */
 export const Lobby = ({ onSelectFaction, onLeave }) => {
+  const { t, i18n } = useTranslation();
   const roomId = useGameStore((state) => state.roomId);
   const room = useGameStore((state) => state.room);
   const playerId = useGameStore((state) => state.playerId);
   const toggleReady = useGameStore((state) => state.toggleReady);
   const error = useGameStore((state) => state.error);
   const clearError = useGameStore((state) => state.clearError);
+
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
+  };
 
   const players = room?.players || [null, null, null];
   const allReady = players.every((p) => p !== null && p.ready);
@@ -40,14 +41,22 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
 
   return (
     <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full">
+      <div className="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full relative">
+        {/* Language switcher */}
+        <button
+          onClick={toggleLanguage}
+          className="absolute top-4 right-4 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded font-medium text-sm transition-colors"
+        >
+          {i18n.language === 'en' ? 'RU' : 'EN'}
+        </button>
+
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-amber-800 mb-2">Game Lobby</h1>
+          <h1 className="text-2xl font-bold text-amber-800 mb-2">{t('lobby.title')}</h1>
 
           {/* Room code */}
           <div className="flex items-center justify-center gap-2">
-            <span className="text-gray-500">Room Code:</span>
+            <span className="text-gray-500">{t('lobby.roomCodeLabel')}</span>
             <span className="font-mono text-2xl font-bold text-blue-600">
               {roomId}
             </span>
@@ -62,7 +71,7 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
             </button>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Share this code with friends to join
+            {t('lobby.shareCode')}
           </p>
         </div>
 
@@ -98,15 +107,15 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-semibold flex items-center gap-2">
-                      {faction}
+                      {t(`factions.${faction}`)}
                       {isMe && (
                         <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded">
-                          You
+                          {t('lobby.you')}
                         </span>
                       )}
                     </div>
                     <div className="text-sm opacity-75">
-                      {FACTION_DESCRIPTIONS[faction]}
+                      {t(`factions.${faction.toLowerCase()}Desc`)}
                     </div>
                   </div>
 
@@ -119,12 +128,12 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
                             player.ready ? 'text-green-600' : 'text-gray-400'
                           }`}
                         >
-                          {player.ready ? '✓ Ready' : 'Not ready'}
+                          {player.ready ? t('lobby.ready') : t('lobby.notReady')}
                         </div>
                       </div>
                     ) : (
                       <span className="text-gray-400 italic">
-                        Waiting for player...
+                        {t('lobby.waitingForPlayer')}
                       </span>
                     )}
                   </div>
@@ -136,7 +145,7 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
                     onClick={() => onSelectFaction(index)}
                     className="mt-3 w-full py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-medium transition-colors"
                   >
-                    Join as {faction}
+                    {t('lobby.joinAs', { faction: t(`factions.${faction}`) })}
                   </button>
                 )}
               </div>
@@ -155,7 +164,7 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
                   : 'bg-green-600 hover:bg-green-700 text-white'
               }`}
             >
-              {players[playerId]?.ready ? 'Cancel Ready' : "I'm Ready!"}
+              {players[playerId]?.ready ? t('lobby.cancelReady') : t('lobby.imReady')}
             </button>
           </div>
         )}
@@ -163,13 +172,13 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
         {/* Status */}
         <div className="text-center text-gray-500 mb-4">
           {playerCount < 3 ? (
-            <span>Waiting for {3 - playerCount} more player(s)...</span>
+            <span>{t('lobby.waitingForPlayers', { count: 3 - playerCount })}</span>
           ) : allReady ? (
             <span className="text-green-600 font-semibold">
-              All players ready! Starting game...
+              {t('lobby.allReady')}
             </span>
           ) : (
-            <span>Waiting for all players to be ready...</span>
+            <span>{t('lobby.waitingAllReady')}</span>
           )}
         </div>
 
@@ -178,7 +187,7 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
           onClick={onLeave}
           className="w-full py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
         >
-          Leave Room
+          {t('lobby.leaveRoom')}
         </button>
       </div>
     </div>
