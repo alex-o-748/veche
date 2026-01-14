@@ -1932,9 +1932,10 @@ const PskovGame = () => {
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         {gameState.players.map((player, index) => {
           // In online mode, highlight the current user's faction
-          // In local mode, highlight the current player's turn
-          const isActivePlayer = gameState.phase === 'construction' &&
-            (mode === 'online' ? index === playerId : index === gameState.currentPlayer);
+          // In local mode during construction, highlight the current player's turn
+          const isActivePlayer = mode === 'online'
+            ? index === playerId
+            : (gameState.phase === 'construction' && index === gameState.currentPlayer);
 
           return (
           <div key={index} className={`bg-white rounded-lg p-4 shadow ${
@@ -1953,6 +1954,9 @@ const PskovGame = () => {
               <div className="flex-1">
                 <h3 className="text-lg font-semibold mb-2">
                   {player.faction}
+                  {mode === 'online' && index === playerId && (
+                    <span className="text-amber-600 ml-2">(You)</span>
+                  )}
                   {gameState.phase === 'construction' && gameState.currentPlayer === index && mode === 'local' && (
                     <span className="text-amber-600 ml-2">(Your Turn)</span>
                   )}
