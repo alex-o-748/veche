@@ -280,6 +280,10 @@ class MultiplayerService {
       case 'error':
         console.error('[WS] Server error:', message.error);
         store.setError(message.error);
+        // Clear playerId if faction join fails (prevents showing "You" on taken faction)
+        if (message.error === 'Faction already taken' || message.error === 'Invalid faction') {
+          store.setPlayerId(null);
+        }
         if (rejectConnect) rejectConnect(new Error(message.error));
         break;
 
