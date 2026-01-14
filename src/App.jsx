@@ -2200,8 +2200,8 @@ const PskovGame = () => {
           {/* Show loading message while waiting for reveal */}
           {!gameState.eventImageRevealed && getEventImage(gameState.currentEvent.id) && (
             <div className="text-center py-12 mb-4">
-              <div className="text-2xl font-bold text-amber-800 mb-3">A new event unfolds...</div>
-              <div className="text-lg text-gray-600">Revealing in a moment...</div>
+              <div className="text-2xl font-bold text-amber-800 mb-3">{t('events.newEvent')}</div>
+              <div className="text-lg text-gray-600">{t('game.revealingEvent')}</div>
             </div>
           )}
 
@@ -2226,7 +2226,7 @@ const PskovGame = () => {
           {/* Event Title, Description and Interactions - Only show after reveal */}
           {(gameState.eventImageRevealed || !getEventImage(gameState.currentEvent.id)) && (
             <>
-              <h3 className="text-2xl font-bold mb-4 text-center">Event: {gameState.currentEvent.name}</h3>
+              <h3 className="text-2xl font-bold mb-4 text-center">{t('game.event', { name: gameState.currentEvent.name })}</h3>
 
               <div className="bg-gray-50 p-4 rounded mb-4">
                 <div className="mb-4">
@@ -2235,11 +2235,11 @@ const PskovGame = () => {
 
             {gameState.currentEvent.type === 'voting' && !gameState.eventResolved && (
               <div>
-                <h4 className="font-medium mb-2">Council Decision:</h4>
+                <h4 className="font-medium mb-2">{t('game.councilDecision')}</h4>
 
                 {/* Options summary with costs/effects - shown once */}
                 <div className="mb-4 p-3 bg-gray-50 rounded">
-                  <p className="text-sm text-gray-600 mb-2">Available options:</p>
+                  <p className="text-sm text-gray-600 mb-2">{t('game.availableOptions')}</p>
                   {gameState.currentEvent.options.map(option => (
                     <div key={option.id} className="mb-2 last:mb-0">
                       <span className="font-medium text-sm">{option.name}</span>
@@ -2271,10 +2271,10 @@ const PskovGame = () => {
                           : ''
                       }`}>
                         <h5 className="font-medium mb-1">
-                          {player.faction}
-                          {mode === 'online' && index === playerId && ' (You)'}
+                          {t(`factions.${player.faction}`)}
+                          {mode === 'online' && index === playerId && ` ${t('game.you')}`}
                         </h5>
-                        <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
+                        <div className="text-xs text-gray-600 mb-2">{t('game.money', { amount: player.money })}</div>
 
                         {/* Show interactive buttons for current player (or all players in local mode) */}
                         {isCurrentPlayer ? (
@@ -2296,9 +2296,9 @@ const PskovGame = () => {
                                   }`}
                                 >
                                   {gameState.eventVotes[index] === option.id ?
-                                    `Voted: ${option.name}` :
+                                    t('game.voted', { option: option.name }) :
                                     !canAfford ?
-                                    `Need ${option.requiresMinMoney}○ min` :
+                                    t('events.needMoney', { amount: option.requiresMinMoney }) :
                                     option.name
                                   }
                                 </button>
@@ -2309,9 +2309,9 @@ const PskovGame = () => {
                           /* Show status for other players in online mode */
                           <div className="text-sm text-gray-600 italic py-2">
                             {hasVoted ? (
-                              <span className="text-amber-700 font-medium">Voted: {votedOption?.name}</span>
+                              <span className="text-amber-700 font-medium">{t('game.voted', { option: votedOption?.name })}</span>
                             ) : (
-                              <span>Waiting to vote...</span>
+                              <span>{t('events.waitingToVote')}</span>
                             )}
                           </div>
                         )}
@@ -2503,10 +2503,10 @@ const PskovGame = () => {
                           : ''
                       }`}>
                         <h5 className="font-medium mb-1">
-                          {player.faction}
-                          {mode === 'online' && index === playerId && ' (You)'}
+                          {t(`factions.${player.faction}`)}
+                          {mode === 'online' && index === playerId && ` ${t('game.you')}`}
                         </h5>
-                        <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
+                        <div className="text-xs text-gray-600 mb-2">{t('game.money', { amount: player.money })}</div>
 
                         {/* Show interactive buttons for current player (or all players in local mode) */}
                         {isCurrentPlayer ? (

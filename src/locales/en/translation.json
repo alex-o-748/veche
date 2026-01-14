@@ -143,5 +143,12 @@
     "maxWeapons": "Max weapons (2)",
     "maxArmor": "Max armor (2)",
     "owned": "Owned: {{count}}/2"
+  },
+  "events": {
+    "newEvent": "A new event unfolds...",
+    "decision": "Decision: {{option}}",
+    "waitingToVote": "Waiting to vote...",
+    "needMoney": "Need {{amount}}○ min",
+    "cannotAfford": "Cannot afford! Need {{amount}}○ per voter"
   }
 }
