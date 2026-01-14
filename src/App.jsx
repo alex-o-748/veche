@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
 
 // Import Zustand store
@@ -47,6 +48,9 @@ import {
 } from './game';
 
 const PskovGame = () => {
+  // Translation hook
+  const { t, i18n } = useTranslation();
+
   // Get state and actions from Zustand store
   const gameState = useGameStore((state) => state.gameState);
   const setGameState = useGameStore((state) => state.setGameState);
@@ -55,6 +59,10 @@ const PskovGame = () => {
   const mode = useGameStore((state) => state.mode);
   const playerId = useGameStore((state) => state.playerId);
   const sendAction = useGameStore((state) => state.sendAction);
+
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
+  };
 
   // Debug mode - set to true for predictable event order
   const DEBUG_MODE = debugMode;
@@ -87,17 +95,17 @@ const PskovGame = () => {
   if (!gameState) {
     return (
       <div className="max-w-4xl mx-auto p-6 bg-amber-50 min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading game...</div>
+        <div className="text-xl">{t('game.loading')}</div>
       </div>
     );
   }
 
   const phases = ['resources', 'construction', 'events', 'veche'];
   const phaseNames = {
-    resources: 'Resources',
-    construction: 'Construction', 
-    events: 'Events',
-    veche: 'City Assembly',
+    resources: t('phases.resources'),
+    construction: t('phases.construction'),
+    events: t('phases.events'),
+    veche: t('phases.veche'),
   };
 
   // Effects management functions
@@ -1796,15 +1804,23 @@ const PskovGame = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-amber-50 min-h-screen">
+    <div className="max-w-4xl mx-auto p-6 bg-amber-50 min-h-screen relative">
+      {/* Language switcher */}
+      <button
+        onClick={toggleLanguage}
+        className="fixed top-4 right-4 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded font-medium text-sm transition-colors shadow z-50"
+      >
+        {i18n.language === 'en' ? 'RU' : 'EN'}
+      </button>
+
       <div className="bg-amber-900 text-amber-100 p-4 rounded-lg mb-6">
-        <h1 className="text-3xl font-bold text-center">Medieval Pskov</h1>
-        <p className="text-center mt-2">Defend your city from the Teutonic Order</p>
+        <h1 className="text-3xl font-bold text-center">{t('game.title')}</h1>
+        <p className="text-center mt-2">{t('game.subtitle')}</p>
       </div>
 
       {/* Phase Progress */}
       <div className="bg-white rounded-lg p-4 mb-6 shadow">
-        <h3 className="text-lg font-semibold mb-3">Phase Progress</h3>
+        <h3 className="text-lg font-semibold mb-3">{t('game.phaseProgress')}</h3>
         <div className="flex space-x-2">
           {phases.map((phase, index) => (
             <div
@@ -1830,7 +1846,7 @@ const PskovGame = () => {
             onClick={resetGame}
             className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors"
           >
-            Reset Game
+            {t('game.resetGame')}
           </button>
 
           <div className="text-center">
@@ -1868,8 +1884,8 @@ const PskovGame = () => {
           </div>
 
           <div className="text-right">
-            <p className="text-sm text-gray-600">Game will end after</p>
-            <p className="font-semibold">Turn 20</p>
+            <p className="text-sm text-gray-600">{t('game.gameEndInfo')}</p>
+            <p className="font-semibold">{t('game.turn20')}</p>
           </div>
         </div>
       </div>
@@ -1889,9 +1905,9 @@ const PskovGame = () => {
       {/* Game Status */}
       <div className="bg-white rounded-lg p-4 mb-6 shadow">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-semibold">Turn {gameState.turn} / 20</h2>
+          <h2 className="text-2xl font-semibold">{t('game.turn', { turn: gameState.turn })}</h2>
           <div className="text-lg">
-            <span className="font-medium">Current Phase: </span>
+            <span className="font-medium">{t('game.currentPhase')} </span>
             <span className="bg-amber-200 px-3 py-1 rounded font-semibold">
               {phaseNames[gameState.phase]}
             </span>
@@ -1953,12 +1969,12 @@ const PskovGame = () => {
               )}
               <div className="flex-1">
                 <h3 className="text-lg font-semibold mb-2">
-                  {player.faction}
+                  {t(`factions.${player.faction}`)}
                   {mode === 'online' && index === playerId && (
-                    <span className="text-amber-600 ml-2">(You)</span>
+                    <span className="text-amber-600 ml-2">{t('game.you')}</span>
                   )}
                   {gameState.phase === 'construction' && gameState.currentPlayer === index && mode === 'local' && (
-                    <span className="text-amber-600 ml-2">(Your Turn)</span>
+                    <span className="text-amber-600 ml-2">{t('game.yourTurn')}</span>
                   )}
                   {gameState.phase === 'construction' && mode === 'online' && (
                     <span className={`ml-2 text-sm ${gameState.constructionReady[index] ? 'text-green-600' : 'text-gray-400'}`}>
@@ -1967,22 +1983,22 @@ const PskovGame = () => {
                   )}
                 </h3>
                 <div className="space-y-1 text-sm">
-                  <div>Money: {player.money.toFixed(1)} ○</div>
-                  <div>Improvements: {player.improvements}</div>
+                  <div>{t('game.money')}: {player.money.toFixed(1)} ○</div>
+                  <div>{t('game.improvements')}: {player.improvements}</div>
                   <div className="flex items-center gap-1">
-                    Weapons: {player.weapons}
+                    {t('game.weapons')}: {player.weapons}
                     {player.weapons > 0 && getEquipmentImage('weapons', player.faction) && (
                       <img src={getEquipmentImage('weapons', player.faction)} alt="weapons" className="w-5 h-5 object-cover rounded" />
                     )}
                   </div>
                   <div className="flex items-center gap-1">
-                    Armor: {player.armor}
+                    {t('game.armor')}: {player.armor}
                     {player.armor > 0 && getEquipmentImage('armor', player.faction) && (
                       <img src={getEquipmentImage('armor', player.faction)} alt="armor" className="w-5 h-5 object-cover rounded" />
                     )}
                   </div>
                   <div className="text-gray-600">
-                    Strength: {calculatePlayerStrength(index)}
+                    {t('game.strength')}: {calculatePlayerStrength(index)}
                   </div>
                 </div>
               </div>
@@ -2001,12 +2017,12 @@ const PskovGame = () => {
         return (
         <div className="bg-white rounded-lg p-4 mb-6 shadow">
           <h3 className="text-lg font-semibold mb-3">
-            {activePlayer.faction} - Construction Turn
+            {t('game.constructionTurn', { faction: t(`factions.${activePlayer.faction}`) })}
           </h3>
 
           {/* Region Selection */}
           <div className="mb-4">
-            <h4 className="font-medium mb-2">Select Region:</h4>
+            <h4 className="font-medium mb-2">{t('game.selectRegion')}</h4>
             <div className="grid grid-cols-3 gap-2">
               {Object.entries(gameState.regions).map(([regionName, region]) => {
                 const isMerchantRestricted = activePlayer.faction === 'Merchants' && regionName !== 'pskov';
@@ -2026,17 +2042,17 @@ const PskovGame = () => {
                         : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
                     }`}
                   >
-                    {regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1)}
+                    {t(`regions.${regionName}`)}
                     {isMerchantRestricted && (
                       <>
                         <br />
-                        <span className="text-xs">(Merchants only)</span>
+                        <span className="text-xs">{t('game.merchantsOnly')}</span>
                       </>
                     )}
                     {isOrderControlled && (
                       <>
                         <br />
-                        <span className="text-xs">(Order controlled)</span>
+                        <span className="text-xs">{t('game.orderControlled')}</span>
                       </>
                     )}
                   </button>
@@ -2044,13 +2060,13 @@ const PskovGame = () => {
               })}
             </div>
             {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov' && (
-              <p className="text-sm text-orange-600 mt-2">Merchants can only build in Pskov!</p>
+              <p className="text-sm text-orange-600 mt-2">{t('game.merchantsPskovOnly')}</p>
             )}
           </div>
 
           {/* Available Buildings */}
           <div className="mb-4">
-            <h4 className="font-medium mb-2">Available Buildings in {gameState.selectedRegion.charAt(0).toUpperCase() + gameState.selectedRegion.slice(1)}:</h4>
+            <h4 className="font-medium mb-2">{t('game.availableBuildings', { region: t(`regions.${gameState.selectedRegion}`) })}</h4>
             <div className="grid grid-cols-2 gap-3">
               {getAvailableBuildings(activePlayerIndex).map(building => (
                 <button
@@ -2071,22 +2087,22 @@ const PskovGame = () => {
                     />
                   )}
                   <div className="text-left">
-                    <div className="font-medium">{building.name}</div>
+                    <div className="font-medium">{t(`buildings.${building.type}`)}</div>
                     <div className="text-xs">
                       {building.type.startsWith('merchant_')
-                        ? `Built: ${building.built}/7`
-                        : building.built ? 'Already built' : 'Not built'
+                        ? t('game.built', { count: building.built })
+                        : building.built ? t('game.alreadyBuilt') : t('game.notBuilt')
                       }
                     </div>
-                    <div className="text-xs">Cost: {building.cost}○</div>
+                    <div className="text-xs">{t('game.cost', { cost: building.cost })}</div>
                   </div>
                 </button>
               ))}
               {getAvailableBuildings(activePlayerIndex).length === 0 && (
                 <p className="text-gray-500 col-span-2 text-center py-4">
                   {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov'
-                    ? 'Merchants can only build in Pskov'
-                    : 'No buildings available in this region'
+                    ? t('game.merchantsPskovOnly')
+                    : t('game.noBuildingsRegion')
                   }
                 </p>
               )}
@@ -2095,7 +2111,7 @@ const PskovGame = () => {
 
           {/* Equipment */}
           <div className="mb-4">
-            <h4 className="font-medium mb-2">Equipment (Choose 1 per turn):</h4>
+            <h4 className="font-medium mb-2">{t('game.equipment')}</h4>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => buyItem(activePlayerIndex, 'weapons', 1)}
@@ -2114,11 +2130,11 @@ const PskovGame = () => {
                   />
                 )}
                 <div className="text-left">
-                  <div>Buy Weapon (1○)</div>
+                  <div>{t('game.buyWeapon')}</div>
                   <div className="text-xs">
-                    {gameState.constructionActions[activePlayerIndex].equipment ? 'Equipment bought' :
-                     activePlayer.weapons >= 2 ? 'Max weapons (2)' :
-                     `Owned: ${activePlayer.weapons}/2`}
+                    {gameState.constructionActions[activePlayerIndex].equipment ? t('game.equipmentBought') :
+                     activePlayer.weapons >= 2 ? t('game.maxWeapons') :
+                     t('game.owned', { count: activePlayer.weapons })}
                   </div>
                 </div>
               </button>
@@ -2139,11 +2155,11 @@ const PskovGame = () => {
                   />
                 )}
                 <div className="text-left">
-                  <div>Buy Armor (1○)</div>
+                  <div>{t('game.buyArmor')}</div>
                   <div className="text-xs">
-                    {gameState.constructionActions[activePlayerIndex].equipment ? 'Equipment bought' :
-                     activePlayer.armor >= 2 ? 'Max armor (2)' :
-                     `Owned: ${activePlayer.armor}/2`}
+                    {gameState.constructionActions[activePlayerIndex].equipment ? t('game.equipmentBought') :
+                     activePlayer.armor >= 2 ? t('game.maxArmor') :
+                     t('game.owned', { count: activePlayer.armor })}
                   </div>
                 </div>
               </button>
@@ -2156,7 +2172,7 @@ const PskovGame = () => {
               onClick={nextPlayer}
               className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
             >
-              Next Player
+              {t('game.nextPlayerTurn')}
             </button>
           )}
 

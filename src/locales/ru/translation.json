@@ -124,6 +124,24 @@
     "pskovFallen": "Псков пал под натиском Тевтонского Ордена!",
     "victory": "ПОБЕДА",
     "republicSurvived": "Псковская Республика выстояла!",
-    "finalScores": "Финальный счет"
+    "finalScores": "Финальный счет",
+    "money": "Деньги",
+    "improvements": "Постройки",
+    "weapons": "Оружие",
+    "armor": "Доспехи",
+    "strength": "Сила",
+    "constructionTurn": "{{faction}} - Ход строительства",
+    "resetGame": "Сбросить игру",
+    "built": "Построено: {{count}}/7",
+    "alreadyBuilt": "Уже построено",
+    "notBuilt": "Не построено",
+    "noBuildings": "Нет доступных построек",
+    "noBuildingsRegion": "Нет доступных построек в этой области",
+    "nextPlayerTurn": "Ход следующего игрока",
+    "markReady": "Отметить готовность",
+    "equipmentBought": "Снаряжение куплено",
+    "maxWeapons": "Максимум оружия (2)",
+    "maxArmor": "Максимум доспехов (2)",
+    "owned": "В наличии: {{count}}/2"
   }
 }
