@@ -22,7 +22,7 @@ import {
 
 // Message types from client to server
 interface ClientMessage {
-  type: 'join' | 'ready' | 'action' | 'leave';
+  type: 'join' | 'observe' | 'ready' | 'action' | 'leave';
   playerName?: string;
   faction?: number; // 0 = Nobles, 1 = Merchants, 2 = Commoners
   action?: GameAction;
@@ -68,8 +68,9 @@ interface ServerActionResult {
 
 // WebSocket attachment data (persisted across hibernation)
 interface WebSocketAttachment {
-  playerId: number;
+  playerId: number | null; // null for observers
   playerName: string;
+  isObserver: boolean;
 }
 
 interface Env {
@@ -203,6 +204,9 @@ export class GameRoom extends DurableObject<Env> {
   // Handle incoming messages
   private async handleMessage(ws: WebSocket, message: ClientMessage): Promise<void> {
     switch (message.type) {
+      case 'observe':
+        await this.handleObserve(ws);
+        break;
       case 'join':
         await this.handleJoin(ws, message);
         break;
@@ -216,6 +220,25 @@ export class GameRoom extends DurableObject<Env> {
         await this.handleLeave(ws);
         break;
     }
+  }
+
+  // Observer connects to see room state without joining
+  private async handleObserve(ws: WebSocket): Promise<void> {
+    const room = await this.getRoom();
+
+    // Set attachment as observer
+    const attachment: WebSocketAttachment = {
+      playerId: null,
+      playerName: '',
+      isObserver: true,
+    };
+    ws.serializeAttachment(attachment);
+
+    // Send current room state to observer
+    this.sendToSocket(ws, {
+      type: 'room_update',
+      room: room,
+    });
   }
 
   // Player joins the room
@@ -245,6 +268,7 @@ export class GameRoom extends DurableObject<Env> {
     const attachment: WebSocketAttachment = {
       playerId: faction,
       playerName: name,
+      isObserver: false,
     };
     ws.serializeAttachment(attachment);
 
@@ -367,7 +391,12 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   // Handle player disconnect
-  private async handlePlayerDisconnect(playerId: number): Promise<void> {
+  private async handlePlayerDisconnect(playerId: number | null): Promise<void> {
+    // If observer disconnects, nothing to do
+    if (playerId === null) {
+      return;
+    }
+
     const room = await this.getRoom();
     const player = room.players[playerId];
 

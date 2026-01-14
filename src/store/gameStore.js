@@ -126,6 +126,18 @@ export const useGameStore = create(
       }
     },
 
+    // Observe a room (connect to see room state without joining)
+    observeRoom: async (roomId) => {
+      try {
+        set({ error: null, roomId });
+        await multiplayer.observeRoom(roomId);
+        set({ connected: true });
+      } catch (error) {
+        set({ error: error.message, roomId: null });
+        throw error;
+      }
+    },
+
     // Join an existing room
     joinRoom: async (roomId, faction, playerName) => {
       try {
