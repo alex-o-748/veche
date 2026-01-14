@@ -150,5 +150,31 @@
     "waitingToVote": "Waiting to vote...",
     "needMoney": "Need {{amount}}○ min",
     "cannotAfford": "Cannot afford! Need {{amount}}○ per voter"
+  },
+  "veche": {
+    "attack": "Attack {{region}}",
+    "hasFortress": "Has fortress (+10 Order defense)",
+    "noFortress": "No fortress",
+    "requiresFunding": "Requires 6○ funding",
+    "notAdjacent": "Not adjacent to Republic territory",
+    "planningAttack": "Planning Attack: {{region}}",
+    "attackRequiresFunding": "Attacking requires 6○ total funding. Who will contribute to this military campaign?",
+    "joiningAttack": "Joining Attack",
+    "joinAttack": "Join Attack",
+    "decline": "Decline",
+    "notParticipating": "Not Participating",
+    "attackers": "Attackers: {{count}} • Cost per attacker: {{cost}}○",
+    "noParticipants": "No participants - attack cancelled",
+    "cannotAffordAttack": "{{factions}} cannot afford {{cost}}○",
+    "attackWillProceed": "Attack will proceed!",
+    "attackCancelled": "Attack cancelled - insufficient funds",
+    "executeAttack": "Execute Attack",
+    "cancelAttack": "Cancel Attack",
+    "launchAttack": "Launch Attack",
+    "cannotLaunch": "Cannot Launch",
+    "cancel": "Cancel",
+    "attackFunded": "ATTACK FUNDED",
+    "attackCancelledCaps": "ATTACK CANCELLED",
+    "result": "Result: {{result}}"
   }
 }

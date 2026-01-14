@@ -150,5 +150,31 @@
     "waitingToVote": "Ожидание голосования...",
     "needMoney": "Нужно мин. {{amount}}○",
     "cannotAfford": "Недостаточно средств! Нужно {{amount}}○ на голос"
+  },
+  "veche": {
+    "attack": "Атаковать {{region}}",
+    "hasFortress": "Есть крепость (+10 к защите Ордена)",
+    "noFortress": "Нет крепости",
+    "requiresFunding": "Требуется 6○ финансирования",
+    "notAdjacent": "Не граничит с территорией Республики",
+    "planningAttack": "Планирование атаки: {{region}}",
+    "attackRequiresFunding": "Атака требует 6○ общего финансирования. Кто внесет вклад в эту военную кампанию?",
+    "joiningAttack": "Участвую в атаке",
+    "joinAttack": "Участвовать",
+    "decline": "Отказаться",
+    "notParticipating": "Не участвую",
+    "attackers": "Участников: {{count}} • Вклад на человека: {{cost}}○",
+    "noParticipants": "Нет участников - атака отменена",
+    "cannotAffordAttack": "{{factions}} не могут позволить {{cost}}○",
+    "attackWillProceed": "Атака состоится!",
+    "attackCancelled": "Атака отменена - недостаточно средств",
+    "executeAttack": "Начать атаку",
+    "cancelAttack": "Отменить атаку",
+    "launchAttack": "Начать атаку",
+    "cannotLaunch": "Невозможно начать",
+    "cancel": "Отмена",
+    "attackFunded": "АТАКА ПРОФИНАНСИРОВАНА",
+    "attackCancelledCaps": "АТАКА ОТМЕНЕНА",
+    "result": "Результат: {{result}}"
   }
 }
