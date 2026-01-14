@@ -124,6 +124,13 @@
     "pskovFallen": "Псков пал под натиском Тевтонского Ордена!",
     "victory": "ПОБЕДА",
     "republicSurvived": "Псковская Республика выстояла!",
-    "finalScores": "Финальный счет"
+    "finalScores": "Финальный счет",
+    "money": "Деньги",
+    "improvements": "Постройки",
+    "weapons": "Оружие",
+    "armor": "Доспехи",
+    "strength": "Сила",
+    "constructionTurn": "{{faction}} - Ход строительства",
+    "resetGame": "Сбросить игру"
   }
 }

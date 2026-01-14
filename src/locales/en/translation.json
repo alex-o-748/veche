@@ -124,6 +124,13 @@
     "pskovFallen": "Pskov has fallen to the Teutonic Order!",
     "victory": "VICTORY",
     "republicSurvived": "The Pskov Republic has survived!",
-    "finalScores": "Final Scores"
+    "finalScores": "Final Scores",
+    "money": "Money",
+    "improvements": "Improvements",
+    "weapons": "Weapons",
+    "armor": "Armor",
+    "strength": "Strength",
+    "constructionTurn": "{{faction}} - Construction Turn",
+    "resetGame": "Reset Game"
   }
 }
