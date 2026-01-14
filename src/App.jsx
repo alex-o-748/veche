@@ -2017,12 +2017,12 @@ const PskovGame = () => {
         return (
         <div className="bg-white rounded-lg p-4 mb-6 shadow">
           <h3 className="text-lg font-semibold mb-3">
-            {activePlayer.faction} - Construction Turn
+            {t('game.constructionTurn', { faction: t(`factions.${activePlayer.faction}`) })}
           </h3>
 
           {/* Region Selection */}
           <div className="mb-4">
-            <h4 className="font-medium mb-2">Select Region:</h4>
+            <h4 className="font-medium mb-2">{t('game.selectRegion')}</h4>
             <div className="grid grid-cols-3 gap-2">
               {Object.entries(gameState.regions).map(([regionName, region]) => {
                 const isMerchantRestricted = activePlayer.faction === 'Merchants' && regionName !== 'pskov';
@@ -2042,17 +2042,17 @@ const PskovGame = () => {
                         : 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
                     }`}
                   >
-                    {regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1)}
+                    {t(`regions.${regionName}`)}
                     {isMerchantRestricted && (
                       <>
                         <br />
-                        <span className="text-xs">(Merchants only)</span>
+                        <span className="text-xs">{t('game.merchantsOnly')}</span>
                       </>
                     )}
                     {isOrderControlled && (
                       <>
                         <br />
-                        <span className="text-xs">(Order controlled)</span>
+                        <span className="text-xs">{t('game.orderControlled')}</span>
                       </>
                     )}
                   </button>
@@ -2060,13 +2060,13 @@ const PskovGame = () => {
               })}
             </div>
             {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov' && (
-              <p className="text-sm text-orange-600 mt-2">Merchants can only build in Pskov!</p>
+              <p className="text-sm text-orange-600 mt-2">{t('game.merchantsPskovOnly')}</p>
             )}
           </div>
 
           {/* Available Buildings */}
           <div className="mb-4">
-            <h4 className="font-medium mb-2">Available Buildings in {gameState.selectedRegion.charAt(0).toUpperCase() + gameState.selectedRegion.slice(1)}:</h4>
+            <h4 className="font-medium mb-2">{t('game.availableBuildings', { region: t(`regions.${gameState.selectedRegion}`) })}</h4>
             <div className="grid grid-cols-2 gap-3">
               {getAvailableBuildings(activePlayerIndex).map(building => (
                 <button
@@ -2087,22 +2087,22 @@ const PskovGame = () => {
                     />
                   )}
                   <div className="text-left">
-                    <div className="font-medium">{building.name}</div>
+                    <div className="font-medium">{t(`buildings.${building.type}`)}</div>
                     <div className="text-xs">
                       {building.type.startsWith('merchant_')
-                        ? `Built: ${building.built}/7`
-                        : building.built ? 'Already built' : 'Not built'
+                        ? t('game.built', { count: building.built })
+                        : building.built ? t('game.alreadyBuilt') : t('game.notBuilt')
                       }
                     </div>
-                    <div className="text-xs">Cost: {building.cost}○</div>
+                    <div className="text-xs">{t('game.cost', { cost: building.cost })}</div>
                   </div>
                 </button>
               ))}
               {getAvailableBuildings(activePlayerIndex).length === 0 && (
                 <p className="text-gray-500 col-span-2 text-center py-4">
                   {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov'
-                    ? 'Merchants can only build in Pskov'
-                    : 'No buildings available in this region'
+                    ? t('game.merchantsPskovOnly')
+                    : t('game.noBuildingsRegion')
                   }
                 </p>
               )}
@@ -2111,7 +2111,7 @@ const PskovGame = () => {
 
           {/* Equipment */}
           <div className="mb-4">
-            <h4 className="font-medium mb-2">Equipment (Choose 1 per turn):</h4>
+            <h4 className="font-medium mb-2">{t('game.equipment')}</h4>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => buyItem(activePlayerIndex, 'weapons', 1)}
@@ -2130,11 +2130,11 @@ const PskovGame = () => {
                   />
                 )}
                 <div className="text-left">
-                  <div>Buy Weapon (1○)</div>
+                  <div>{t('game.buyWeapon')}</div>
                   <div className="text-xs">
-                    {gameState.constructionActions[activePlayerIndex].equipment ? 'Equipment bought' :
-                     activePlayer.weapons >= 2 ? 'Max weapons (2)' :
-                     `Owned: ${activePlayer.weapons}/2`}
+                    {gameState.constructionActions[activePlayerIndex].equipment ? t('game.equipmentBought') :
+                     activePlayer.weapons >= 2 ? t('game.maxWeapons') :
+                     t('game.owned', { count: activePlayer.weapons })}
                   </div>
                 </div>
               </button>
@@ -2155,11 +2155,11 @@ const PskovGame = () => {
                   />
                 )}
                 <div className="text-left">
-                  <div>Buy Armor (1○)</div>
+                  <div>{t('game.buyArmor')}</div>
                   <div className="text-xs">
-                    {gameState.constructionActions[activePlayerIndex].equipment ? 'Equipment bought' :
-                     activePlayer.armor >= 2 ? 'Max armor (2)' :
-                     `Owned: ${activePlayer.armor}/2`}
+                    {gameState.constructionActions[activePlayerIndex].equipment ? t('game.equipmentBought') :
+                     activePlayer.armor >= 2 ? t('game.maxArmor') :
+                     t('game.owned', { count: activePlayer.armor })}
                   </div>
                 </div>
               </button>
@@ -2172,7 +2172,7 @@ const PskovGame = () => {
               onClick={nextPlayer}
               className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
             >
-              Next Player
+              {t('game.nextPlayerTurn')}
             </button>
           )}
 
