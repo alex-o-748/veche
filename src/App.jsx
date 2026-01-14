@@ -64,6 +64,44 @@ const PskovGame = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
   };
 
+  // Helper functions to get translated event content
+  const getEventName = (event) => {
+    const key = `eventCards.${event.id}.name`;
+    const translated = t(key);
+    return translated !== key ? translated : event.name;
+  };
+
+  const getEventDescription = (event) => {
+    const key = `eventCards.${event.id}.description`;
+    const translated = t(key);
+    return translated !== key ? translated : event.description;
+  };
+
+  const getEventQuestion = (event) => {
+    if (!event.question) return null;
+    const key = `eventCards.${event.id}.question`;
+    const translated = t(key);
+    return translated !== key ? translated : event.question;
+  };
+
+  const getOptionName = (eventId, optionId) => {
+    const key = `eventCards.${eventId}.${optionId}`;
+    const translated = t(key);
+    return translated !== key ? translated : null;
+  };
+
+  const getOptionCostText = (eventId, optionId) => {
+    const key = `eventCards.${eventId}.${optionId}_cost`;
+    const translated = t(key);
+    return translated !== key ? translated : null;
+  };
+
+  const getOptionEffectText = (eventId, optionId) => {
+    const key = `eventCards.${eventId}.${optionId}_effect`;
+    const translated = t(key);
+    return translated !== key ? translated : null;
+  };
+
   // Debug mode - set to true for predictable event order
   const DEBUG_MODE = debugMode;
 
@@ -2246,11 +2284,11 @@ const PskovGame = () => {
           {/* Event Title, Description and Interactions - Only show after reveal */}
           {(gameState.eventImageRevealed || !getEventImage(gameState.currentEvent.id)) && (
             <>
-              <h3 className="text-2xl font-bold mb-4 text-center">{t('game.event', { name: gameState.currentEvent.name })}</h3>
+              <h3 className="text-2xl font-bold mb-4 text-center">{t('game.event', { name: getEventName(gameState.currentEvent) })}</h3>
 
               <div className="bg-gray-50 p-4 rounded mb-4">
                 <div className="mb-4">
-                  <p className="text-gray-700 text-lg text-center">{gameState.currentEvent.description}</p>
+                  <p className="text-gray-700 text-lg text-center">{getEventDescription(gameState.currentEvent)}</p>
                 </div>
 
             {gameState.currentEvent.type === 'voting' && !gameState.eventResolved && (
@@ -2260,18 +2298,23 @@ const PskovGame = () => {
                 {/* Options summary with costs/effects - shown once */}
                 <div className="mb-4 p-3 bg-gray-50 rounded">
                   <p className="text-sm text-gray-600 mb-2">{t('game.availableOptions')}</p>
-                  {gameState.currentEvent.options.map(option => (
-                    <div key={option.id} className="mb-2 last:mb-0">
-                      <span className="font-medium text-sm">{option.name}</span>
-                      {(option.costText || option.effectText) && (
-                        <span className="text-xs ml-2">
-                          {option.costText && <span className="text-red-600">[{option.costText}]</span>}
-                          {option.costText && option.effectText && ' '}
-                          {option.effectText && <span className="text-blue-600">→ {option.effectText}</span>}
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                  {gameState.currentEvent.options.map(option => {
+                    const translatedName = getOptionName(gameState.currentEvent.id, option.id) || option.name;
+                    const translatedCost = getOptionCostText(gameState.currentEvent.id, option.id) || option.costText;
+                    const translatedEffect = getOptionEffectText(gameState.currentEvent.id, option.id) || option.effectText;
+                    return (
+                      <div key={option.id} className="mb-2 last:mb-0">
+                        <span className="font-medium text-sm">{translatedName}</span>
+                        {(translatedCost || translatedEffect) && (
+                          <span className="text-xs ml-2">
+                            {translatedCost && <span className="text-red-600">[{translatedCost}]</span>}
+                            {translatedCost && translatedEffect && ' '}
+                            {translatedEffect && <span className="text-blue-600">→ {translatedEffect}</span>}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
@@ -2301,6 +2344,7 @@ const PskovGame = () => {
                           <div className="space-y-2">
                             {gameState.currentEvent.options.map(option => {
                               const canAfford = !option.requiresMinMoney || player.money >= option.requiresMinMoney;
+                              const translatedName = getOptionName(gameState.currentEvent.id, option.id) || option.name;
 
                               return (
                                 <button
@@ -2316,10 +2360,10 @@ const PskovGame = () => {
                                   }`}
                                 >
                                   {gameState.eventVotes[index] === option.id ?
-                                    t('game.voted', { option: option.name }) :
+                                    t('game.voted', { option: translatedName }) :
                                     !canAfford ?
                                     t('events.needMoney', { amount: option.requiresMinMoney }) :
-                                    option.name
+                                    translatedName
                                   }
                                 </button>
                               );
@@ -2329,7 +2373,7 @@ const PskovGame = () => {
                           /* Show status for other players in online mode */
                           <div className="text-sm text-gray-600 italic py-2">
                             {hasVoted ? (
-                              <span className="text-amber-700 font-medium">{t('game.voted', { option: votedOption?.name })}</span>
+                              <span className="text-amber-700 font-medium">{t('game.voted', { option: getOptionName(gameState.currentEvent.id, votedOption?.id) || votedOption?.name })}</span>
                             ) : (
                               <span>{t('events.waitingToVote')}</span>
                             )}
@@ -2387,8 +2431,8 @@ const PskovGame = () => {
 
             {gameState.currentEvent.type === 'participation' && !gameState.eventResolved && (
               <div>
-                <h4 className="font-medium mb-2">Council Decision:</h4>
-                <p className="text-sm text-gray-600 mb-3">{gameState.currentEvent.question}</p>
+                <h4 className="font-medium mb-2">{t('game.councilDecision')}</h4>
+                <p className="text-sm text-gray-600 mb-3">{getEventQuestion(gameState.currentEvent) || gameState.currentEvent.question}</p>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {gameState.players.map((player, index) => {
