@@ -1484,8 +1484,8 @@ const PskovGame = () => {
   };
 
   // Get available buildings for current player in selected region
-  const getAvailableBuildings = () => {
-    const player = gameState.players[gameState.currentPlayer];
+  const getAvailableBuildings = (playerIndex = gameState.currentPlayer) => {
+    const player = gameState.players[playerIndex];
     const region = gameState.regions[gameState.selectedRegion];
     const buildings = [];
 
@@ -2052,7 +2052,7 @@ const PskovGame = () => {
           <div className="mb-4">
             <h4 className="font-medium mb-2">Available Buildings in {gameState.selectedRegion.charAt(0).toUpperCase() + gameState.selectedRegion.slice(1)}:</h4>
             <div className="grid grid-cols-2 gap-3">
-              {getAvailableBuildings().map(building => (
+              {getAvailableBuildings(activePlayerIndex).map(building => (
                 <button
                   key={building.type}
                   onClick={() => buildBuilding(building.type)}
@@ -2082,7 +2082,7 @@ const PskovGame = () => {
                   </div>
                 </button>
               ))}
-              {getAvailableBuildings().length === 0 && (
+              {getAvailableBuildings(activePlayerIndex).length === 0 && (
                 <p className="text-gray-500 col-span-2 text-center py-4">
                   {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov'
                     ? 'Merchants can only build in Pskov'
