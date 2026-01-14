@@ -73,46 +73,50 @@ class MultiplayerService {
   }
 
   /**
-   * Connect to a room via WebSocket
+   * Connect to a room as an observer (to see room state without joining)
    * @param {string} roomId - The room code
-   * @param {number} faction - Faction index (0=Nobles, 1=Merchants, 2=Commoners)
-   * @param {string} playerName - Display name for the player
    * @returns {Promise<void>}
    */
-  connect(roomId, faction, playerName = 'Player') {
+  observeRoom(roomId) {
     return new Promise((resolve, reject) => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.disconnect();
+        // Already connected, just send observe message if not already a player
+        const store = useGameStore.getState();
+        if (store.playerId === null) {
+          this.send({ type: 'observe' });
+          resolve();
+          return;
+        }
+        resolve();
+        return;
       }
 
       this.roomId = roomId;
       const wsUrl = `${getWsUrl()}/api/rooms/${roomId}/ws`;
 
-      console.log('[WS] Connecting to:', wsUrl);
+      console.log('[WS] Connecting as observer to:', wsUrl);
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log('[WS] Connected');
+        console.log('[WS] Connected as observer');
         this.reconnectAttempts = 0;
 
-        // Send join message
-        this.send({
-          type: 'join',
-          faction,
-          playerName,
-        });
+        // Send observe message
+        this.send({ type: 'observe' });
 
         // Process any queued messages
         while (this.messageQueue.length > 0) {
           const msg = this.messageQueue.shift();
           this.send(msg);
         }
+
+        resolve();
       };
 
       this.ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          this.handleMessage(message, resolve, reject);
+          this.handleMessage(message);
         } catch (error) {
           console.error('[WS] Failed to parse message:', error);
         }
@@ -127,19 +131,100 @@ class MultiplayerService {
       this.ws.onclose = (event) => {
         console.log('[WS] Disconnected:', event.code, event.reason);
         useGameStore.getState().setConnected(false);
-
-        // Attempt reconnect if not intentional close
-        if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.reconnectAttempts++;
-          console.log(`[WS] Reconnecting... (attempt ${this.reconnectAttempts})`);
-          setTimeout(() => {
-            const store = useGameStore.getState();
-            if (store.playerId !== null) {
-              this.connect(this.roomId, store.playerId, playerName);
-            }
-          }, 1000 * this.reconnectAttempts);
-        }
       };
+    });
+  }
+
+  /**
+   * Connect to a room via WebSocket
+   * @param {string} roomId - The room code
+   * @param {number} faction - Faction index (0=Nobles, 1=Merchants, 2=Commoners)
+   * @param {string} playerName - Display name for the player
+   * @returns {Promise<void>}
+   */
+  connect(roomId, faction, playerName = 'Player') {
+    return new Promise((resolve, reject) => {
+      // Check if already connected as observer
+      const alreadyConnected = this.ws && this.ws.readyState === WebSocket.OPEN;
+
+      if (!alreadyConnected) {
+        // Not connected at all, establish new connection
+        this.roomId = roomId;
+        const wsUrl = `${getWsUrl()}/api/rooms/${roomId}/ws`;
+
+        console.log('[WS] Connecting to:', wsUrl);
+        this.ws = new WebSocket(wsUrl);
+
+        this.ws.onopen = () => {
+          console.log('[WS] Connected');
+          this.reconnectAttempts = 0;
+
+          // Send join message
+          this.send({
+            type: 'join',
+            faction,
+            playerName,
+          });
+
+          // Process any queued messages
+          while (this.messageQueue.length > 0) {
+            const msg = this.messageQueue.shift();
+            this.send(msg);
+          }
+        };
+
+        this.ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            this.handleMessage(message, resolve, reject);
+          } catch (error) {
+            console.error('[WS] Failed to parse message:', error);
+          }
+        };
+
+        this.ws.onerror = (error) => {
+          console.error('[WS] Error:', error);
+          useGameStore.getState().setError('Connection error');
+          reject(error);
+        };
+
+        this.ws.onclose = (event) => {
+          console.log('[WS] Disconnected:', event.code, event.reason);
+          useGameStore.getState().setConnected(false);
+
+          // Attempt reconnect if not intentional close
+          if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.reconnectAttempts++;
+            console.log(`[WS] Reconnecting... (attempt ${this.reconnectAttempts})`);
+            setTimeout(() => {
+              const store = useGameStore.getState();
+              if (store.playerId !== null) {
+                this.connect(this.roomId, store.playerId, playerName);
+              }
+            }, 1000 * this.reconnectAttempts);
+          }
+        };
+      } else {
+        // Already connected as observer, just send join message to upgrade
+        console.log('[WS] Upgrading from observer to player');
+
+        // Update message handler to handle the join response
+        const oldOnMessage = this.ws.onmessage;
+        this.ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            this.handleMessage(message, resolve, reject);
+          } catch (error) {
+            console.error('[WS] Failed to parse message:', error);
+          }
+        };
+
+        this.send({
+          type: 'join',
+          faction,
+          playerName,
+        });
+      }
     });
   }
 
