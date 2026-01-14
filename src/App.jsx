@@ -3113,6 +3113,7 @@ const App = () => {
   const playerId = useGameStore((state) => state.playerId);
   const initLocalGame = useGameStore((state) => state.initLocalGame);
   const createRoom = useGameStore((state) => state.createRoom);
+  const observeRoom = useGameStore((state) => state.observeRoom);
   const joinRoom = useGameStore((state) => state.joinRoom);
   const leaveRoom = useGameStore((state) => state.leaveRoom);
   const resetStore = useGameStore((state) => state.resetStore);
@@ -3136,18 +3137,19 @@ const App = () => {
 
   // Create online room
   const handleCreateRoom = async (playerName) => {
+    sessionStorage.setItem('playerName', playerName);
     const newRoomId = await createRoom();
-    // After creating, we need to join the room with a faction
-    // For now, go to lobby where they can select faction
+    // Connect as observer to receive room updates
+    await observeRoom(newRoomId);
     setScreen('lobby');
   };
 
   // Join existing room (first step - just get room code)
   const handleJoinRoom = async (roomCode, playerName) => {
-    // Store player name for later use when selecting faction
     sessionStorage.setItem('playerName', playerName);
-    // For now, go to lobby where they can select faction
     useGameStore.getState().setRoomId(roomCode);
+    // Connect as observer to receive room updates
+    await observeRoom(roomCode);
     setScreen('lobby');
   };
 

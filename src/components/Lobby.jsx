@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useGameStore } from '../store/gameStore';
 
 const FACTIONS = ['Nobles', 'Merchants', 'Commoners'];
@@ -29,21 +29,10 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
   const toggleReady = useGameStore((state) => state.toggleReady);
   const error = useGameStore((state) => state.error);
   const clearError = useGameStore((state) => state.clearError);
-  const observeRoom = useGameStore((state) => state.observeRoom);
-  const connected = useGameStore((state) => state.connected);
 
   const players = room?.players || [null, null, null];
   const allReady = players.every((p) => p !== null && p.ready);
   const playerCount = players.filter((p) => p !== null).length;
-
-  // Connect as observer when entering lobby (if not already connected)
-  useEffect(() => {
-    if (roomId && !connected && playerId === null) {
-      observeRoom(roomId).catch((err) => {
-        console.error('Failed to observe room:', err);
-      });
-    }
-  }, [roomId, connected, playerId, observeRoom]);
 
   const copyRoomCode = () => {
     navigator.clipboard.writeText(roomId);
