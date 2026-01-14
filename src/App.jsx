@@ -2473,39 +2473,65 @@ const PskovGame = () => {
                   {gameState.players.map((player, index) => {
                     const hasDecided = gameState.eventVotes[index] !== null;
                     const canAfford = player.money >= gameState.currentEvent.minCostPerPlayer;
+                    // In online mode, only show voting buttons for the current player
+                    const isCurrentPlayer = mode === 'online' ? index === playerId : true;
 
                     return (
-                      <div key={index} className="text-center">
-                        <h5 className="font-medium mb-1">{player.faction}</h5>
+                      <div key={index} className={`text-center p-3 rounded ${
+                        mode === 'online' && index === playerId
+                          ? 'ring-2 ring-amber-400 bg-amber-50'
+                          : ''
+                      }`}>
+                        <h5 className="font-medium mb-1">
+                          {player.faction}
+                          {mode === 'online' && index === playerId && ' (You)'}
+                        </h5>
                         <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
-                        <div className="space-y-2">
-                          <button
-                            onClick={() => voteOnEvent(index, true)}
-                            disabled={hasDecided || !canAfford}
-                            className={`w-full px-3 py-1 rounded text-sm ${
-                              gameState.eventVotes[index] === true 
-                                ? 'bg-green-600 text-white' 
-                                : canAfford
-                                ? 'bg-green-500 hover:bg-green-600 text-white'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
-                          >
-                            {gameState.eventVotes[index] === true ? 'Defending' : 
-                             !canAfford ? `Need ${gameState.currentEvent.minCostPerPlayer}○ min` :
-                             'Fund Defense'}
-                          </button>
-                          <button
-                            onClick={() => voteOnEvent(index, false)}
-                            disabled={hasDecided}
-                            className={`w-full px-3 py-1 rounded text-sm ${
-                              gameState.eventVotes[index] === false 
-                                ? 'bg-red-600 text-white' 
-                                : 'bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-300'
-                            }`}
-                          >
-                            {gameState.eventVotes[index] === false ? 'No Defense' : 'Surrender'}
-                          </button>
-                        </div>
+
+                        {/* Show interactive buttons for current player (or all players in local mode) */}
+                        {isCurrentPlayer ? (
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => voteOnEvent(index, true)}
+                              disabled={hasDecided || !canAfford}
+                              className={`w-full px-3 py-1 rounded text-sm ${
+                                gameState.eventVotes[index] === true
+                                  ? 'bg-green-600 text-white'
+                                  : canAfford
+                                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              }`}
+                            >
+                              {gameState.eventVotes[index] === true ? 'Defending' :
+                               !canAfford ? `Need ${gameState.currentEvent.minCostPerPlayer}○ min` :
+                               'Fund Defense'}
+                            </button>
+                            <button
+                              onClick={() => voteOnEvent(index, false)}
+                              disabled={hasDecided}
+                              className={`w-full px-3 py-1 rounded text-sm ${
+                                gameState.eventVotes[index] === false
+                                  ? 'bg-red-600 text-white'
+                                  : 'bg-red-500 hover:bg-red-600 text-white disabled:bg-gray-300'
+                              }`}
+                            >
+                              {gameState.eventVotes[index] === false ? 'No Defense' : 'Surrender'}
+                            </button>
+                          </div>
+                        ) : (
+                          /* Show status for other players in online mode */
+                          <div className="text-sm text-gray-600 italic py-2">
+                            {hasDecided ? (
+                              gameState.eventVotes[index] === true ? (
+                                <span className="text-green-700 font-medium">Defending</span>
+                              ) : (
+                                <span className="text-red-700 font-medium">Surrendering</span>
+                              )
+                            ) : (
+                              <span>Waiting to decide...</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
