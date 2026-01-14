@@ -142,14 +142,25 @@
     "equipmentBought": "Equipment bought",
     "maxWeapons": "Max weapons (2)",
     "maxArmor": "Max armor (2)",
-    "owned": "Owned: {{count}}/2"
+    "owned": "Owned: {{count}}/2",
+    "gameComplete": "Game Complete",
+    "gameCompleteCheck": "Game Complete! Check results below.",
+    "markDoneToProc": "Mark yourself as done to proceed",
+    "playersTakeTurns": "Players take turns in construction phase",
+    "resolveEventFirst": "Resolve Event First",
+    "clickToAdvance": "Click to advance to next phase",
+    "imDone": "I'm Done",
+    "readyCheck": "✓ Ready",
+    "building": "⏳ Building"
   },
   "events": {
     "newEvent": "A new event unfolds...",
     "decision": "Decision: {{option}}",
     "waitingToVote": "Waiting to vote...",
     "needMoney": "Need {{amount}}○ min",
-    "cannotAfford": "Cannot afford! Need {{amount}}○ per voter"
+    "cannotAfford": "Cannot afford! Need {{amount}}○ per voter",
+    "defendersReady": "{{count}} defenders ready",
+    "noDefenders": "No defenders - region will be surrendered"
   },
   "veche": {
     "attack": "Attack {{region}}",
@@ -175,6 +186,33 @@
     "cancel": "Cancel",
     "attackFunded": "ATTACK FUNDED",
     "attackCancelledCaps": "ATTACK CANCELLED",
-    "result": "Result: {{result}}"
+    "result": "Result: {{result}}",
+    "fortressConstruction": "Fortress Construction",
+    "buildFortressesDesc": "Build fortresses for defense (6○ total cost):",
+    "buildFortress": "Build Fortress",
+    "defenseBonus": "+10 defense bonus",
+    "allFortresses": "✓ All regions have fortresses!",
+    "planningFortress": "🏰 Planning Fortress: {{region}}",
+    "fortressRequiresFunding": "Building a fortress requires 6○ total funding. Who will contribute?",
+    "contributing": "Contributing",
+    "contribute": "Contribute",
+    "notContributing": "Not Contributing",
+    "noFortressFunding": "No one wants to fund the fortress construction.",
+    "cancelConstruction": "Cancel Construction",
+    "cannotAffordShare": "{{factions}} cannot afford their share ({{cost}}○ each)!",
+    "contributors": "Contributors: {{count}} • Cost per contributor: {{cost}}○",
+    "fortressFunded": "Fortress will be built!",
+    "fortressCancelled": "Fortress construction cancelled.",
+    "buildFortressButton": "🏰 Build Fortress",
+    "cancelFortress": "Cancel"
+  },
+  "battle": {
+    "gameOver": "💀 GAME OVER: Pskov has fallen to the Teutonic Order!",
+    "defenseVictory": "🛡️ VICTORY! {{region}} successfully defended! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "attackVictory": "⚔️ VICTORY! {{region}} recaptured from the Order! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "attackDefeat": "💀 DEFEAT! Attack on {{region}} failed! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "fortressBuilt": "🏰 Fortress built in {{region}}! (+10 defense bonus)",
+    "defenseFailed": "💀 DEFEAT! {{region}} lost to the Order! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "fortressCancelledInsufficient": "❌ Fortress construction cancelled - insufficient funding!"
   }
 }
