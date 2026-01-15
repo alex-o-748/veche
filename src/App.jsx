@@ -2264,12 +2264,8 @@ const PskovGame = () => {
           )}
 
           {/* Large Event Image Card - Dramatic Reveal */}
-          {getEventImage(gameState.currentEvent.id) && (
-            <div
-              className={`relative mb-6 ${
-                gameState.eventImageRevealed ? 'event-card-revealed' : 'event-card-hidden'
-              }`}
-            >
+          {getEventImage(gameState.currentEvent.id) && gameState.eventImageRevealed && (
+            <div className="relative mb-6 event-card-revealed">
               <div className="flex justify-center">
                 <img
                   src={getEventImage(gameState.currentEvent.id)}
