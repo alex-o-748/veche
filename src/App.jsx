@@ -7,6 +7,7 @@ import { useGameStore } from './store/gameStore';
 
 // Import UI components
 import { MainMenu, Lobby } from './components';
+import GameMap from './components/GameMap';
 
 // Import game logic from modular structure
 import {
@@ -1999,7 +2000,43 @@ const PskovGame = () => {
           </div>
         </div>
       )}
-      
+
+      {/* Game Map */}
+      <div className="mb-6">
+        <GameMap
+          gameState={gameState}
+          onRegionClick={(regionKey) => {
+            // Handle region clicks during construction phase
+            if (gameState.phase === 'construction' && mode === 'local') {
+              setSelectedRegion(regionKey);
+            }
+            // Handle region clicks during veche phase for attack planning
+            if (gameState.phase === 'veche' && gameState.attackPlanning === null) {
+              const validTargets = getValidRepublicAttackTargets(gameState.regions);
+              if (validTargets.includes(regionKey)) {
+                initiateAttack(regionKey);
+              }
+            }
+          }}
+          highlightRegions={(() => {
+            // Highlight selected region during construction phase
+            if (gameState.phase === 'construction' && selectedRegion) {
+              return [selectedRegion];
+            }
+            // Highlight valid attack targets during veche phase
+            if (gameState.phase === 'veche' && gameState.attackPlanning === null) {
+              return getValidRepublicAttackTargets(gameState.regions);
+            }
+            // Highlight attack target during attack planning
+            if (gameState.phase === 'veche' && gameState.attackTarget) {
+              return [gameState.attackTarget];
+            }
+            return [];
+          })()}
+          phase={gameState.phase}
+        />
+      </div>
+
       {/* Players */}
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         {gameState.players.map((player, index) => {
