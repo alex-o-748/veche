@@ -1882,12 +1882,6 @@ const PskovGame = () => {
             <h2 className="text-2xl font-bold text-amber-900 mb-3">
               {t('game.turn', { turn: gameState.turn })}
             </h2>
-            <div className="mb-3">
-              <span className="text-sm font-medium text-gray-600">{t('game.currentPhase')}</span>
-              <div className="bg-amber-500 text-white px-3 py-2 rounded font-semibold text-center mt-1">
-                {phaseNames[gameState.phase]}
-              </div>
-            </div>
             <div className="bg-gray-50 p-3 rounded text-sm">
               <p className="text-gray-700">{getPhaseDescription(gameState.phase)}</p>
             </div>
@@ -1933,12 +1927,12 @@ const PskovGame = () => {
                 (gameState.phase === 'events' && !gameState.eventResolved) ||
                 (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId])
               }
-              className={`w-full py-3 rounded font-semibold transition-colors ${
+              className={`w-full py-4 rounded-lg font-bold text-lg transition-all shadow-lg ${
                 gameState.turn > 20 ||
                 (gameState.phase === 'events' && !gameState.eventResolved) ||
                 (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId])
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-amber-600 hover:bg-amber-700 text-white'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                  : 'bg-amber-600 hover:bg-amber-700 hover:shadow-xl text-white transform hover:scale-105'
               }`}
             >
               {gameState.turn > 20 ? t('game.gameComplete') :
@@ -1951,7 +1945,7 @@ const PskovGame = () => {
             {/* Reset Game Button */}
             <button
               onClick={resetGame}
-              className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors text-sm"
+              className="w-full border-2 border-gray-300 hover:border-red-400 text-gray-600 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded transition-colors text-xs"
             >
               {t('game.resetGame')}
             </button>
