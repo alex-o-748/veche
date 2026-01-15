@@ -1866,7 +1866,7 @@ const PskovGame = () => {
       {/* Language switcher */}
       <button
         onClick={toggleLanguage}
-        className="fixed top-4 right-4 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded font-medium text-sm transition-colors shadow z-50"
+        className="fixed top-4 left-4 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded font-medium text-sm transition-colors shadow z-50"
       >
         {i18n.language === 'en' ? 'RU' : 'EN'}
       </button>
