@@ -142,6 +142,195 @@
     "equipmentBought": "Equipment bought",
     "maxWeapons": "Max weapons (2)",
     "maxArmor": "Max armor (2)",
-    "owned": "Owned: {{count}}/2"
+    "owned": "Owned: {{count}}/2",
+    "gameComplete": "Game Complete",
+    "gameCompleteCheck": "Game Complete! Check results below.",
+    "markDoneToProc": "Mark yourself as done to proceed",
+    "playersTakeTurns": "Players take turns in construction phase",
+    "resolveEventFirst": "Resolve Event First",
+    "clickToAdvance": "Click to advance to next phase",
+    "imDone": "I'm Done",
+    "readyCheck": "✓ Ready",
+    "building": "⏳ Building"
+  },
+  "events": {
+    "newEvent": "A new event unfolds...",
+    "decision": "Decision: {{option}}",
+    "waitingToVote": "Waiting to vote...",
+    "needMoney": "Need {{amount}}○ min",
+    "cannotAfford": "Cannot afford! Need {{amount}}○ per voter",
+    "defendersReady": "{{count}} defenders ready",
+    "noDefenders": "No defenders - region will be surrendered"
+  },
+  "veche": {
+    "attack": "Attack {{region}}",
+    "hasFortress": "Has fortress (+10 Order defense)",
+    "noFortress": "No fortress",
+    "requiresFunding": "Requires 6○ funding",
+    "notAdjacent": "Not adjacent to Republic territory",
+    "planningAttack": "Planning Attack: {{region}}",
+    "attackRequiresFunding": "Attacking requires 6○ total funding. Who will contribute to this military campaign?",
+    "joiningAttack": "Joining Attack",
+    "joinAttack": "Join Attack",
+    "decline": "Decline",
+    "notParticipating": "Not Participating",
+    "attackers": "Attackers: {{count}} • Cost per attacker: {{cost}}○",
+    "noParticipants": "No participants - attack cancelled",
+    "cannotAffordAttack": "{{factions}} cannot afford {{cost}}○",
+    "attackWillProceed": "Attack will proceed!",
+    "attackCancelled": "Attack cancelled - insufficient funds",
+    "executeAttack": "Execute Attack",
+    "cancelAttack": "Cancel Attack",
+    "launchAttack": "Launch Attack",
+    "cannotLaunch": "Cannot Launch",
+    "cancel": "Cancel",
+    "attackFunded": "ATTACK FUNDED",
+    "attackCancelledCaps": "ATTACK CANCELLED",
+    "result": "Result: {{result}}",
+    "fortressConstruction": "Fortress Construction",
+    "buildFortressesDesc": "Build fortresses for defense (6○ total cost):",
+    "buildFortress": "Build Fortress",
+    "defenseBonus": "+10 defense bonus",
+    "allFortresses": "✓ All regions have fortresses!",
+    "planningFortress": "🏰 Planning Fortress: {{region}}",
+    "fortressRequiresFunding": "Building a fortress requires 6○ total funding. Who will contribute?",
+    "contributing": "Contributing",
+    "contribute": "Contribute",
+    "notContributing": "Not Contributing",
+    "noFortressFunding": "No one wants to fund the fortress construction.",
+    "cancelConstruction": "Cancel Construction",
+    "cannotAffordShare": "{{factions}} cannot afford their share ({{cost}}○ each)!",
+    "contributors": "Contributors: {{count}} • Cost per contributor: {{cost}}○",
+    "fortressFunded": "Fortress will be built!",
+    "fortressCancelled": "Fortress construction cancelled.",
+    "buildFortressButton": "🏰 Build Fortress",
+    "cancelFortress": "Cancel"
+  },
+  "battle": {
+    "gameOver": "💀 GAME OVER: Pskov has fallen to the Teutonic Order!",
+    "defenseVictory": "🛡️ VICTORY! {{region}} successfully defended! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "attackVictory": "⚔️ VICTORY! {{region}} recaptured from the Order! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "attackDefeat": "💀 DEFEAT! Attack on {{region}} failed! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "fortressBuilt": "🏰 Fortress built in {{region}}! (+10 defense bonus)",
+    "defenseFailed": "💀 DEFEAT! {{region}} lost to the Order! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "fortressCancelledInsufficient": "❌ Fortress construction cancelled - insufficient funding!"
+  },
+  "eventCards": {
+    "merchants_robbed": {
+      "name": "Merchants Robbed",
+      "description": "Foreign merchants have been robbed near your borders. How will you respond?",
+      "rob_foreign": "Rob foreign merchants",
+      "rob_foreign_effect": "50% chance: Order attacks (100)",
+      "demand_compensation": "Demand compensation",
+      "demand_compensation_cost": "Merchants: -1○",
+      "demand_compensation_effect": "50% chance: Merchants -10 str/3 turns",
+      "trade_risk": "Trade is risk",
+      "trade_risk_effect": "Merchants: -10 str/3 turns"
+    },
+    "order_attack_95": {
+      "name": "Order Attack (95)",
+      "description": "The Teutonic Order attacks with strength 95. Who will contribute to the defense?",
+      "question": "Who will help fund the defense? Cost will be split evenly among participants."
+    },
+    "order_attack_110": {
+      "name": "Order Attack (110)",
+      "description": "The Teutonic Order attacks with strength 110. Who will contribute to the defense?",
+      "question": "Who will help fund the defense? Cost will be split evenly among participants."
+    },
+    "boyars_take_bribes": {
+      "name": "Nobles Take Bribes",
+      "description": "Noble corruption has been discovered. How will you handle this?",
+      "investigate": "Investigate and punish",
+      "investigate_cost": "Nobles: -2○",
+      "investigate_effect": "Nobles: -15 str/3 turns",
+      "ignore": "This is the way it is",
+      "ignore_effect": "50% chance: Uprising (buildings destroyed)"
+    },
+    "embassy": {
+      "name": "Embassy",
+      "description": "An embassy from the Grand Prince arrives. How will you receive them?",
+      "modest": "Receive modestly",
+      "modest_cost": "3○ split",
+      "modest_effect": "Relations maintained",
+      "luxurious": "Receive luxuriously",
+      "luxurious_cost": "6○ split",
+      "luxurious_effect": "All: +3 str/3 turns",
+      "refuse": "Refuse to receive them",
+      "refuse_effect": "All: -15 str, -50% income/5 turns"
+    },
+    "relics_found": {
+      "name": "Relics Found",
+      "description": "Holy relics have been discovered. Are they genuine or deception?",
+      "build_temple": "Build a church",
+      "build_temple_cost": "All: -3○",
+      "build_temple_effect": "All: +5 str/3 turns",
+      "deception": "It's all deception",
+      "deception_effect": "All: -5 str/3 turns"
+    },
+    "izhorian_delegation": {
+      "name": "Delegation from the Izhorians",
+      "description": "A delegation from the Izhorian people arrives at your gates seeking an audience.",
+      "accept": "Accept into service",
+      "accept_cost": "6○ split",
+      "accept_effect": "All: +5 str/6 turns",
+      "rob": "Rob them",
+      "rob_effect": "All: +3○, then -5 str/6 turns",
+      "send_back": "Send them away",
+      "send_back_effect": "No effect"
+    },
+    "good_harvest": {
+      "name": "Good Harvest",
+      "description": "The fields have produced an abundant harvest. All players receive +1○."
+    },
+    "drought": {
+      "name": "Drought",
+      "description": "The crops are failing due to lack of rain. How will you respond?",
+      "buy_food": "Buy emergency food supplies",
+      "buy_food_cost": "6○ split",
+      "buy_food_effect": "Famine avoided",
+      "no_food": "Let the people endure",
+      "no_food_effect": "Commoners: -12 str/3 turns"
+    },
+    "fire": {
+      "name": "Fire",
+      "description": "A fire breaks out in one of your regions, destroying a building."
+    },
+    "city_fire": {
+      "name": "City Fire",
+      "description": "A fire breaks out in Pskov, destroying a building in the city."
+    },
+    "heresy": {
+      "name": "Heresy",
+      "description": "Heretical ideas spread among the people, weakening military resolve."
+    },
+    "order_attack_90": {
+      "name": "Order Attack (90)",
+      "description": "The Teutonic Order attacks with strength 90. Who will contribute to the defense?",
+      "question": "Who will help fund the defense? Cost will be split evenly among participants."
+    },
+    "order_attack_100": {
+      "name": "Order Attack (100)",
+      "description": "The Teutonic Order attacks with strength 100. Who will contribute to the defense?",
+      "question": "Who will help fund the defense? Cost will be split evenly among participants."
+    },
+    "order_attack_105": {
+      "name": "Order Attack (105)",
+      "description": "The Teutonic Order attacks with strength 105. Who will contribute to the defense?",
+      "question": "Who will help fund the defense? Cost will be split evenly among participants."
+    },
+    "order_attack_110_2": {
+      "name": "Order Attack (110)",
+      "description": "The Teutonic Order attacks with strength 110. Who will contribute to the defense?",
+      "question": "Who will help fund the defense? Cost will be split evenly among participants."
+    },
+    "plague": {
+      "name": "Plague",
+      "description": "A plague spreads through the city. How will you respond?",
+      "fund_isolation": "Fund isolation and treatment",
+      "fund_isolation_cost": "3○ split",
+      "fund_isolation_effect": "All: -5 str/2 turns",
+      "no_isolation": "Trust in God - no isolation",
+      "no_isolation_effect": "All: -25 str/2 turns"
+    }
   }
 }

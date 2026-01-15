@@ -64,6 +64,44 @@ const PskovGame = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
   };
 
+  // Helper functions to get translated event content
+  const getEventName = (event) => {
+    const key = `eventCards.${event.id}.name`;
+    const translated = t(key);
+    return translated !== key ? translated : event.name;
+  };
+
+  const getEventDescription = (event) => {
+    const key = `eventCards.${event.id}.description`;
+    const translated = t(key);
+    return translated !== key ? translated : event.description;
+  };
+
+  const getEventQuestion = (event) => {
+    if (!event.question) return null;
+    const key = `eventCards.${event.id}.question`;
+    const translated = t(key);
+    return translated !== key ? translated : event.question;
+  };
+
+  const getOptionName = (eventId, optionId) => {
+    const key = `eventCards.${eventId}.${optionId}`;
+    const translated = t(key);
+    return translated !== key ? translated : null;
+  };
+
+  const getOptionCostText = (eventId, optionId) => {
+    const key = `eventCards.${eventId}.${optionId}_cost`;
+    const translated = t(key);
+    return translated !== key ? translated : null;
+  };
+
+  const getOptionEffectText = (eventId, optionId) => {
+    const key = `eventCards.${eventId}.${optionId}_effect`;
+    const translated = t(key);
+    return translated !== key ? translated : null;
+  };
+
   // Debug mode - set to true for predictable event order
   const DEBUG_MODE = debugMode;
 
@@ -214,7 +252,7 @@ const PskovGame = () => {
       return {
         ...gameState,
         gameOver: true,
-        lastEventResult: '💀 GAME OVER: Pskov has fallen to the Teutonic Order!'
+        lastEventResult: t('battle.gameOver')
       };
     }
 
@@ -267,20 +305,30 @@ const PskovGame = () => {
     const pskovWins = rollForVictory(strengthDiff);
     const chancePercent = getVictoryChance(strengthDiff);
 
-    const regionDisplayName = targetRegion === 'bearhill' ? 'Bear Hill' : targetRegion.charAt(0).toUpperCase() + targetRegion.slice(1);
+    const regionDisplayName = t(`regions.${targetRegion}`);
 
     if (pskovWins) {
       // Successful defense
       return {
         ...gameState,
-        lastEventResult: `🛡️ VICTORY! ${regionDisplayName} successfully defended! (${chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength})`
+        lastEventResult: t('battle.defenseVictory', {
+          region: regionDisplayName,
+          chance: chancePercent,
+          pskovStrength: finalPskovStrength,
+          orderStrength: orderStrength
+        })
       };
     } else {
       // Failed defense - lose region
       const result = surrenderRegion(gameState, targetRegion);
       return {
         ...result,
-        lastEventResult: `💀 DEFEAT! ${regionDisplayName} lost to the Order! (${chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength}) ${result.lastEventResult}`
+        lastEventResult: `${t('battle.defenseFailed', {
+          region: regionDisplayName,
+          chance: chancePercent,
+          pskovStrength: finalPskovStrength,
+          orderStrength: orderStrength
+        })} ${result.lastEventResult}`
       };
     }
   };
@@ -323,7 +371,7 @@ const PskovGame = () => {
     const strengthDiff = pskovStrength - orderStrength;
     const pskovWins = rollForVictory(strengthDiff);
     const chancePercent = getVictoryChance(strengthDiff);
-    const regionDisplayName = attackTarget === 'bearhill' ? 'Bear Hill' : attackTarget.charAt(0).toUpperCase() + attackTarget.slice(1);
+    const regionDisplayName = t(`regions.${attackTarget}`);
 
     setGameState(prev => {
       if (pskovWins) {
@@ -338,7 +386,12 @@ const PskovGame = () => {
           attackPlanning: null,
           attackTarget: null,
           attackVotes: [null, null, null],
-          lastEventResult: `⚔️ VICTORY! ${regionDisplayName} recaptured from the Order! (${chancePercent}% chance, Strength: ${pskovStrength} vs ${orderStrength})`
+          lastEventResult: t('battle.attackVictory', {
+            region: regionDisplayName,
+            chance: chancePercent,
+            pskovStrength: pskovStrength,
+            orderStrength: orderStrength
+          })
         };
       } else {
         // Failed attack
@@ -348,7 +401,12 @@ const PskovGame = () => {
           attackPlanning: null,
           attackTarget: null,
           attackVotes: [null, null, null],
-          lastEventResult: `💀 DEFEAT! Attack on ${regionDisplayName} failed! (${chancePercent}% chance, Strength: ${pskovStrength} vs ${orderStrength})`
+          lastEventResult: t('battle.attackDefeat', {
+            region: regionDisplayName,
+            chance: chancePercent,
+            pskovStrength: pskovStrength,
+            orderStrength: orderStrength
+          })
         };
       }
     });
@@ -384,7 +442,7 @@ const PskovGame = () => {
         fortressPlanning: null,
         fortressTarget: null,
         fortressVotes: [null, null, null],
-        lastEventResult: '❌ Fortress construction cancelled - insufficient funding!'
+        lastEventResult: t('battle.fortressCancelledInsufficient')
       }));
       return;
     }
@@ -401,7 +459,7 @@ const PskovGame = () => {
     const newRegions = { ...gameState.regions };
     newRegions[fortressTarget].fortress = true;
 
-    const regionDisplayName = fortressTarget === 'bearhill' ? 'Bear Hill' : fortressTarget.charAt(0).toUpperCase() + fortressTarget.slice(1);
+    const regionDisplayName = t(`regions.${fortressTarget}`);
 
     setGameState(prev => ({
       ...prev,
@@ -410,7 +468,7 @@ const PskovGame = () => {
       fortressPlanning: null,
       fortressTarget: null,
       fortressVotes: [null, null, null],
-      lastEventResult: `🏰 Fortress built in ${regionDisplayName}! (+10 defense bonus)`
+      lastEventResult: t('battle.fortressBuilt', { region: regionDisplayName })
     }));
   };
 
@@ -1852,11 +1910,11 @@ const PskovGame = () => {
           <div className="text-center">
             {/* Helper text */}
             <p className="text-sm text-gray-600 mb-2">
-              {gameState.turn >= 20 ? 'Game Complete! Check results below.' :
-               gameState.phase === 'construction' && mode === 'online' ? 'Mark yourself as done to proceed' :
-               gameState.phase === 'construction' ? 'Players take turns in construction phase' :
-               gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
-               'Click to advance to next phase'}
+              {gameState.turn >= 20 ? t('game.gameCompleteCheck') :
+               gameState.phase === 'construction' && mode === 'online' ? t('game.markDoneToProc') :
+               gameState.phase === 'construction' ? t('game.playersTakeTurns') :
+               gameState.phase === 'events' && !gameState.eventResolved ? t('game.resolveEventFirst') :
+               t('game.clickToAdvance')}
             </p>
 
             {/* Phase advance button / Ready button */}
@@ -1875,11 +1933,11 @@ const PskovGame = () => {
                   : 'bg-amber-600 hover:bg-amber-700 text-white'
               }`}
             >
-              {gameState.turn > 20 ? 'Game Complete' :
-               gameState.phase === 'events' && !gameState.eventResolved ? 'Resolve Event First' :
+              {gameState.turn > 20 ? t('game.gameComplete') :
+               gameState.phase === 'events' && !gameState.eventResolved ? t('game.resolveEventFirst') :
                gameState.phase === 'construction' && mode === 'online' ?
-                 (gameState.constructionReady[playerId] ? '✓ Ready' : "I'm Done") :
-               'Next Phase'}
+                 (gameState.constructionReady[playerId] ? t('game.readyCheck') : t('game.imDone')) :
+               t('game.nextPhase')}
             </button>
           </div>
 
@@ -1978,7 +2036,7 @@ const PskovGame = () => {
                   )}
                   {gameState.phase === 'construction' && mode === 'online' && (
                     <span className={`ml-2 text-sm ${gameState.constructionReady[index] ? 'text-green-600' : 'text-gray-400'}`}>
-                      {gameState.constructionReady[index] ? '✓ Ready' : '⏳ Building'}
+                      {gameState.constructionReady[index] ? t('game.readyCheck') : t('game.building')}
                     </span>
                   )}
                 </h3>
@@ -2200,8 +2258,8 @@ const PskovGame = () => {
           {/* Show loading message while waiting for reveal */}
           {!gameState.eventImageRevealed && getEventImage(gameState.currentEvent.id) && (
             <div className="text-center py-12 mb-4">
-              <div className="text-2xl font-bold text-amber-800 mb-3">A new event unfolds...</div>
-              <div className="text-lg text-gray-600">Revealing in a moment...</div>
+              <div className="text-2xl font-bold text-amber-800 mb-3">{t('events.newEvent')}</div>
+              <div className="text-lg text-gray-600">{t('game.revealingEvent')}</div>
             </div>
           )}
 
@@ -2226,32 +2284,37 @@ const PskovGame = () => {
           {/* Event Title, Description and Interactions - Only show after reveal */}
           {(gameState.eventImageRevealed || !getEventImage(gameState.currentEvent.id)) && (
             <>
-              <h3 className="text-2xl font-bold mb-4 text-center">Event: {gameState.currentEvent.name}</h3>
+              <h3 className="text-2xl font-bold mb-4 text-center">{t('game.event', { name: getEventName(gameState.currentEvent) })}</h3>
 
               <div className="bg-gray-50 p-4 rounded mb-4">
                 <div className="mb-4">
-                  <p className="text-gray-700 text-lg text-center">{gameState.currentEvent.description}</p>
+                  <p className="text-gray-700 text-lg text-center">{getEventDescription(gameState.currentEvent)}</p>
                 </div>
 
             {gameState.currentEvent.type === 'voting' && !gameState.eventResolved && (
               <div>
-                <h4 className="font-medium mb-2">Council Decision:</h4>
+                <h4 className="font-medium mb-2">{t('game.councilDecision')}</h4>
 
                 {/* Options summary with costs/effects - shown once */}
                 <div className="mb-4 p-3 bg-gray-50 rounded">
-                  <p className="text-sm text-gray-600 mb-2">Available options:</p>
-                  {gameState.currentEvent.options.map(option => (
-                    <div key={option.id} className="mb-2 last:mb-0">
-                      <span className="font-medium text-sm">{option.name}</span>
-                      {(option.costText || option.effectText) && (
-                        <span className="text-xs ml-2">
-                          {option.costText && <span className="text-red-600">[{option.costText}]</span>}
-                          {option.costText && option.effectText && ' '}
-                          {option.effectText && <span className="text-blue-600">→ {option.effectText}</span>}
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                  <p className="text-sm text-gray-600 mb-2">{t('game.availableOptions')}</p>
+                  {gameState.currentEvent.options.map(option => {
+                    const translatedName = getOptionName(gameState.currentEvent.id, option.id) || option.name;
+                    const translatedCost = getOptionCostText(gameState.currentEvent.id, option.id) || option.costText;
+                    const translatedEffect = getOptionEffectText(gameState.currentEvent.id, option.id) || option.effectText;
+                    return (
+                      <div key={option.id} className="mb-2 last:mb-0">
+                        <span className="font-medium text-sm">{translatedName}</span>
+                        {(translatedCost || translatedEffect) && (
+                          <span className="text-xs ml-2">
+                            {translatedCost && <span className="text-red-600">[{translatedCost}]</span>}
+                            {translatedCost && translatedEffect && ' '}
+                            {translatedEffect && <span className="text-blue-600">→ {translatedEffect}</span>}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
@@ -2271,16 +2334,17 @@ const PskovGame = () => {
                           : ''
                       }`}>
                         <h5 className="font-medium mb-1">
-                          {player.faction}
-                          {mode === 'online' && index === playerId && ' (You)'}
+                          {t(`factions.${player.faction}`)}
+                          {mode === 'online' && index === playerId && ` ${t('game.you')}`}
                         </h5>
-                        <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
+                        <div className="text-xs text-gray-600 mb-2">{t('game.money', { amount: player.money })}</div>
 
                         {/* Show interactive buttons for current player (or all players in local mode) */}
                         {isCurrentPlayer ? (
                           <div className="space-y-2">
                             {gameState.currentEvent.options.map(option => {
                               const canAfford = !option.requiresMinMoney || player.money >= option.requiresMinMoney;
+                              const translatedName = getOptionName(gameState.currentEvent.id, option.id) || option.name;
 
                               return (
                                 <button
@@ -2296,10 +2360,10 @@ const PskovGame = () => {
                                   }`}
                                 >
                                   {gameState.eventVotes[index] === option.id ?
-                                    `Voted: ${option.name}` :
+                                    t('game.voted', { option: translatedName }) :
                                     !canAfford ?
-                                    `Need ${option.requiresMinMoney}○ min` :
-                                    option.name
+                                    t('events.needMoney', { amount: option.requiresMinMoney }) :
+                                    translatedName
                                   }
                                 </button>
                               );
@@ -2309,9 +2373,9 @@ const PskovGame = () => {
                           /* Show status for other players in online mode */
                           <div className="text-sm text-gray-600 italic py-2">
                             {hasVoted ? (
-                              <span className="text-amber-700 font-medium">Voted: {votedOption?.name}</span>
+                              <span className="text-amber-700 font-medium">{t('game.voted', { option: getOptionName(gameState.currentEvent.id, votedOption?.id) || votedOption?.name })}</span>
                             ) : (
-                              <span>Waiting to vote...</span>
+                              <span>{t('events.waitingToVote')}</span>
                             )}
                           </div>
                         )}
@@ -2367,8 +2431,8 @@ const PskovGame = () => {
 
             {gameState.currentEvent.type === 'participation' && !gameState.eventResolved && (
               <div>
-                <h4 className="font-medium mb-2">Council Decision:</h4>
-                <p className="text-sm text-gray-600 mb-3">{gameState.currentEvent.question}</p>
+                <h4 className="font-medium mb-2">{t('game.councilDecision')}</h4>
+                <p className="text-sm text-gray-600 mb-3">{getEventQuestion(gameState.currentEvent) || gameState.currentEvent.question}</p>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {gameState.players.map((player, index) => {
@@ -2503,10 +2567,10 @@ const PskovGame = () => {
                           : ''
                       }`}>
                         <h5 className="font-medium mb-1">
-                          {player.faction}
-                          {mode === 'online' && index === playerId && ' (You)'}
+                          {t(`factions.${player.faction}`)}
+                          {mode === 'online' && index === playerId && ` ${t('game.you')}`}
                         </h5>
-                        <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
+                        <div className="text-xs text-gray-600 mb-2">{t('game.money', { amount: player.money })}</div>
 
                         {/* Show interactive buttons for current player (or all players in local mode) */}
                         {isCurrentPlayer ? (
@@ -2562,7 +2626,7 @@ const PskovGame = () => {
                     <p className="text-sm text-gray-600 mb-2">
                       {(() => {
                         const participants = gameState.eventVotes.filter(v => v === true).length;
-                        return participants > 0 ? `${participants} defenders ready` : 'No defenders - region will be surrendered';
+                        return participants > 0 ? t('events.defendersReady', { count: participants }) : t('events.noDefenders');
                       })()}
                     </p>
                     {mode === 'online' ? (
@@ -2598,15 +2662,15 @@ const PskovGame = () => {
       {/* City Assembly (Veche) Phase Interface */}
       {gameState.phase === 'veche' && (
         <div className="bg-white rounded-lg p-4 mb-6 shadow">
-          <h3 className="text-lg font-semibold mb-3">City Assembly (Veche)</h3>
+          <h3 className="text-lg font-semibold mb-3">{t('game.cityAssembly')}</h3>
 
           <div className="bg-amber-50 p-4 rounded mb-4">
-            <p className="text-amber-800 mb-4">The citizens gather to make important decisions for the city.</p>
+            <p className="text-amber-800 mb-4">{t('game.cityAssemblyDesc')}</p>
 
             {/* Attack Planning */}
             <div className="mb-6">
-              <h4 className="font-medium mb-3">Military Campaigns</h4>
-              <p className="text-sm text-gray-600 mb-3">Launch attacks to recapture adjacent territories from the Order (6○ total cost):</p>
+              <h4 className="font-medium mb-3">{t('game.militaryCampaigns')}</h4>
+              <p className="text-sm text-gray-600 mb-3">{t('game.militaryCampaignsDesc')}</p>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {(() => {
@@ -2614,7 +2678,6 @@ const PskovGame = () => {
                   const orderRegions = Object.entries(gameState.regions).filter(([name, region]) => region.controller === 'order');
 
                   return orderRegions.map(([regionName, region]) => {
-                    const displayName = regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1);
                     const isAdjacent = validTargets.includes(regionName);
 
                     return (
@@ -2624,12 +2687,12 @@ const PskovGame = () => {
                         disabled={gameState.attackPlanning !== null || !isAdjacent}
                         className={`${isAdjacent ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-400 cursor-not-allowed'} disabled:bg-gray-300 text-white p-3 rounded text-sm`}
                       >
-                        <div className="font-medium">Attack {displayName}</div>
+                        <div className="font-medium">{t('veche.attack', { region: t(`regions.${regionName}`) })}</div>
                         <div className="text-xs">
-                          {region.fortress ? 'Has fortress (+10 Order defense)' : 'No fortress'}
+                          {region.fortress ? t('veche.hasFortress') : t('veche.noFortress')}
                         </div>
                         <div className="text-xs">
-                          {isAdjacent ? 'Requires 6○ funding' : 'Not adjacent to Republic territory'}
+                          {isAdjacent ? t('veche.requiresFunding') : t('veche.notAdjacent')}
                         </div>
                       </button>
                     );
@@ -2638,7 +2701,7 @@ const PskovGame = () => {
               </div>
 
               {Object.entries(gameState.regions).filter(([name, region]) => region.controller === 'order').length === 0 && (
-                <p className="text-green-600 text-center py-2">All territories under Republic control!</p>
+                <p className="text-green-600 text-center py-2">{t('game.allTerritoriesControlled')}</p>
               )}
             </div>
 
@@ -2646,11 +2709,11 @@ const PskovGame = () => {
             {gameState.attackPlanning === 'planning' && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                 <h4 className="font-medium text-red-800 mb-3">
-                  Planning Attack: {gameState.attackTarget === 'bearhill' ? 'Bear Hill' : gameState.attackTarget.charAt(0).toUpperCase() + gameState.attackTarget.slice(1)}
+                  {t('veche.planningAttack', { region: t(`regions.${gameState.attackTarget}`) })}
                 </h4>
 
                 <p className="text-red-700 mb-3">
-                  Attacking requires 6○ total funding. Who will contribute to this military campaign?
+                  {t('veche.attackRequiresFunding')}
                 </p>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
@@ -2660,8 +2723,8 @@ const PskovGame = () => {
 
                     return (
                       <div key={index} className="text-center">
-                        <h5 className="font-medium mb-1">{player.faction}</h5>
-                        <div className="text-xs text-gray-600 mb-2">Money: {player.money}○</div>
+                        <h5 className="font-medium mb-1">{t(`factions.${player.faction}`)}</h5>
+                        <div className="text-xs text-gray-600 mb-2">{t('game.money', { amount: player.money })}</div>
                         <div className="space-y-2">
                           <button
                             onClick={() => {
@@ -2673,16 +2736,16 @@ const PskovGame = () => {
                             }}
                             disabled={hasDecided || !canAfford}
                             className={`w-full px-3 py-1 rounded text-sm ${
-                              gameState.attackVotes[index] === true 
-                                ? 'bg-red-600 text-white' 
+                              gameState.attackVotes[index] === true
+                                ? 'bg-red-600 text-white'
                                 : canAfford
                                 ? 'bg-red-500 hover:bg-red-600 text-white'
                                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }`}
                           >
-                            {gameState.attackVotes[index] === true ? 'Joining Attack' : 
-                             !canAfford ? 'Need 2○ min' :
-                             'Join Attack'}
+                            {gameState.attackVotes[index] === true ? t('veche.joiningAttack') :
+                             !canAfford ? t('events.needMoney', { amount: 2 }) :
+                             t('veche.joinAttack')}
                           </button>
                           <button
                             onClick={() => {
@@ -2694,12 +2757,12 @@ const PskovGame = () => {
                             }}
                             disabled={hasDecided}
                             className={`w-full px-3 py-1 rounded text-sm ${
-                              gameState.attackVotes[index] === false 
-                                ? 'bg-gray-600 text-white' 
+                              gameState.attackVotes[index] === false
+                                ? 'bg-gray-600 text-white'
                                 : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
                             }`}
                           >
-                            {gameState.attackVotes[index] === false ? 'Not Participating' : 'Decline'}
+                            {gameState.attackVotes[index] === false ? t('veche.notParticipating') : t('veche.decline')}
                           </button>
                         </div>
                       </div>
@@ -2729,20 +2792,20 @@ const PskovGame = () => {
                         <div className="mb-3">
                           <p className="text-sm text-gray-600 mb-1">
                             {participants > 0 ? (
-                              <>Attackers: {participants} • Cost per attacker: {costPerParticipant.toFixed(1)}○</>
+                              t('veche.attackers', { count: participants, cost: costPerParticipant.toFixed(1) })
                             ) : (
-                              <>No participants - attack cancelled</>
+                              t('veche.noParticipants')
                             )}
                           </p>
 
                           {!allCanAfford && participants > 0 && (
                             <p className="text-sm text-red-600 mb-1">
-                              {insufficientFunds.join(', ')} cannot afford {costPerParticipant.toFixed(1)}○
+                              {t('veche.cannotAffordAttack', { factions: insufficientFunds.join(', '), cost: costPerParticipant.toFixed(1) })}
                             </p>
                           )}
 
                           <p className={`text-sm font-medium ${attackSucceeds ? 'text-green-600' : 'text-red-600'}`}>
-                            Result: {attackSucceeds ? 'ATTACK FUNDED' : 'ATTACK CANCELLED'}
+                            {t('veche.result', { result: attackSucceeds ? t('veche.attackFunded') : t('veche.attackCancelledCaps') })}
                           </p>
 
                           <div className="mt-3 space-x-3">
@@ -2751,7 +2814,7 @@ const PskovGame = () => {
                               disabled={!attackSucceeds}
                               className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-2 rounded"
                             >
-                              {attackSucceeds ? 'Launch Attack' : 'Cannot Launch'}
+                              {attackSucceeds ? t('veche.launchAttack') : t('veche.cannotLaunch')}
                             </button>
                             <button
                               onClick={() => {
@@ -2764,7 +2827,7 @@ const PskovGame = () => {
                               }}
                               className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
                             >
-                              Cancel
+                              {t('veche.cancel')}
                             </button>
                           </div>
                         </div>
@@ -2786,14 +2849,14 @@ const PskovGame = () => {
 
             {/* Fortress Building */}
             <div className="mb-6">
-              <h4 className="font-medium mb-3">Fortress Construction</h4>
-              <p className="text-sm text-gray-600 mb-3">Build fortresses for defense (6○ total cost):</p>
+              <h4 className="font-medium mb-3">{t('veche.fortressConstruction')}</h4>
+              <p className="text-sm text-gray-600 mb-3">{t('veche.buildFortressesDesc')}</p>
 
               <div className="grid grid-cols-2 gap-3">
                 {Object.entries(gameState.regions)
                   .filter(([name, region]) => region.controller === 'republic' && !region.fortress)
                   .map(([regionName, region]) => {
-                    const displayName = regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1);
+                    const displayName = t(`regions.${regionName}`);
                     return (
                       <button
                         key={regionName}
@@ -2805,27 +2868,27 @@ const PskovGame = () => {
                             : 'bg-gray-600 hover:bg-gray-700 text-white'
                         }`}
                       >
-                        <div className="font-medium">Build Fortress</div>
+                        <div className="font-medium">{t('veche.buildFortress')}</div>
                         <div className="text-xs">{displayName}</div>
-                        <div className="text-xs">+10 defense bonus</div>
+                        <div className="text-xs">{t('veche.defenseBonus')}</div>
                       </button>
                     );
                   })}
               </div>
 
               {Object.entries(gameState.regions).filter(([name, region]) => region.controller === 'republic' && !region.fortress).length === 0 && (
-                <p className="text-green-600 text-center py-2">✓ All regions have fortresses!</p>
+                <p className="text-green-600 text-center py-2">{t('veche.allFortresses')}</p>
               )}
 
               {/* Fortress Planning Interface */}
               {gameState.fortressPlanning === 'planning' && (
                 <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 mt-4">
                   <h4 className="font-medium text-gray-800 mb-3">
-                    🏰 Planning Fortress: {gameState.fortressTarget === 'bearhill' ? 'Bear Hill' : gameState.fortressTarget.charAt(0).toUpperCase() + gameState.fortressTarget.slice(1)}
+                    {t('veche.planningFortress', { region: t(`regions.${gameState.fortressTarget}`) })}
                   </h4>
 
                   <p className="text-sm text-gray-600 mb-3">
-                    Building a fortress requires 6○ total funding. Who will contribute?
+                    {t('veche.fortressRequiresFunding')}
                   </p>
 
                   <div className="grid grid-cols-3 gap-4 mb-4">
@@ -2835,8 +2898,8 @@ const PskovGame = () => {
 
                       return (
                         <div key={index} className="text-center">
-                          <h5 className="font-medium mb-1">{player.faction}</h5>
-                          <div className="text-xs text-gray-600 mb-2">Money: {player.money.toFixed(2)}○</div>
+                          <h5 className="font-medium mb-1">{t(`factions.${player.faction}`)}</h5>
+                          <div className="text-xs text-gray-600 mb-2">{t('game.money', { amount: player.money.toFixed(2) })}</div>
                           <div className="space-y-2">
                             <button
                               onClick={() => {
@@ -2855,9 +2918,9 @@ const PskovGame = () => {
                                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                               }`}
                             >
-                              {gameState.fortressVotes[index] === true ? 'Contributing' :
-                               !canAfford ? 'Need 2○ min' :
-                               'Contribute'}
+                              {gameState.fortressVotes[index] === true ? t('veche.contributing') :
+                               !canAfford ? t('events.needMoney', { amount: 2 }) :
+                               t('veche.contribute')}
                             </button>
                             <button
                               onClick={() => {
@@ -2874,7 +2937,7 @@ const PskovGame = () => {
                                   : 'bg-gray-500 hover:bg-gray-600 text-white disabled:bg-gray-300'
                               }`}
                             >
-                              {gameState.fortressVotes[index] === false ? 'Not Contributing' : 'Decline'}
+                              {gameState.fortressVotes[index] === false ? t('veche.notContributing') : t('veche.decline')}
                             </button>
                           </div>
                         </div>
@@ -2901,7 +2964,7 @@ const PskovGame = () => {
                         if (participants === 0) {
                           return (
                             <div>
-                              <p className="text-gray-600 mb-2">No one wants to fund the fortress construction.</p>
+                              <p className="text-gray-600 mb-2">{t('veche.noFortressFunding')}</p>
                               <button
                                 onClick={() => {
                                   setGameState(prev => ({
@@ -2913,7 +2976,7 @@ const PskovGame = () => {
                                 }}
                                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
                               >
-                                Cancel Construction
+                                {t('veche.cancelConstruction')}
                               </button>
                             </div>
                           );
@@ -2921,7 +2984,10 @@ const PskovGame = () => {
                           return (
                             <div>
                               <p className="text-red-600 mb-2">
-                                {insufficientFunds.join(', ')} cannot afford their share ({costPerParticipant.toFixed(2)}○ each)!
+                                {t('veche.cannotAffordShare', {
+                                  factions: insufficientFunds.map(f => t(`factions.${f}`)).join(', '),
+                                  cost: costPerParticipant.toFixed(2)
+                                })}
                               </p>
                               <button
                                 onClick={() => {
@@ -2934,7 +3000,7 @@ const PskovGame = () => {
                                 }}
                                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
                               >
-                                Cancel Construction
+                                {t('veche.cancelConstruction')}
                               </button>
                             </div>
                           );
@@ -2942,14 +3008,14 @@ const PskovGame = () => {
                           return (
                             <div>
                               <p className="text-green-600 mb-2">
-                                {participants} contributor{participants > 1 ? 's' : ''} - {costPerParticipant.toFixed(2)}○ each
+                                {t('veche.contributors', { count: participants, cost: costPerParticipant.toFixed(2) })}
                               </p>
                               <div className="space-x-2">
                                 <button
                                   onClick={executeFortressBuild}
                                   className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded"
                                 >
-                                  🏰 Build Fortress
+                                  {t('veche.buildFortressButton')}
                                 </button>
                                 <button
                                   onClick={() => {
@@ -2962,7 +3028,7 @@ const PskovGame = () => {
                                   }}
                                   className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
                                 >
-                                  Cancel
+                                  {t('veche.cancelFortress')}
                                 </button>
                               </div>
                             </div>
