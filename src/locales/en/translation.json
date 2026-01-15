@@ -218,8 +218,8 @@
   "eventCards": {
     "merchants_robbed": {
       "name": "Merchants Robbed",
-      "description": "Foreign merchants have been robbed near your borders. How will you respond?",
-      "rob_foreign": "Rob foreign merchants",
+      "description": "Our merchants have been robbed in the Order lands. How will you respond?",
+      "rob_foreign": "Get even by robbing foreign merchants",
       "rob_foreign_effect": "50% chance: Order attacks (100)",
       "demand_compensation": "Demand compensation",
       "demand_compensation_cost": "Merchants: -1○",
@@ -239,7 +239,7 @@
     },
     "boyars_take_bribes": {
       "name": "Nobles Take Bribes",
-      "description": "Noble corruption has been discovered. How will you handle this?",
+      "description": "Noble corruption has been discovered and there is widespread unrest. How will you handle this?",
       "investigate": "Investigate and punish",
       "investigate_cost": "Nobles: -2○",
       "investigate_effect": "Nobles: -15 str/3 turns",
