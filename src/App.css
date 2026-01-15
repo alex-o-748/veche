@@ -20,6 +20,4 @@ main {
 
 .event-card-revealed {
   animation: revealEventCard 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  opacity: 1;
-  transform: translateY(0) scale(1);
 }
