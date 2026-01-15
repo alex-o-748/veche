@@ -1968,15 +1968,10 @@ const PskovGame = () => {
             <p className="text-center text-sm mt-1">{t('game.subtitle')}</p>
           </div>
 
-          {/* Debug Info */}
+          {/* Debug Mode Indicator */}
           {DEBUG_MODE && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <h4 className="font-medium text-yellow-800">🐛 Debug Mode Active</h4>
-              <p className="text-yellow-700 text-sm">
-                Events cycle in order: Izhorian Delegation → Good Harvest → Drought → Fire → City Fire → Heresy → Order Attacks → Plague → Boyars → Embassy → Relics → Merchants Robbed...
-                <br />
-                Next event: {eventDeck[gameState.debugEventIndex]?.name}
-              </p>
+            <div className="fixed bottom-4 left-4 bg-yellow-400 text-yellow-900 px-2 py-1 rounded text-xs font-medium shadow z-40">
+              Debug mode
             </div>
           )}
 
