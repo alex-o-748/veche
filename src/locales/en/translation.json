@@ -65,7 +65,15 @@
     "skrynnitsy": "Skrynnitsy",
     "gdov": "Gdov",
     "pechory": "Pechory",
-    "bearhill": "Bear Hill"
+    "bearhill": "Bear Hill",
+    "order_lands": "Order Lands"
+  },
+  "map": {
+    "title": "Map of the Republic",
+    "republic": "Republic",
+    "order": "Teutonic Order",
+    "fortress": "Fortress",
+    "buildings": "Buildings"
   },
   "game": {
     "loading": "Loading game...",
