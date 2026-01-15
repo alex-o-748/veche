@@ -1862,54 +1862,56 @@ const PskovGame = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-amber-50 min-h-screen relative">
+    <div className="mx-auto p-4 bg-amber-50 min-h-screen relative">
       {/* Language switcher */}
       <button
         onClick={toggleLanguage}
-        className="fixed top-4 right-4 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded font-medium text-sm transition-colors shadow z-50"
+        className="fixed top-4 left-4 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded font-medium text-sm transition-colors shadow z-50"
       >
         {i18n.language === 'en' ? 'RU' : 'EN'}
       </button>
 
-      <div className="bg-amber-900 text-amber-100 p-4 rounded-lg mb-6">
-        <h1 className="text-3xl font-bold text-center">{t('game.title')}</h1>
-        <p className="text-center mt-2">{t('game.subtitle')}</p>
-      </div>
+      {/* Flex container for sidebar + main content */}
+      <div className="flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto">
 
-      {/* Phase Progress */}
-      <div className="bg-white rounded-lg p-4 mb-6 shadow">
-        <h3 className="text-lg font-semibold mb-3">{t('game.phaseProgress')}</h3>
-        <div className="flex space-x-2">
-          {phases.map((phase, index) => (
-            <div
-              key={phase}
-              className={`flex-1 text-center py-2 px-1 rounded text-sm ${
-                phase === gameState.phase
-                  ? 'bg-amber-500 text-white font-semibold'
-                  : index < phases.indexOf(gameState.phase)
-                  ? 'bg-green-200 text-green-800'
-                  : 'bg-gray-200 text-gray-600'
-              }`}
-            >
-              {phaseNames[phase]}
+        {/* Sidebar */}
+        <aside className="lg:w-80 flex-shrink-0 space-y-4">
+
+          {/* Game Status - Turn & Phase */}
+          <div className="bg-white rounded-lg p-4 shadow">
+            <h2 className="text-2xl font-bold text-amber-900 mb-3">
+              {t('game.turn', { turn: gameState.turn })}
+            </h2>
+            <div className="bg-gray-50 p-3 rounded text-sm">
+              <p className="text-gray-700">{getPhaseDescription(gameState.phase)}</p>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* Game Controls */}
-      <div className="bg-white rounded-lg p-4 mb-6 shadow">
-        <div className="flex justify-between items-center">
-          <button
-            onClick={resetGame}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors"
-          >
-            {t('game.resetGame')}
-          </button>
+          {/* Phase Progress - Vertical */}
+          <div className="bg-white rounded-lg p-4 shadow">
+            <h3 className="text-sm font-semibold mb-3 text-gray-700">{t('game.phaseProgress')}</h3>
+            <div className="space-y-2">
+              {phases.map((phase, index) => (
+                <div
+                  key={phase}
+                  className={`text-center py-2 px-3 rounded text-sm font-medium ${
+                    phase === gameState.phase
+                      ? 'bg-amber-500 text-white font-semibold'
+                      : index < phases.indexOf(gameState.phase)
+                      ? 'bg-green-200 text-green-800'
+                      : 'bg-gray-200 text-gray-600'
+                  }`}
+                >
+                  {phaseNames[phase]}
+                </div>
+              ))}
+            </div>
+          </div>
 
-          <div className="text-center">
+          {/* Game Controls */}
+          <div className="bg-white rounded-lg p-4 shadow space-y-3">
             {/* Helper text */}
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-xs text-gray-600 text-center">
               {gameState.turn >= 20 ? t('game.gameCompleteCheck') :
                gameState.phase === 'construction' && mode === 'online' ? t('game.markDoneToProc') :
                gameState.phase === 'construction' ? t('game.playersTakeTurns') :
@@ -1925,12 +1927,12 @@ const PskovGame = () => {
                 (gameState.phase === 'events' && !gameState.eventResolved) ||
                 (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId])
               }
-              className={`px-6 py-3 rounded font-semibold transition-colors ${
+              className={`w-full py-4 rounded-lg font-bold text-lg transition-all shadow-lg ${
                 gameState.turn > 20 ||
                 (gameState.phase === 'events' && !gameState.eventResolved) ||
                 (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId])
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-amber-600 hover:bg-amber-700 text-white'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                  : 'bg-amber-600 hover:bg-amber-700 hover:shadow-xl text-white transform hover:scale-105'
               }`}
             >
               {gameState.turn > 20 ? t('game.gameComplete') :
@@ -1939,43 +1941,39 @@ const PskovGame = () => {
                  (gameState.constructionReady[playerId] ? t('game.readyCheck') : t('game.imDone')) :
                t('game.nextPhase')}
             </button>
+
+            {/* Reset Game Button */}
+            <button
+              onClick={resetGame}
+              className="w-full border-2 border-gray-300 hover:border-red-400 text-gray-600 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded transition-colors text-xs"
+            >
+              {t('game.resetGame')}
+            </button>
+
+            {/* Game End Info */}
+            <div className="text-center pt-2 border-t">
+              <p className="text-xs text-gray-600">{t('game.gameEndInfo')}</p>
+              <p className="font-semibold text-sm">{t('game.turn20')}</p>
+            </div>
           </div>
 
-          <div className="text-right">
-            <p className="text-sm text-gray-600">{t('game.gameEndInfo')}</p>
-            <p className="font-semibold">{t('game.turn20')}</p>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 min-w-0">
+
+          {/* Compact Header */}
+          <div className="bg-amber-900 text-amber-100 p-3 rounded-lg mb-4">
+            <h1 className="text-2xl font-bold text-center">{t('game.title')}</h1>
+            <p className="text-center text-sm mt-1">{t('game.subtitle')}</p>
           </div>
-        </div>
-      </div>
 
-      {/* Debug Info */}
-      {DEBUG_MODE && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-          <h4 className="font-medium text-yellow-800">🐛 Debug Mode Active</h4>
-          <p className="text-yellow-700 text-sm">
-            Events cycle in order: Izhorian Delegation → Good Harvest → Drought → Fire → City Fire → Heresy → Order Attacks → Plague → Boyars → Embassy → Relics → Merchants Robbed...
-            <br />
-            Next event: {eventDeck[gameState.debugEventIndex]?.name}
-          </p>
-        </div>
-      )}
-
-      {/* Game Status */}
-      <div className="bg-white rounded-lg p-4 mb-6 shadow">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-semibold">{t('game.turn', { turn: gameState.turn })}</h2>
-          <div className="text-lg">
-            <span className="font-medium">{t('game.currentPhase')} </span>
-            <span className="bg-amber-200 px-3 py-1 rounded font-semibold">
-              {phaseNames[gameState.phase]}
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-gray-50 p-3 rounded">
-          <p className="text-gray-700">{getPhaseDescription(gameState.phase)}</p>
-        </div>
-      </div>
+          {/* Debug Mode Indicator */}
+          {DEBUG_MODE && (
+            <div className="fixed bottom-4 left-4 bg-yellow-400 text-yellow-900 px-2 py-1 rounded text-xs font-medium shadow z-40">
+              Debug mode
+            </div>
+          )}
 
       {/* Active Effects Display */}
       {gameState.activeEffects.length > 0 && (
@@ -3168,6 +3166,13 @@ const PskovGame = () => {
           </div>
         </div>
       )}
+
+        </main>
+        {/* End Main Content Area */}
+
+      </div>
+      {/* End Flex Container */}
+
     </div>
   );
 };
