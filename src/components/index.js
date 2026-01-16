@@ -1,2 +1,3 @@
 export { MainMenu } from './MainMenu';
 export { Lobby } from './Lobby';
+export { default as GameMap } from './GameMap';

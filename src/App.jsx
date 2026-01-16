@@ -6,7 +6,7 @@ import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEve
 import { useGameStore } from './store/gameStore';
 
 // Import UI components
-import { MainMenu, Lobby } from './components';
+import { MainMenu, Lobby, GameMap } from './components';
 
 // Import game logic from modular structure
 import {
@@ -2063,6 +2063,9 @@ const PskovGame = () => {
           );
         })}
       </div>
+
+      {/* Game Map */}
+      <GameMap gameState={gameState} />
 
       {/* Construction Phase Interface */}
       {gameState.phase === 'construction' && (() => {

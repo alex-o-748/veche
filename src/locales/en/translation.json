@@ -67,6 +67,16 @@
     "pechory": "Pechory",
     "bearhill": "Bear Hill"
   },
+  "map": {
+    "title": "Map of the Pskov Republic",
+    "legend": {
+      "capital": "Pskov (Capital)",
+      "republic_town": "Republic Town",
+      "republic_fortress": "Republic Fortress",
+      "order_town": "Order Territory",
+      "order_fortress": "Order Fortress"
+    }
+  },
   "game": {
     "loading": "Loading game...",
     "title": "Medieval Pskov",
