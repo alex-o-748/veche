@@ -1872,7 +1872,7 @@ const PskovGame = () => {
       </button>
 
       {/* Flex container for sidebar + main content */}
-      <div className="flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto">
+      <div className="flex flex-col lg:flex-row gap-4 max-w-screen-2xl mx-auto">
 
         {/* Sidebar */}
         <aside className="lg:w-56 flex-shrink-0 space-y-4">
