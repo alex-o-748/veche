@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Coordinate Picker</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: monospace;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #4ade80;
+        }
+        .info {
+            background: #2a2a2a;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .coordinates {
+            background: #4ade80;
+            color: black;
+            padding: 10px 15px;
+            border-radius: 4px;
+            display: inline-block;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        .image-container {
+            position: relative;
+            display: inline-block;
+            cursor: crosshair;
+            border: 3px solid #4ade80;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+        .marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ef4444;
+            background: rgba(239, 68, 68, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+        }
+        .marker-label {
+            position: absolute;
+            background: #ef4444;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            transform: translate(-50%, -120%);
+            pointer-events: none;
+            font-weight: bold;
+        }
+        .history {
+            background: #2a2a2a;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .history-item {
+            background: #3a3a3a;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #4ade80;
+        }
+        .clear-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .clear-btn:hover {
+            background: #dc2626;
+        }
+        .instructions {
+            background: #1e3a8a;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Map Coordinate Picker</h1>
+
+        <div class="instructions">
+            <strong>Instructions:</strong> Click anywhere on the map to get coordinates.
+            The coordinates will be shown in the format needed for your GameMap component.
+        </div>
+
+        <div class="info">
+            <div>Current Position: <span class="coordinates" id="current-coords">Click on the map...</span></div>
+            <div style="margin-top: 10px; color: #888;">Hover over the map to see live coordinates</div>
+        </div>
+
+        <div class="image-container" id="imageContainer">
+            <img src="/images/map-background.png" id="mapImage" alt="Map">
+        </div>
+
+        <div class="history">
+            <h3>Click History:</h3>
+            <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+            <div id="history"></div>
+        </div>
+    </div>
+
+    <script>
+        const img = document.getElementById('mapImage');
+        const container = document.getElementById('imageContainer');
+        const currentCoords = document.getElementById('current-coords');
+        const history = document.getElementById('history');
+        let clickCount = 0;
+
+        // Wait for image to load to get natural dimensions
+        img.onload = function() {
+            const info = document.querySelector('.info');
+            const dimensions = document.createElement('div');
+            dimensions.style.marginTop = '10px';
+            dimensions.style.color = '#888';
+            dimensions.innerHTML = `Image size: ${img.naturalWidth} × ${img.naturalHeight} pixels`;
+            info.appendChild(dimensions);
+        };
+
+        container.addEventListener('mousemove', function(e) {
+            const rect = img.getBoundingClientRect();
+            const scaleX = img.naturalWidth / rect.width;
+            const scaleY = img.naturalHeight / rect.height;
+
+            const x = Math.round((e.clientX - rect.left) * scaleX);
+            const y = Math.round((e.clientY - rect.top) * scaleY);
+
+            currentCoords.textContent = `x: ${x}, y: ${y}`;
+        });
+
+        container.addEventListener('click', function(e) {
+            const rect = img.getBoundingClientRect();
+            const scaleX = img.naturalWidth / rect.width;
+            const scaleY = img.naturalHeight / rect.height;
+
+            const x = Math.round((e.clientX - rect.left) * scaleX);
+            const y = Math.round((e.clientY - rect.top) * scaleY);
+
+            // Create marker
+            const marker = document.createElement('div');
+            marker.className = 'marker';
+            marker.style.left = `${e.clientX - rect.left}px`;
+            marker.style.top = `${e.clientY - rect.top}px`;
+
+            const label = document.createElement('div');
+            label.className = 'marker-label';
+            label.textContent = `${x}, ${y}`;
+            label.style.left = `${e.clientX - rect.left}px`;
+            label.style.top = `${e.clientY - rect.top}px`;
+
+            container.appendChild(marker);
+            container.appendChild(label);
+
+            // Add to history
+            clickCount++;
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.innerHTML = `
+                <strong>#${clickCount}:</strong>
+                { x: ${x}, y: ${y} }
+                <span style="color: #888; margin-left: 10px;">// Copy this: x: ${x}, y: ${y}</span>
+            `;
+            history.insertBefore(historyItem, history.firstChild);
+
+            // Scroll to top of history
+            history.scrollTop = 0;
+        });
+
+        container.addEventListener('mouseleave', function() {
+            currentCoords.textContent = 'Move mouse over the map...';
+        });
+
+        function clearHistory() {
+            // Remove all markers
+            const markers = container.querySelectorAll('.marker, .marker-label');
+            markers.forEach(m => m.remove());
+
+            // Clear history
+            const historyItems = history.querySelectorAll('.history-item');
+            historyItems.forEach(item => item.remove());
+
+            clickCount = 0;
+        }
+    </script>
+</body>
+</html>
