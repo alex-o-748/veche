@@ -303,19 +303,21 @@ function selectRegion(state: GameState, regionName: string): GameState {
 }
 
 // Build a building
-function buildBuilding(state: GameState, buildingType: string): GameState {
-  const player = state.players[state.currentPlayer];
+function buildBuilding(state: GameState, buildingType: string, playerId: number | null = null): GameState {
+  // Use playerId if provided (online mode), otherwise fall back to currentPlayer (local mode)
+  const playerIndex = playerId !== null ? playerId : state.currentPlayer;
+  const player = state.players[playerIndex];
 
   if (player.money < 2) {
     return state;
   }
 
   const newPlayers = state.players.map((p, i) =>
-    i === state.currentPlayer ? { ...p, money: p.money - 2, improvements: p.improvements + 1 } : p
+    i === playerIndex ? { ...p, money: p.money - 2, improvements: p.improvements + 1 } : p
   );
 
   const newConstructionActions = state.constructionActions.map((ca, i) =>
-    i === state.currentPlayer ? { ...ca, improvement: true } : ca
+    i === playerIndex ? { ...ca, improvement: true } : ca
   );
 
   const currentRegion = state.regions[state.selectedRegion];
@@ -343,8 +345,9 @@ function buildBuilding(state: GameState, buildingType: string): GameState {
 }
 
 // Buy equipment
-function buyEquipment(state: GameState, item: 'weapons' | 'armor'): GameState {
-  const playerIndex = state.currentPlayer;
+function buyEquipment(state: GameState, item: 'weapons' | 'armor', playerId: number | null = null): GameState {
+  // Use playerId if provided (online mode), otherwise fall back to currentPlayer (local mode)
+  const playerIndex = playerId !== null ? playerId : state.currentPlayer;
   const player = state.players[playerIndex];
   const cost = EQUIPMENT_COSTS[item] || 1;
 
@@ -641,13 +644,13 @@ export function applyAction(
 
     case ActionTypes.BUILD_BUILDING:
       return {
-        newState: buildBuilding(state, action.buildingType || ''),
+        newState: buildBuilding(state, action.buildingType || '', playerId),
         result: { type: 'building_built' },
       };
 
     case ActionTypes.BUY_EQUIPMENT:
       return {
-        newState: buyEquipment(state, action.item || 'weapons'),
+        newState: buyEquipment(state, action.item || 'weapons', playerId),
         result: { type: 'equipment_bought' },
       };
 
