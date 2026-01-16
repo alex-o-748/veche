@@ -132,7 +132,7 @@ const GameMap = ({ gameState }) => {
       {/* Map Container */}
       <div className="relative w-full" style={{ backgroundColor: '#d4d4d4' }}>
         <img
-          src="/images/map.png"
+          src="/images/map-background.png"
           alt={t('map.title')}
           className="w-full h-auto"
           style={{ display: 'block' }}
