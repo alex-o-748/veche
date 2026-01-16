@@ -71,9 +71,9 @@ const GameMap = ({ gameState }) => {
   ];
 
   const getSettlementIcon = (city) => {
-    // Convert relative coords (0-1) to viewBox coords (0-1000)
-    const x = city.x * 1000;
-    const y = city.y * 1000;
+    // Convert relative coords (0-1) to viewBox coords (1024x1536)
+    const x = city.x * 1024;
+    const y = city.y * 1536;
 
     // Pskov is always special
     if (city.region === 'pskov') {
@@ -102,9 +102,9 @@ const GameMap = ({ gameState }) => {
   };
 
   const getCityLabel = (city) => {
-    // Convert relative coords (0-1) to viewBox coords (0-1000)
-    const x = city.x * 1000;
-    const y = city.y * 1000;
+    // Convert relative coords (0-1) to viewBox coords (1024x1536)
+    const x = city.x * 1024;
+    const y = city.y * 1536;
 
     return (
       <text
@@ -142,7 +142,7 @@ const GameMap = ({ gameState }) => {
         {/* SVG Overlay for settlements */}
         <svg
           className="absolute top-0 left-0 w-full h-full"
-          viewBox="0 0 1000 1000"
+          viewBox="0 0 1024 1536"
           preserveAspectRatio="xMidYMid meet"
           style={{ pointerEvents: 'none' }}
         >
