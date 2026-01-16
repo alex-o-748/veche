@@ -1875,7 +1875,7 @@ const PskovGame = () => {
       <div className="flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto">
 
         {/* Sidebar */}
-        <aside className="lg:w-80 flex-shrink-0 space-y-4">
+        <aside className="lg:w-64 flex-shrink-0 space-y-4">
 
           {/* Game Status - Turn & Phase */}
           <div className="bg-white rounded-lg p-4 shadow">
@@ -2010,47 +2010,47 @@ const PskovGame = () => {
             : (gameState.phase === 'construction' && index === gameState.currentPlayer);
 
           return (
-          <div key={index} className={`bg-white rounded-lg p-4 shadow ${
+          <div key={index} className={`bg-white rounded-lg p-3 shadow ${
             isActivePlayer
               ? 'ring-4 ring-amber-400'
               : ''
           }`}>
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2">
               {FACTION_IMAGES[player.faction] && (
                 <img
                   src={FACTION_IMAGES[player.faction]}
                   alt={player.faction}
-                  className="w-24 h-40 rounded-lg object-cover shadow-sm"
+                  className="w-16 h-28 rounded-lg object-cover shadow-sm"
                 />
               )}
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold mb-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-semibold mb-1">
                   {t(`factions.${player.faction}`)}
                   {mode === 'online' && index === playerId && (
-                    <span className="text-amber-600 ml-2">{t('game.you')}</span>
+                    <span className="text-amber-600 ml-1 text-xs">{t('game.you')}</span>
                   )}
                   {gameState.phase === 'construction' && gameState.currentPlayer === index && mode === 'local' && (
-                    <span className="text-amber-600 ml-2">{t('game.yourTurn')}</span>
+                    <span className="text-amber-600 ml-1 text-xs">{t('game.yourTurn')}</span>
                   )}
                   {gameState.phase === 'construction' && mode === 'online' && (
-                    <span className={`ml-2 text-sm ${gameState.constructionReady[index] ? 'text-green-600' : 'text-gray-400'}`}>
+                    <span className={`ml-1 text-xs ${gameState.constructionReady[index] ? 'text-green-600' : 'text-gray-400'}`}>
                       {gameState.constructionReady[index] ? t('game.readyCheck') : t('game.building')}
                     </span>
                   )}
                 </h3>
-                <div className="space-y-1 text-sm">
+                <div className="space-y-0.5 text-xs">
                   <div>{t('game.money')}: {player.money.toFixed(1)} ○</div>
-                  <div>{t('game.improvements')}: {player.improvements}</div>
+                  <div>{t('game.buildings')}: {player.improvements}</div>
                   <div className="flex items-center gap-1">
                     {t('game.weapons')}: {player.weapons}
                     {player.weapons > 0 && getEquipmentImage('weapons', player.faction) && (
-                      <img src={getEquipmentImage('weapons', player.faction)} alt="weapons" className="w-5 h-5 object-cover rounded" />
+                      <img src={getEquipmentImage('weapons', player.faction)} alt="weapons" className="w-4 h-4 object-cover rounded" />
                     )}
                   </div>
                   <div className="flex items-center gap-1">
                     {t('game.armor')}: {player.armor}
                     {player.armor > 0 && getEquipmentImage('armor', player.faction) && (
-                      <img src={getEquipmentImage('armor', player.faction)} alt="armor" className="w-5 h-5 object-cover rounded" />
+                      <img src={getEquipmentImage('armor', player.faction)} alt="armor" className="w-4 h-4 object-cover rounded" />
                     )}
                   </div>
                   <div className="text-gray-600">
@@ -3171,7 +3171,7 @@ const PskovGame = () => {
         {/* End Main Content Area */}
 
         {/* Right Sidebar - Map */}
-        <aside className="lg:w-80 flex-shrink-0">
+        <aside className="lg:w-72 flex-shrink-0">
           <GameMap gameState={gameState} />
         </aside>
 
