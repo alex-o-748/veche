@@ -1875,7 +1875,7 @@ const PskovGame = () => {
       <div className="flex flex-col lg:flex-row gap-4 max-w-7xl mx-auto">
 
         {/* Sidebar */}
-        <aside className="lg:w-64 flex-shrink-0 space-y-4">
+        <aside className="lg:w-56 flex-shrink-0 space-y-4">
 
           {/* Game Status - Turn & Phase */}
           <div className="bg-white rounded-lg p-4 shadow">
@@ -3171,7 +3171,7 @@ const PskovGame = () => {
         {/* End Main Content Area */}
 
         {/* Right Sidebar - Map */}
-        <aside className="lg:w-72 flex-shrink-0">
+        <aside className="lg:w-96 flex-shrink-0">
           <GameMap gameState={gameState} />
         </aside>
 
