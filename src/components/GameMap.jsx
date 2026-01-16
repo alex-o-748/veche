@@ -59,21 +59,25 @@ const OrderFortressIcon = ({ x, y }) => (
 const GameMap = ({ gameState }) => {
   const { t } = useTranslation();
 
-  // City coordinates from user
+  // City coordinates (relative positions: 0-1 range)
   const cities = [
-    { name: 'pskov', x: 628, y: 993, region: 'pskov' },
-    { name: 'ostrov', x: 628, y: 1400, region: 'ostrov' },
-    { name: 'izborsk', x: 460, y: 1044, region: 'izborsk' },
-    { name: 'pechory', x: 290, y: 1003, region: 'pechory' },
-    { name: 'bearhill', x: 135, y: 773, region: 'bearhill' },
-    { name: 'skrynnitsy', x: 596, y: 654, region: 'skrynnitsy' },
-    { name: 'gdov', x: 365, y: 118, region: 'gdov' },
+    { name: 'pskov', x: 0.613, y: 0.646, region: 'pskov' },
+    { name: 'ostrov', x: 0.613, y: 0.911, region: 'ostrov' },
+    { name: 'izborsk', x: 0.449, y: 0.680, region: 'izborsk' },
+    { name: 'pechory', x: 0.283, y: 0.653, region: 'pechory' },
+    { name: 'bearhill', x: 0.132, y: 0.503, region: 'bearhill' },
+    { name: 'skrynnitsy', x: 0.582, y: 0.426, region: 'skrynnitsy' },
+    { name: 'gdov', x: 0.356, y: 0.077, region: 'gdov' },
   ];
 
   const getSettlementIcon = (city) => {
+    // Convert relative coords (0-1) to viewBox coords (0-1000)
+    const x = city.x * 1000;
+    const y = city.y * 1000;
+
     // Pskov is always special
     if (city.region === 'pskov') {
-      return <PskovIcon x={city.x} y={city.y} key={city.name} />;
+      return <PskovIcon x={x} y={y} key={city.name} />;
     }
 
     const region = gameState?.regions?.[city.region];
@@ -84,25 +88,29 @@ const GameMap = ({ gameState }) => {
 
     if (isRepublic) {
       return hasFortress ? (
-        <RepublicFortressIcon x={city.x} y={city.y} key={city.name} />
+        <RepublicFortressIcon x={x} y={y} key={city.name} />
       ) : (
-        <RepublicTownIcon x={city.x} y={city.y} key={city.name} />
+        <RepublicTownIcon x={x} y={y} key={city.name} />
       );
     } else {
       return hasFortress ? (
-        <OrderFortressIcon x={city.x} y={city.y} key={city.name} />
+        <OrderFortressIcon x={x} y={y} key={city.name} />
       ) : (
-        <OrderTownIcon x={city.x} y={city.y} key={city.name} />
+        <OrderTownIcon x={x} y={y} key={city.name} />
       );
     }
   };
 
   const getCityLabel = (city) => {
+    // Convert relative coords (0-1) to viewBox coords (0-1000)
+    const x = city.x * 1000;
+    const y = city.y * 1000;
+
     return (
       <text
         key={`label-${city.name}`}
-        x={city.x}
-        y={city.y + 45}
+        x={x}
+        y={y + 45}
         textAnchor="middle"
         fill="#1c1917"
         fontSize="20"
@@ -134,7 +142,7 @@ const GameMap = ({ gameState }) => {
         {/* SVG Overlay for settlements */}
         <svg
           className="absolute top-0 left-0 w-full h-full"
-          viewBox="0 0 800 1600"
+          viewBox="0 0 1000 1000"
           preserveAspectRatio="xMidYMid meet"
           style={{ pointerEvents: 'none' }}
         >

@@ -1957,9 +1957,6 @@ const PskovGame = () => {
             </div>
           </div>
 
-          {/* Game Map */}
-          <GameMap gameState={gameState} />
-
         </aside>
 
         {/* Main Content Area */}
@@ -3172,6 +3169,11 @@ const PskovGame = () => {
 
         </main>
         {/* End Main Content Area */}
+
+        {/* Right Sidebar - Map */}
+        <aside className="lg:w-80 flex-shrink-0">
+          <GameMap gameState={gameState} />
+        </aside>
 
       </div>
       {/* End Flex Container */}
