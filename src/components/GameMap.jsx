@@ -61,13 +61,13 @@ const GameMap = ({ gameState }) => {
 
   // City coordinates from user
   const cities = [
-    { name: 'pskov', x: 650, y: 1025, region: 'pskov' },
-    { name: 'gdov', x: 520, y: 110, region: 'gdov' },
-    { name: 'bearhill', x: 270, y: 565, region: 'bearhill' },
-    { name: 'pechory', x: 350, y: 780, region: 'pechory' },
-    { name: 'izborsk', x: 455, y: 835, region: 'izborsk' },
-    { name: 'skrynnitsy', x: 535, y: 845, region: 'skrynnitsy' },
-    { name: 'ostrov', x: 600, y: 1415, region: 'ostrov' },
+    { name: 'pskov', x: 628, y: 993, region: 'pskov' },
+    { name: 'ostrov', x: 628, y: 1400, region: 'ostrov' },
+    { name: 'izborsk', x: 460, y: 1044, region: 'izborsk' },
+    { name: 'pechory', x: 290, y: 1003, region: 'pechory' },
+    { name: 'bearhill', x: 135, y: 773, region: 'bearhill' },
+    { name: 'skrynnitsy', x: 596, y: 654, region: 'skrynnitsy' },
+    { name: 'gdov', x: 365, y: 118, region: 'gdov' },
   ];
 
   const getSettlementIcon = (city) => {
@@ -121,14 +121,7 @@ const GameMap = ({ gameState }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto my-6 border-4 border-amber-900 rounded-lg overflow-hidden shadow-2xl bg-amber-50">
-      {/* Map Title */}
-      <div className="bg-amber-900 text-amber-50 py-3 px-4 text-center">
-        <h2 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif' }}>
-          {t('map.title')}
-        </h2>
-      </div>
-
+    <div className="w-full border-4 border-amber-900 rounded-lg overflow-hidden shadow-lg bg-amber-50">
       {/* Map Container */}
       <div className="relative w-full" style={{ backgroundColor: '#d4d4d4' }}>
         <img

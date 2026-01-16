@@ -1957,6 +1957,9 @@ const PskovGame = () => {
             </div>
           </div>
 
+          {/* Game Map */}
+          <GameMap gameState={gameState} />
+
         </aside>
 
         {/* Main Content Area */}
@@ -2063,9 +2066,6 @@ const PskovGame = () => {
           );
         })}
       </div>
-
-      {/* Game Map */}
-      <GameMap gameState={gameState} />
 
       {/* Construction Phase Interface */}
       {gameState.phase === 'construction' && (() => {
