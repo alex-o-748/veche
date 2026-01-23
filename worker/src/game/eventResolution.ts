@@ -140,10 +140,22 @@ function resolveMerchantsRobbed(state: GameState, option: string): GameState {
     case 'rob_foreign': {
       const roll = Math.floor(Math.random() * 6) + 1;
       if (roll <= 3) {
-        // Trigger Order attack
+        // Trigger Order attack - create the event
+        const orderAttackEvent: FullGameEvent = {
+          id: 'order_attack_rob_foreign',
+          name: 'Order Attack (100)',
+          type: 'order_attack',
+          description: 'The Teutonic Order retaliates for the robbed merchants! They attack with strength 100.',
+          orderStrength: 100,
+          question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+          minCostPerPlayer: 1,
+        };
         return {
           ...state,
-          lastEventResult: `Rolled ${roll}! The Order retaliates! Prepare for attack!`,
+          currentEvent: orderAttackEvent,
+          eventResolved: false,
+          eventVotes: [null, null, null],
+          lastEventResult: `Rolled ${roll}! The Order attacks immediately!`,
         };
       } else {
         return {
