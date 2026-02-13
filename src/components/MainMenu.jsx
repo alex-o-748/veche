@@ -2,20 +2,24 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../store/gameStore';
 
+const FACTIONS = ['Nobles', 'Merchants', 'Commoners'];
+
 /**
  * MainMenu Component
  *
  * Entry point for the game - allows choosing between:
- * - Local (hotseat) play
+ * - Local play with AI configuration (1-3 human players)
  * - Create online room
  * - Join existing online room
  */
 export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
   const { t, i18n } = useTranslation();
   const [showJoinForm, setShowJoinForm] = useState(false);
+  const [showGameSetup, setShowGameSetup] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [aiPlayers, setAiPlayers] = useState([false, false, false]);
   const error = useGameStore((state) => state.error);
   const clearError = useGameStore((state) => state.clearError);
 
@@ -43,6 +47,28 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
       setIsLoading(false);
     }
   };
+
+  const toggleAi = (index) => {
+    setAiPlayers(prev => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
+
+  const handleStartWithAi = () => {
+    // At least one human player required
+    if (aiPlayers.every(ai => ai)) return;
+    onStartLocal(aiPlayers);
+  };
+
+  const setPreset = (preset) => {
+    if (preset === 'solo') setAiPlayers([false, true, true]);
+    else if (preset === 'duo') setAiPlayers([false, false, true]);
+    else setAiPlayers([false, false, false]);
+  };
+
+  const humanCount = aiPlayers.filter(ai => !ai).length;
 
   return (
     <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
@@ -79,12 +105,86 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
           </div>
         )}
 
-        {/* Main menu options */}
-        {!showJoinForm ? (
+        {/* Game Setup Screen */}
+        {showGameSetup ? (
           <div className="space-y-4">
-            {/* Local play button */}
             <button
-              onClick={onStartLocal}
+              onClick={() => setShowGameSetup(false)}
+              className="text-gray-500 hover:text-gray-700 mb-2"
+            >
+              {t('menu.back')}
+            </button>
+
+            <h3 className="text-lg font-semibold text-amber-900">{t('menu.setupGame')}</h3>
+
+            {/* Quick presets */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPreset('solo')}
+                className={`flex-1 py-2 px-3 rounded text-sm font-medium border transition-colors ${
+                  humanCount === 1 ? 'bg-amber-500 text-white border-amber-600' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'
+                }`}
+              >
+                {t('menu.solo')}
+              </button>
+              <button
+                onClick={() => setPreset('duo')}
+                className={`flex-1 py-2 px-3 rounded text-sm font-medium border transition-colors ${
+                  humanCount === 2 ? 'bg-amber-500 text-white border-amber-600' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'
+                }`}
+              >
+                {t('menu.duo')}
+              </button>
+              <button
+                onClick={() => setPreset('three')}
+                className={`flex-1 py-2 px-3 rounded text-sm font-medium border transition-colors ${
+                  humanCount === 3 ? 'bg-amber-500 text-white border-amber-600' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'
+                }`}
+              >
+                {t('menu.threePlayer')}
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600">{t('menu.selectPlayers')}</p>
+
+            {/* Faction toggles */}
+            <div className="space-y-3">
+              {FACTIONS.map((faction, index) => (
+                <div key={faction} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border">
+                  <span className="font-medium text-gray-800">{t(`factions.${faction}`)}</span>
+                  <button
+                    onClick={() => toggleAi(index)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      aiPlayers[index]
+                        ? 'bg-blue-500 text-white hover:bg-blue-600'
+                        : 'bg-green-500 text-white hover:bg-green-600'
+                    }`}
+                  >
+                    {aiPlayers[index] ? t('menu.ai') : t('menu.human')}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Validation message */}
+            {aiPlayers.every(ai => ai) && (
+              <p className="text-red-500 text-sm">{t('menu.needOneHuman')}</p>
+            )}
+
+            {/* Start button */}
+            <button
+              onClick={handleStartWithAi}
+              disabled={aiPlayers.every(ai => ai)}
+              className="w-full py-4 px-6 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:text-gray-500 text-white rounded-lg font-semibold text-lg transition-colors"
+            >
+              {t('menu.startGame')}
+            </button>
+          </div>
+        ) : !showJoinForm ? (
+          <div className="space-y-4">
+            {/* Local play button - now opens game setup */}
+            <button
+              onClick={() => setShowGameSetup(true)}
               className="w-full py-4 px-6 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-lg transition-colors"
             >
               {t('menu.playLocal')}

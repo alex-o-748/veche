@@ -45,6 +45,12 @@ import {
   // State
   createInitialGameState,
   formatRegionName,
+
+  // AI
+  decideConstruction,
+  decideEventVote,
+  decideAttackVote,
+  decideFortressVote,
 } from './game';
 
 const PskovGame = () => {
@@ -59,6 +65,7 @@ const PskovGame = () => {
   const mode = useGameStore((state) => state.mode);
   const playerId = useGameStore((state) => state.playerId);
   const sendAction = useGameStore((state) => state.sendAction);
+  const aiPlayers = useGameStore((state) => state.aiPlayers);
 
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
@@ -128,6 +135,169 @@ const PskovGame = () => {
       return () => clearTimeout(timer);
     }
   }, [gameState?.currentEvent, gameState?.eventImageRevealed, setGameState]);
+
+  // AI player automation
+  useEffect(() => {
+    if (!gameState || mode !== 'local' || gameState.gameOver || gameState.turn > 20) return;
+
+    // --- Construction phase: auto-play AI turns ---
+    if (gameState.phase === 'construction' && aiPlayers[gameState.currentPlayer]) {
+      const timer = setTimeout(() => {
+        const currentState = useGameStore.getState().gameState;
+        if (!currentState || currentState.phase !== 'construction') return;
+        const aiIndex = currentState.currentPlayer;
+        if (!aiPlayers[aiIndex]) return;
+
+        const decision = decideConstruction(currentState, aiIndex);
+
+        setGameState(prev => {
+          if (!prev || prev.phase !== 'construction' || prev.currentPlayer !== aiIndex) return prev;
+          let state = { ...prev };
+
+          // Select region and build if decided
+          if (decision.buildingType && decision.regionName && prev.players[aiIndex].money >= 2) {
+            const region = state.regions[decision.regionName];
+            const buildingType = decision.buildingType;
+
+            // Check building is available
+            let canBuild = false;
+            if (buildingType.startsWith('merchant_')) {
+              canBuild = (region.buildings[buildingType] || 0) < 7;
+            } else {
+              canBuild = (region.buildings[buildingType] || 0) === 0;
+            }
+
+            if (canBuild && !state.constructionActions[aiIndex].improvement) {
+              const newBuildings = buildingType.startsWith('merchant_')
+                ? { ...region.buildings, [buildingType]: (region.buildings[buildingType] || 0) + 1 }
+                : { ...region.buildings, [buildingType]: 1 };
+
+              state = {
+                ...state,
+                selectedRegion: decision.regionName,
+                regions: {
+                  ...state.regions,
+                  [decision.regionName]: { ...region, buildings: newBuildings },
+                },
+                players: state.players.map((p, i) =>
+                  i === aiIndex ? { ...p, money: p.money - 2, improvements: p.improvements + 1 } : p
+                ),
+                constructionActions: state.constructionActions.map((ca, i) =>
+                  i === aiIndex ? { ...ca, improvement: true } : ca
+                ),
+              };
+            }
+          }
+
+          // Buy equipment if decided and affordable
+          if (decision.equipmentType && state.players[aiIndex].money >= 1 && !state.constructionActions[aiIndex].equipment) {
+            const eqType = decision.equipmentType;
+            state = {
+              ...state,
+              players: state.players.map((p, i) =>
+                i === aiIndex ? { ...p, money: p.money - 1, [eqType]: p[eqType] + 1 } : p
+              ),
+              constructionActions: state.constructionActions.map((ca, i) =>
+                i === aiIndex ? { ...ca, equipment: true } : ca
+              ),
+            };
+          }
+
+          // Advance to next player
+          return { ...state, currentPlayer: (aiIndex + 1) % 3 };
+        });
+      }, 800); // Short delay so human can see AI is taking a turn
+      return () => clearTimeout(timer);
+    }
+
+    // --- Events phase: auto-vote for AI players ---
+    if (gameState.phase === 'events' && gameState.currentEvent && !gameState.eventResolved) {
+      // Find AI players that haven't voted yet
+      const aiNeedsVote = aiPlayers.map((isAi, i) =>
+        isAi && gameState.eventVotes[i] === null ? i : -1
+      ).filter(i => i >= 0);
+
+      if (aiNeedsVote.length > 0) {
+        const timer = setTimeout(() => {
+          const currentState = useGameStore.getState().gameState;
+          if (!currentState || currentState.phase !== 'events' || !currentState.currentEvent || currentState.eventResolved) return;
+
+          setGameState(prev => {
+            if (!prev || !prev.currentEvent) return prev;
+            const newVotes = [...prev.eventVotes];
+            aiNeedsVote.forEach(aiIndex => {
+              if (newVotes[aiIndex] === null) {
+                newVotes[aiIndex] = decideEventVote(prev, aiIndex, prev.currentEvent);
+              }
+            });
+            return { ...prev, eventVotes: newVotes };
+          });
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+
+    // --- Veche phase: auto-vote for attacks ---
+    if (gameState.phase === 'veche' && gameState.attackPlanning === 'planning') {
+      const aiNeedsVote = aiPlayers.map((isAi, i) =>
+        isAi && gameState.attackVotes[i] === null ? i : -1
+      ).filter(i => i >= 0);
+
+      if (aiNeedsVote.length > 0) {
+        const timer = setTimeout(() => {
+          setGameState(prev => {
+            if (!prev || prev.attackPlanning !== 'planning') return prev;
+            const newVotes = [...prev.attackVotes];
+            aiNeedsVote.forEach(aiIndex => {
+              if (newVotes[aiIndex] === null) {
+                newVotes[aiIndex] = decideAttackVote(prev, aiIndex);
+              }
+            });
+            return { ...prev, attackVotes: newVotes };
+          });
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }
+
+    // --- Veche phase: auto-vote for fortress ---
+    if (gameState.phase === 'veche' && gameState.fortressPlanning === 'planning') {
+      const aiNeedsVote = aiPlayers.map((isAi, i) =>
+        isAi && gameState.fortressVotes[i] === null ? i : -1
+      ).filter(i => i >= 0);
+
+      if (aiNeedsVote.length > 0) {
+        const timer = setTimeout(() => {
+          setGameState(prev => {
+            if (!prev || prev.fortressPlanning !== 'planning') return prev;
+            const newVotes = [...prev.fortressVotes];
+            aiNeedsVote.forEach(aiIndex => {
+              if (newVotes[aiIndex] === null) {
+                newVotes[aiIndex] = decideFortressVote(prev, aiIndex);
+              }
+            });
+            return { ...prev, fortressVotes: newVotes };
+          });
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [
+    gameState?.phase,
+    gameState?.currentPlayer,
+    gameState?.currentEvent,
+    gameState?.eventResolved,
+    gameState?.eventVotes,
+    gameState?.attackPlanning,
+    gameState?.attackVotes,
+    gameState?.fortressPlanning,
+    gameState?.fortressVotes,
+    gameState?.gameOver,
+    gameState?.turn,
+    aiPlayers,
+    mode,
+    setGameState,
+  ]);
 
   // Show loading state while initializing
   if (!gameState) {
@@ -2029,8 +2199,14 @@ const PskovGame = () => {
                   {mode === 'online' && index === playerId && (
                     <span className="text-amber-600 ml-1 text-xs">{t('game.you')}</span>
                   )}
-                  {gameState.phase === 'construction' && gameState.currentPlayer === index && mode === 'local' && (
+                  {mode === 'local' && aiPlayers[index] && (
+                    <span className="text-blue-500 ml-1 text-xs">{t('game.aiLabel')}</span>
+                  )}
+                  {gameState.phase === 'construction' && gameState.currentPlayer === index && mode === 'local' && !aiPlayers[index] && (
                     <span className="text-amber-600 ml-1 text-xs">{t('game.yourTurn')}</span>
+                  )}
+                  {gameState.phase === 'construction' && gameState.currentPlayer === index && mode === 'local' && aiPlayers[index] && (
+                    <span className="text-blue-400 ml-1 text-xs">{t('game.aiThinking')}</span>
                   )}
                   {gameState.phase === 'construction' && mode === 'online' && (
                     <span className={`ml-1 text-xs ${gameState.constructionReady[index] ? 'text-green-600' : 'text-gray-400'}`}>
@@ -2064,8 +2240,8 @@ const PskovGame = () => {
         })}
       </div>
 
-      {/* Construction Phase Interface */}
-      {gameState.phase === 'construction' && (() => {
+      {/* Construction Phase Interface - hide when AI is taking turn */}
+      {gameState.phase === 'construction' && !(mode === 'local' && aiPlayers[gameState.currentPlayer]) && (() => {
         // In online mode, use playerId; in local mode, use currentPlayer
         const activePlayerIndex = mode === 'online' ? playerId : gameState.currentPlayer;
         const activePlayer = gameState.players[activePlayerIndex];
@@ -2315,7 +2491,7 @@ const PskovGame = () => {
                   {gameState.players.map((player, index) => {
                     const hasVoted = gameState.eventVotes[index] !== null;
                     // In online mode, only show voting buttons for the current player
-                    const isCurrentPlayer = mode === 'online' ? index === playerId : true;
+                    const isCurrentPlayer = mode === 'online' ? index === playerId : !aiPlayers[index];
                     const votedOptionId = gameState.eventVotes[index];
                     const votedOption = votedOptionId
                       ? gameState.currentEvent.options.find(opt => opt.id === votedOptionId)
@@ -2552,7 +2728,7 @@ const PskovGame = () => {
                     const hasDecided = gameState.eventVotes[index] !== null;
                     const canAfford = player.money >= gameState.currentEvent.minCostPerPlayer;
                     // In online mode, only show voting buttons for the current player
-                    const isCurrentPlayer = mode === 'online' ? index === playerId : true;
+                    const isCurrentPlayer = mode === 'online' ? index === playerId : !aiPlayers[index];
 
                     return (
                       <div key={index} className={`text-center p-3 rounded ${
@@ -3217,9 +3393,9 @@ const App = () => {
     }
   }, [mode, room?.gameStarted, gameState, roomId]);
 
-  // Start local hotseat game
-  const handleStartLocal = () => {
-    initLocalGame();
+  // Start local game (with optional AI config)
+  const handleStartLocal = (aiConfig) => {
+    initLocalGame(aiConfig);
     setScreen('game');
   };
 
