@@ -2105,13 +2105,15 @@ const PskovGame = () => {
                 gameState.turn > 20 ||
                 (gameState.phase === 'events' && !gameState.eventResolved) ||
                 (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId]) ||
-                (gameState.phase === 'construction' && mode === 'local' && !gameState.constructionActions.every(ca => ca.done))
+                (gameState.phase === 'construction' && mode === 'local' &&
+                  gameState.constructionActions.some((ca, i) => !ca.done && i !== gameState.currentPlayer))
               }
               className={`w-full py-4 rounded-lg font-bold text-lg transition-all shadow-lg ${
                 gameState.turn > 20 ||
                 (gameState.phase === 'events' && !gameState.eventResolved) ||
                 (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId]) ||
-                (gameState.phase === 'construction' && mode === 'local' && !gameState.constructionActions.every(ca => ca.done))
+                (gameState.phase === 'construction' && mode === 'local' &&
+                  gameState.constructionActions.some((ca, i) => !ca.done && i !== gameState.currentPlayer))
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                   : 'bg-amber-600 hover:bg-amber-700 hover:shadow-xl text-white transform hover:scale-105'
               }`}
@@ -2409,8 +2411,8 @@ const PskovGame = () => {
             </div>
           </div>
 
-          {/* Only show Next Player button in local mode, hide once all done */}
-          {mode === 'local' && !gameState.constructionActions.every(ca => ca.done) && (
+          {/* Show Next Player button only when there are still other players who haven't gone */}
+          {mode === 'local' && gameState.constructionActions.some((ca, i) => !ca.done && i !== gameState.currentPlayer) && (
             <button
               onClick={nextPlayer}
               disabled={aiPlayers[gameState.currentPlayer]}
@@ -2434,8 +2436,9 @@ const PskovGame = () => {
         );
       })()}
 
-      {/* Construction Complete Message (local mode only) */}
-      {gameState.phase === 'construction' && gameState.constructionActions.every(ca => ca.done) && mode === 'local' && (
+      {/* Construction Complete Message (local mode only) - show when all other players are done */}
+      {gameState.phase === 'construction' && mode === 'local' &&
+        !gameState.constructionActions.some((ca, i) => !ca.done && i !== gameState.currentPlayer) && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h4 className="font-medium text-blue-800 mb-2">Construction Phase Complete</h4>
           <p className="text-blue-700 text-sm">All players have taken their construction turns. Click "Next Phase" to proceed to Events.</p>
