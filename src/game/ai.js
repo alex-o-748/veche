@@ -5,17 +5,26 @@ import { FACTION_BASE_STRENGTH, BUILDING_TYPES } from './state.js';
 import { getValidRepublicAttackTargets, getRegionsForFortress, canSelectRegion } from './regions.js';
 import { calculatePlayerStrength, calculateTotalStrength } from './combat.js';
 
+// Defense costs 3 total split among defenders. Reserve enough to cover our share.
+const DEFENSE_RESERVE = 1;
+
 /**
  * Decide what to build during the construction phase.
  * Returns an object: { regionName, buildingType, equipmentType }
  * Any field can be null if the AI decides not to act.
+ *
+ * The AI keeps a reserve so it can afford to defend against Order attacks.
+ * It only builds when it has enough money for both the building AND the reserve.
  */
 export const decideConstruction = (state, playerIndex) => {
   const player = state.players[playerIndex];
   const result = { regionName: null, buildingType: null, equipmentType: null };
 
-  // Priority 1: If we can afford a building (cost 2), try to build one
-  if (player.money >= 2) {
+  const buildCost = 2;
+  const equipCost = 1;
+
+  // Only build if we can afford it AND still have a defense reserve
+  if (player.money >= buildCost + DEFENSE_RESERVE) {
     const buildOption = findBestBuilding(state, playerIndex);
     if (buildOption) {
       result.regionName = buildOption.regionName;
@@ -23,9 +32,9 @@ export const decideConstruction = (state, playerIndex) => {
     }
   }
 
-  // Priority 2: Buy equipment if we have leftover money (cost 1 each)
-  // Prefer weapons if we have fewer weapons than armor, otherwise armor
-  if (player.money >= 1 || (result.buildingType && player.money >= 3)) {
+  // Buy equipment only if we still have enough left over after the reserve
+  const moneyAfterBuild = result.buildingType ? player.money - buildCost : player.money;
+  if (moneyAfterBuild >= equipCost + DEFENSE_RESERVE) {
     if (player.weapons <= player.armor) {
       result.equipmentType = 'weapons';
     } else {
@@ -123,8 +132,24 @@ const decideDefenseVote = (state, playerIndex, event) => {
 };
 
 /**
+ * Pick a random element from an array.
+ */
+const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+/**
+ * Get the options the AI can afford for a voting event.
+ * Returns all options that the player has enough money for.
+ */
+const getAffordableOptions = (options, playerMoney) => {
+  return options.filter(o => {
+    if (o.requiresMinMoney && playerMoney < o.requiresMinMoney) return false;
+    return true;
+  });
+};
+
+/**
  * Decide on a voting event (multi-option).
- * Uses simple heuristics based on money and faction interests.
+ * Uses randomized choices among affordable options, with some faction bias.
  */
 const decideVotingEvent = (state, playerIndex, event) => {
   const player = state.players[playerIndex];
@@ -134,52 +159,21 @@ const decideVotingEvent = (state, playerIndex, event) => {
   if (event.id === 'boyars_take_bribes' && player.faction === 'Nobles') {
     return 'ignore'; // Nobles don't want to investigate themselves
   }
-  if (event.id === 'boyars_take_bribes' && player.faction !== 'Nobles') {
-    return 'investigate'; // Others want to punish corruption
-  }
 
-  // For events with costly options, prefer cheaper ones if low on money
+  // If low on money, pick among free/cheap options
   if (player.money < 2) {
-    // Pick the cheapest/free option
-    const freeOption = options.find(o => !o.costText && !o.requiresMinMoney);
-    if (freeOption) return freeOption.id;
+    const freeOptions = options.filter(o => !o.costText && !o.requiresMinMoney);
+    if (freeOptions.length > 0) return pickRandom(freeOptions).id;
   }
 
-  // For drought - always try to buy food if affordable
-  if (event.id === 'drought') {
-    return player.money >= 2 ? 'buy_food' : 'no_food';
+  // Pick randomly from all affordable options
+  const affordable = getAffordableOptions(options, player.money);
+  if (affordable.length > 0) {
+    return pickRandom(affordable).id;
   }
 
-  // For plague - fund isolation if possible
-  if (event.id === 'plague') {
-    return player.money >= 1 ? 'fund_isolation' : 'no_isolation';
-  }
-
-  // For embassy - receive modestly (safe middle ground)
-  if (event.id === 'embassy') {
-    if (player.money >= 2) return 'luxurious';
-    if (player.money >= 1) return 'modest';
-    return 'refuse';
-  }
-
-  // For relics - build temple if affordable
-  if (event.id === 'relics_found') {
-    return player.money >= 3 ? 'build_temple' : 'deception';
-  }
-
-  // For merchants robbed - safe option
-  if (event.id === 'merchants_robbed') {
-    return 'trade_risk'; // safest, no random chance of Order attack
-  }
-
-  // For Izhorian delegation
-  if (event.id === 'izhorian_delegation') {
-    if (player.money >= 2) return 'accept';
-    return 'send_back';
-  }
-
-  // Default: pick the first option or the default
-  return event.defaultOption || (options.length > 0 ? options[0].id : null);
+  // Fallback: pick any option at random
+  return pickRandom(options).id;
 };
 
 /**
