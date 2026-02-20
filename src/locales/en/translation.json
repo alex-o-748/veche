@@ -355,5 +355,10 @@
       "no_isolation": "Trust in God - no isolation",
       "no_isolation_effect": "All: -25 str/2 turns"
     }
+  },
+  "discussion": {
+    "title": "Council Discussion",
+    "aiThinking": "deliberating...",
+    "empty": "AI council members will share their thoughts during events."
   }
 }
