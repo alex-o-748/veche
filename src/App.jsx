@@ -3405,7 +3405,7 @@ const PskovGame = () => {
         {/* Right Sidebar - Map + Discussion */}
         <aside className="lg:w-96 flex-shrink-0 space-y-4">
           <GameMap gameState={gameState} />
-          {gameState.phase === 'events' && <DiscussionPanel />}
+          <DiscussionPanel />
         </aside>
 
       </div>
