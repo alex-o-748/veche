@@ -1875,8 +1875,56 @@ const PskovGame = () => {
         }
       }
 
-      // Reset current player and construction actions when leaving construction
+      // When leaving construction, let any remaining AI players take their turns first
       if (isConstructionPhase) {
+        for (let i = 0; i < 3; i++) {
+          if (aiPlayers[i] && !newState.constructionActions[i].improvement && !newState.constructionActions[i].equipment) {
+            const decision = decideConstruction(newState, i);
+
+            if (decision.buildingType && decision.regionName && newState.players[i].money >= 2) {
+              const region = newState.regions[decision.regionName];
+              const buildingType = decision.buildingType;
+              let canBuild = false;
+              if (buildingType.startsWith('merchant_')) {
+                canBuild = (region.buildings[buildingType] || 0) < 7;
+              } else {
+                canBuild = (region.buildings[buildingType] || 0) === 0;
+              }
+              if (canBuild) {
+                const newBuildings = buildingType.startsWith('merchant_')
+                  ? { ...region.buildings, [buildingType]: (region.buildings[buildingType] || 0) + 1 }
+                  : { ...region.buildings, [buildingType]: 1 };
+                newState = {
+                  ...newState,
+                  regions: {
+                    ...newState.regions,
+                    [decision.regionName]: { ...region, buildings: newBuildings },
+                  },
+                  players: newState.players.map((p, j) =>
+                    j === i ? { ...p, money: p.money - 2, improvements: p.improvements + 1 } : p
+                  ),
+                  constructionActions: newState.constructionActions.map((ca, j) =>
+                    j === i ? { ...ca, improvement: true } : ca
+                  ),
+                };
+              }
+            }
+
+            if (decision.equipmentType && newState.players[i].money >= 1 && !newState.constructionActions[i].equipment) {
+              const eqType = decision.equipmentType;
+              newState = {
+                ...newState,
+                players: newState.players.map((p, j) =>
+                  j === i ? { ...p, money: p.money - 1, [eqType]: p[eqType] + 1 } : p
+                ),
+                constructionActions: newState.constructionActions.map((ca, j) =>
+                  j === i ? { ...ca, equipment: true } : ca
+                ),
+              };
+            }
+          }
+        }
+
         newState.currentPlayer = 0;
         newState.selectedRegion = 'pskov';
         newState.constructionActions = [
