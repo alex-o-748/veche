@@ -41,10 +41,8 @@ const DiscussionPanel = () => {
   const factions = ['Nobles', 'Merchants', 'Commoners'];
   const hasAiPlayers = aiPlayers.some(Boolean);
 
-  if (!hasAiPlayers) return null;
-
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-white rounded-lg shadow overflow-hidden border-2 border-amber-300">
       <div className="px-4 py-3 bg-gray-50 border-b">
         <h3 className="text-sm font-semibold text-gray-700">
           {t('discussion.title')}
@@ -57,7 +55,9 @@ const DiscussionPanel = () => {
       >
         {messages.length === 0 && !loading && (
           <p className="text-xs text-gray-400 italic text-center py-2">
-            {t('discussion.empty')}
+            {hasAiPlayers
+              ? t('discussion.empty')
+              : 'No AI players detected (debug: aiPlayers=' + JSON.stringify(aiPlayers) + ')'}
           </p>
         )}
 

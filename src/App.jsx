@@ -312,6 +312,7 @@ const PskovGame = () => {
 
     // Check if all AI players have voted
     const allAiVoted = aiPlayers.every((isAi, i) => !isAi || gameState.eventVotes[i] !== null);
+    console.log('[Discussion] Phase check: events, allAiVoted:', allAiVoted, 'votes:', gameState.eventVotes, 'aiPlayers:', aiPlayers);
     if (!allAiVoted) return;
 
     // Check if any AI players exist (no discussion needed if all human)
@@ -3405,7 +3406,7 @@ const PskovGame = () => {
         {/* Right Sidebar - Map + Discussion */}
         <aside className="lg:w-96 flex-shrink-0 space-y-4">
           <GameMap gameState={gameState} />
-          {gameState.phase === 'events' && <DiscussionPanel />}
+          <DiscussionPanel />
         </aside>
 
       </div>
