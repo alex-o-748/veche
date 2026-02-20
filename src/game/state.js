@@ -123,9 +123,9 @@ export const createInitialPlayers = () => [
 
 // Create initial construction actions
 export const createInitialConstructionActions = () => [
-  { improvement: false, equipment: false },
-  { improvement: false, equipment: false },
-  { improvement: false, equipment: false },
+  { improvement: false, equipment: false, done: false },
+  { improvement: false, equipment: false, done: false },
+  { improvement: false, equipment: false, done: false },
 ];
 
 // Create complete initial game state

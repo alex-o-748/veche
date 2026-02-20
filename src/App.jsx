@@ -203,8 +203,14 @@ const PskovGame = () => {
             };
           }
 
-          // Advance to next player
-          return { ...state, currentPlayer: (aiIndex + 1) % 3 };
+          // Mark AI player as done and advance to next player
+          return {
+            ...state,
+            currentPlayer: (aiIndex + 1) % 3,
+            constructionActions: state.constructionActions.map((ca, i) =>
+              i === aiIndex ? { ...ca, done: true } : ca
+            ),
+          };
         });
       }, 800); // Short delay so human can see AI is taking a turn
       return () => clearTimeout(timer);
@@ -1875,62 +1881,14 @@ const PskovGame = () => {
         }
       }
 
-      // When leaving construction, let any remaining AI players take their turns first
+      // Reset current player and construction actions when leaving construction
       if (isConstructionPhase) {
-        for (let i = 0; i < 3; i++) {
-          if (aiPlayers[i] && !newState.constructionActions[i].improvement && !newState.constructionActions[i].equipment) {
-            const decision = decideConstruction(newState, i);
-
-            if (decision.buildingType && decision.regionName && newState.players[i].money >= 2) {
-              const region = newState.regions[decision.regionName];
-              const buildingType = decision.buildingType;
-              let canBuild = false;
-              if (buildingType.startsWith('merchant_')) {
-                canBuild = (region.buildings[buildingType] || 0) < 7;
-              } else {
-                canBuild = (region.buildings[buildingType] || 0) === 0;
-              }
-              if (canBuild) {
-                const newBuildings = buildingType.startsWith('merchant_')
-                  ? { ...region.buildings, [buildingType]: (region.buildings[buildingType] || 0) + 1 }
-                  : { ...region.buildings, [buildingType]: 1 };
-                newState = {
-                  ...newState,
-                  regions: {
-                    ...newState.regions,
-                    [decision.regionName]: { ...region, buildings: newBuildings },
-                  },
-                  players: newState.players.map((p, j) =>
-                    j === i ? { ...p, money: p.money - 2, improvements: p.improvements + 1 } : p
-                  ),
-                  constructionActions: newState.constructionActions.map((ca, j) =>
-                    j === i ? { ...ca, improvement: true } : ca
-                  ),
-                };
-              }
-            }
-
-            if (decision.equipmentType && newState.players[i].money >= 1 && !newState.constructionActions[i].equipment) {
-              const eqType = decision.equipmentType;
-              newState = {
-                ...newState,
-                players: newState.players.map((p, j) =>
-                  j === i ? { ...p, money: p.money - 1, [eqType]: p[eqType] + 1 } : p
-                ),
-                constructionActions: newState.constructionActions.map((ca, j) =>
-                  j === i ? { ...ca, equipment: true } : ca
-                ),
-              };
-            }
-          }
-        }
-
         newState.currentPlayer = 0;
         newState.selectedRegion = 'pskov';
         newState.constructionActions = [
-          { improvement: false, equipment: false },
-          { improvement: false, equipment: false },
-          { improvement: false, equipment: false }
+          { improvement: false, equipment: false, done: false },
+          { improvement: false, equipment: false, done: false },
+          { improvement: false, equipment: false, done: false }
         ];
       }
 
@@ -1962,10 +1920,13 @@ const PskovGame = () => {
       return;
     }
 
-    // Local mode: update state directly
+    // Local mode: mark current player as done and advance
     setGameState(prev => ({
       ...prev,
-      currentPlayer: (prev.currentPlayer + 1) % 3
+      currentPlayer: (prev.currentPlayer + 1) % 3,
+      constructionActions: prev.constructionActions.map((ca, i) =>
+        i === prev.currentPlayer ? { ...ca, done: true } : ca
+      ),
     }));
   };
 
@@ -2143,12 +2104,14 @@ const PskovGame = () => {
               disabled={
                 gameState.turn > 20 ||
                 (gameState.phase === 'events' && !gameState.eventResolved) ||
-                (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId])
+                (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId]) ||
+                (gameState.phase === 'construction' && mode === 'local' && !gameState.constructionActions.every(ca => ca.done))
               }
               className={`w-full py-4 rounded-lg font-bold text-lg transition-all shadow-lg ${
                 gameState.turn > 20 ||
                 (gameState.phase === 'events' && !gameState.eventResolved) ||
-                (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId])
+                (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId]) ||
+                (gameState.phase === 'construction' && mode === 'local' && !gameState.constructionActions.every(ca => ca.done))
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                   : 'bg-amber-600 hover:bg-amber-700 hover:shadow-xl text-white transform hover:scale-105'
               }`}
@@ -2446,11 +2409,16 @@ const PskovGame = () => {
             </div>
           </div>
 
-          {/* Only show Next Player button in local mode */}
-          {mode === 'local' && (
+          {/* Only show Next Player button in local mode, hide once all done */}
+          {mode === 'local' && !gameState.constructionActions.every(ca => ca.done) && (
             <button
               onClick={nextPlayer}
-              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+              disabled={aiPlayers[gameState.currentPlayer]}
+              className={`px-4 py-2 rounded ${
+                aiPlayers[gameState.currentPlayer]
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-amber-600 hover:bg-amber-700 text-white'
+              }`}
             >
               {t('game.nextPlayerTurn')}
             </button>
@@ -2467,7 +2435,7 @@ const PskovGame = () => {
       })()}
 
       {/* Construction Complete Message (local mode only) */}
-      {gameState.phase === 'construction' && gameState.currentPlayer === 0 && mode === 'local' && (
+      {gameState.phase === 'construction' && gameState.constructionActions.every(ca => ca.done) && mode === 'local' && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h4 className="font-medium text-blue-800 mb-2">Construction Phase Complete</h4>
           <p className="text-blue-700 text-sm">All players have taken their construction turns. Click "Next Phase" to proceed to Events.</p>
