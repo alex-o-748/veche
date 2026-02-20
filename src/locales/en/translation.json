@@ -14,7 +14,17 @@
     "back": "← Back",
     "roomCode": "Room Code",
     "roomCodePlaceholder": "e.g., PSKOV-A3X7",
-    "gameInfo": "3 players • Nobles, Merchants, Commoners"
+    "gameInfo": "3 players • Nobles, Merchants, Commoners",
+    "playWithAI": "Play with AI",
+    "setupGame": "Game Setup",
+    "selectPlayers": "Choose who controls each faction:",
+    "human": "Human",
+    "ai": "AI",
+    "startGame": "Start Game",
+    "needOneHuman": "At least one faction must be human",
+    "solo": "Solo (vs 2 AI)",
+    "duo": "2 Players + AI",
+    "threePlayer": "3 Players (Hotseat)"
   },
   "lobby": {
     "title": "Game Lobby",
@@ -89,6 +99,8 @@
     "turn20": "Turn 20",
     "you": "(You)",
     "yourTurn": "(Your Turn)",
+    "aiLabel": "(AI)",
+    "aiThinking": "AI is thinking...",
     "selectRegion": "Select Region:",
     "merchantsOnly": "(Merchants only)",
     "orderControlled": "(Order controlled)",

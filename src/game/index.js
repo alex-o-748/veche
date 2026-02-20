@@ -74,6 +74,14 @@ export {
   getParticipationResult,
 } from './events.js';
 
+// AI player logic
+export {
+  decideConstruction,
+  decideEventVote,
+  decideAttackVote,
+  decideFortressVote,
+} from './ai.js';
+
 // Actions (main entry point for state mutations)
 export {
   ActionTypes,

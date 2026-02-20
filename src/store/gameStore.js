@@ -31,6 +31,9 @@ export const useGameStore = create(
     // Room/lobby state (for multiplayer)
     room: null,
 
+    // AI players (array of booleans, one per faction: [Nobles, Merchants, Commoners])
+    aiPlayers: [false, false, false],
+
     // Game state
     gameState: null,
 
@@ -67,16 +70,20 @@ export const useGameStore = create(
     setError: (error) => set({ error }),
     clearError: () => set({ error: null }),
 
+    // AI players
+    setAiPlayers: (aiPlayers) => set({ aiPlayers }),
+
     // Debug mode
     setDebugMode: (debugMode) => set({ debugMode }),
 
     // ============ Game Lifecycle ============
 
     // Initialize a new local game
-    initLocalGame: () => {
+    initLocalGame: (aiConfig) => {
       set({
         mode: 'local',
         gameState: createInitialGameState(),
+        aiPlayers: aiConfig || [false, false, false],
         playerId: null, // In local mode, control all players
         connected: false,
         roomId: null,
@@ -107,6 +114,7 @@ export const useGameStore = create(
         playerId: null,
         room: null,
         gameState: null,
+        aiPlayers: [false, false, false],
         error: null,
       });
     },
