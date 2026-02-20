@@ -6,7 +6,10 @@ import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEve
 import { useGameStore } from './store/gameStore';
 
 // Import UI components
-import { MainMenu, Lobby, GameMap } from './components';
+import { MainMenu, Lobby, GameMap, DiscussionPanel } from './components';
+
+// Import discussion service
+import { requestDiscussion } from './services/discussion';
 
 // Import game logic from modular structure
 import {
@@ -66,6 +69,9 @@ const PskovGame = () => {
   const playerId = useGameStore((state) => state.playerId);
   const sendAction = useGameStore((state) => state.sendAction);
   const aiPlayers = useGameStore((state) => state.aiPlayers);
+  const setDiscussionLoading = useGameStore((state) => state.setDiscussionLoading);
+  const addDiscussionMessages = useGameStore((state) => state.addDiscussionMessages);
+  const clearDiscussion = useGameStore((state) => state.clearDiscussion);
 
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
@@ -298,6 +304,56 @@ const PskovGame = () => {
     mode,
     setGameState,
   ]);
+
+  // --- AI Discussion: trigger after all AI players have voted on events ---
+  useEffect(() => {
+    if (!gameState || gameState.phase !== 'events' || !gameState.currentEvent || gameState.eventResolved) return;
+    if (gameState.currentEvent.type === 'immediate') return;
+
+    // Check if all AI players have voted
+    const allAiVoted = aiPlayers.every((isAi, i) => !isAi || gameState.eventVotes[i] !== null);
+    if (!allAiVoted) return;
+
+    // Check if any AI players exist (no discussion needed if all human)
+    const hasAi = aiPlayers.some(Boolean);
+    if (!hasAi) return;
+
+    // Don't re-trigger if already loading or if messages already exist for this event
+    const store = useGameStore.getState();
+    if (store.discussionLoading) return;
+    if (store.discussionMessages.length > 0) return;
+
+    setDiscussionLoading(true);
+    requestDiscussion({
+      gameState,
+      event: gameState.currentEvent,
+      votes: gameState.eventVotes,
+      aiPlayers,
+      language: i18n.language,
+    }).then((messages) => {
+      if (messages.length > 0) {
+        addDiscussionMessages(messages);
+      }
+      setDiscussionLoading(false);
+    });
+  }, [
+    gameState?.phase,
+    gameState?.currentEvent?.id,
+    gameState?.eventVotes,
+    gameState?.eventResolved,
+    aiPlayers,
+  ]);
+
+  // --- Clear discussion when entering a new events phase or leaving events ---
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.phase !== 'events') {
+      const store = useGameStore.getState();
+      if (store.discussionMessages.length > 0 || store.discussionLoading) {
+        clearDiscussion();
+      }
+    }
+  }, [gameState?.phase, gameState?.turn]);
 
   // Show loading state while initializing
   if (!gameState) {
@@ -3346,9 +3402,10 @@ const PskovGame = () => {
         </main>
         {/* End Main Content Area */}
 
-        {/* Right Sidebar - Map */}
-        <aside className="lg:w-96 flex-shrink-0">
+        {/* Right Sidebar - Map + Discussion */}
+        <aside className="lg:w-96 flex-shrink-0 space-y-4">
           <GameMap gameState={gameState} />
+          {gameState.phase === 'events' && <DiscussionPanel />}
         </aside>
 
       </div>

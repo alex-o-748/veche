@@ -43,6 +43,10 @@ export const useGameStore = create(
     // Debug mode (debugEventIndex is in gameState)
     debugMode: true,
 
+    // AI discussion state
+    discussionMessages: [], // Array of { playerIndex, faction, message, timestamp }
+    discussionLoading: false,
+
     // ============ Actions ============
 
     // Connection actions (multiplayer)
@@ -76,6 +80,20 @@ export const useGameStore = create(
     // Debug mode
     setDebugMode: (debugMode) => set({ debugMode }),
 
+    // AI discussion
+    setDiscussionLoading: (discussionLoading) => set({ discussionLoading }),
+    addDiscussionMessages: (messages) => set((state) => {
+      const factions = ['Nobles', 'Merchants', 'Commoners'];
+      const newMessages = messages.map((m) => ({
+        playerIndex: m.playerIndex,
+        faction: factions[m.playerIndex] || 'Unknown',
+        message: m.message,
+        timestamp: Date.now(),
+      }));
+      return { discussionMessages: [...state.discussionMessages, ...newMessages] };
+    }),
+    clearDiscussion: () => set({ discussionMessages: [], discussionLoading: false }),
+
     // ============ Game Lifecycle ============
 
     // Initialize a new local game
@@ -89,6 +107,8 @@ export const useGameStore = create(
         roomId: null,
         room: null,
         error: null,
+        discussionMessages: [],
+        discussionLoading: false,
       });
     },
 
@@ -116,6 +136,8 @@ export const useGameStore = create(
         gameState: null,
         aiPlayers: [false, false, false],
         error: null,
+        discussionMessages: [],
+        discussionLoading: false,
       });
     },
 
