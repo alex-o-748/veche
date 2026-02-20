@@ -29,8 +29,11 @@ const getApiUrl = () => {
  * @returns {Promise<Array<{playerIndex: number, message: string}>>}
  */
 export async function requestDiscussion({ gameState, event, votes, aiPlayers, language }) {
+  const url = `${getApiUrl()}/api/discuss`;
+  console.log('[Discussion] Requesting discussion from:', url);
+  console.log('[Discussion] AI players:', aiPlayers, 'Votes:', votes);
   try {
-    const response = await fetch(`${getApiUrl()}/api/discuss`, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -49,11 +52,13 @@ export async function requestDiscussion({ gameState, event, votes, aiPlayers, la
     });
 
     if (!response.ok) {
-      console.warn('[Discussion] API returned', response.status);
+      const text = await response.text();
+      console.warn('[Discussion] API returned', response.status, text);
       return [];
     }
 
     const data = await response.json();
+    console.log('[Discussion] Got response:', data);
     return data.messages || [];
   } catch (error) {
     console.warn('[Discussion] Failed to generate discussion:', error.message);
