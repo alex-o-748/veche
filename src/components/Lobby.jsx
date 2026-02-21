@@ -40,8 +40,8 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
   };
 
   return (
-    <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-lg w-full relative">
+    <div className="parchment-bg min-h-screen flex items-center justify-center p-4">
+      <div className="card-parchment-raised p-8 max-w-lg w-full relative">
         {/* Language switcher */}
         <button
           onClick={toggleLanguage}
