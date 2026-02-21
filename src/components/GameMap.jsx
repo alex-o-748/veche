@@ -129,9 +129,9 @@ const GameMap = ({ gameState }) => {
   };
 
   return (
-    <div className="w-full border-4 border-amber-900 rounded-lg overflow-hidden shadow-lg bg-amber-50">
+    <div className="card-parchment overflow-hidden">
       {/* Map Container */}
-      <div className="relative w-full" style={{ backgroundColor: '#d4d4d4' }}>
+      <div className="relative w-full" style={{ backgroundColor: '#d4c4a8' }}>
         <img
           src="/images/map-background.png"
           alt={t('map.title')}
@@ -146,45 +146,32 @@ const GameMap = ({ gameState }) => {
           preserveAspectRatio="xMidYMid meet"
           style={{ pointerEvents: 'none' }}
         >
-          {/* Settlement icons */}
           {cities.map(city => getSettlementIcon(city))}
-
-          {/* City name labels */}
           {cities.map(city => getCityLabel(city))}
         </svg>
       </div>
 
-      {/* Legend */}
-      <div className="bg-amber-100 p-4 border-t-4 border-amber-900">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <div className="flex items-center gap-2">
-            <svg width="40" height="40" viewBox="0 0 40 40">
-              <PskovIcon x="20" y="20" />
-            </svg>
-            <span className="font-semibold">{t('map.legend.capital')}</span>
+      {/* Compact Legend */}
+      <div className="px-3 py-2 border-t border-parchment-400 bg-parchment-50">
+        <div className="flex flex-wrap gap-3 text-xs text-ink-light">
+          <div className="flex items-center gap-1">
+            <svg width="24" height="24" viewBox="0 0 40 40"><PskovIcon x="20" y="20" /></svg>
+            <span className="font-medium">{t('map.legend.capital')}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <svg width="40" height="40" viewBox="0 0 40 40">
-              <RepublicTownIcon x="20" y="20" />
-            </svg>
+          <div className="flex items-center gap-1">
+            <svg width="24" height="24" viewBox="0 0 40 40"><RepublicTownIcon x="20" y="20" /></svg>
             <span>{t('map.legend.republic_town')}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <svg width="40" height="40" viewBox="0 0 40 40">
-              <RepublicFortressIcon x="20" y="20" />
-            </svg>
+          <div className="flex items-center gap-1">
+            <svg width="24" height="24" viewBox="0 0 40 40"><RepublicFortressIcon x="20" y="20" /></svg>
             <span>{t('map.legend.republic_fortress')}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <svg width="40" height="40" viewBox="0 0 40 40">
-              <OrderTownIcon x="20" y="20" />
-            </svg>
+          <div className="flex items-center gap-1">
+            <svg width="24" height="24" viewBox="0 0 40 40"><OrderTownIcon x="20" y="20" /></svg>
             <span>{t('map.legend.order_town')}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <svg width="40" height="40" viewBox="0 0 40 40">
-              <OrderFortressIcon x="20" y="20" />
-            </svg>
+          <div className="flex items-center gap-1">
+            <svg width="24" height="24" viewBox="0 0 40 40"><OrderFortressIcon x="20" y="20" /></svg>
             <span>{t('map.legend.order_fortress')}</span>
           </div>
         </div>

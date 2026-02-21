@@ -71,36 +71,37 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
   const humanCount = aiPlayers.filter(ai => !ai).length;
 
   return (
-    <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full relative">
+    <div className="parchment-bg min-h-screen flex items-center justify-center p-4">
+      <div className="card-parchment-raised p-8 max-w-md w-full relative">
         {/* Language switcher */}
         <button
           onClick={toggleLanguage}
-          className="absolute top-4 right-4 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded font-medium text-sm transition-colors"
+          className="absolute top-4 right-4 px-3 py-1 text-ink-muted hover:text-ink text-sm font-medium transition-colors"
         >
           {i18n.language === 'en' ? 'RU' : 'EN'}
         </button>
 
         {/* Title */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-amber-800 mb-2">
+          <h1 className="heading-serif text-4xl font-bold text-ink mb-2">
             {t('menu.title')}
           </h1>
-          <h2 className="text-xl text-amber-600">{t('menu.subtitle')}</h2>
-          <p className="text-gray-500 mt-2 text-sm">
+          <div className="section-divider" />
+          <h2 className="text-lg text-ink-light">{t('menu.subtitle')}</h2>
+          <p className="text-ink-muted mt-2 text-sm">
             {t('menu.tagline')}
           </p>
         </div>
 
         {/* Error display */}
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-700 rounded">
             {error}
             <button
               onClick={clearError}
               className="ml-2 text-red-500 hover:text-red-700"
             >
-              ✕
+              &times;
             </button>
           </div>
         )}
@@ -110,19 +111,19 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
           <div className="space-y-4">
             <button
               onClick={() => setShowGameSetup(false)}
-              className="text-gray-500 hover:text-gray-700 mb-2"
+              className="text-ink-muted hover:text-ink mb-2 text-sm"
             >
               {t('menu.back')}
             </button>
 
-            <h3 className="text-lg font-semibold text-amber-900">{t('menu.setupGame')}</h3>
+            <h3 className="heading-serif text-lg">{t('menu.setupGame')}</h3>
 
             {/* Quick presets */}
             <div className="flex gap-2">
               <button
                 onClick={() => setPreset('solo')}
                 className={`flex-1 py-2 px-3 rounded text-sm font-medium border transition-colors ${
-                  humanCount === 1 ? 'bg-amber-500 text-white border-amber-600' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'
+                  humanCount === 1 ? 'bg-accent text-white border-accent' : 'border-parchment-400 text-ink-light hover:border-accent'
                 }`}
               >
                 {t('menu.solo')}
@@ -130,7 +131,7 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
               <button
                 onClick={() => setPreset('duo')}
                 className={`flex-1 py-2 px-3 rounded text-sm font-medium border transition-colors ${
-                  humanCount === 2 ? 'bg-amber-500 text-white border-amber-600' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'
+                  humanCount === 2 ? 'bg-accent text-white border-accent' : 'border-parchment-400 text-ink-light hover:border-accent'
                 }`}
               >
                 {t('menu.duo')}
@@ -138,26 +139,26 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
               <button
                 onClick={() => setPreset('three')}
                 className={`flex-1 py-2 px-3 rounded text-sm font-medium border transition-colors ${
-                  humanCount === 3 ? 'bg-amber-500 text-white border-amber-600' : 'bg-gray-100 hover:bg-gray-200 border-gray-300'
+                  humanCount === 3 ? 'bg-accent text-white border-accent' : 'border-parchment-400 text-ink-light hover:border-accent'
                 }`}
               >
                 {t('menu.threePlayer')}
               </button>
             </div>
 
-            <p className="text-sm text-gray-600">{t('menu.selectPlayers')}</p>
+            <p className="text-sm text-ink-muted">{t('menu.selectPlayers')}</p>
 
             {/* Faction toggles */}
             <div className="space-y-3">
               {FACTIONS.map((faction, index) => (
-                <div key={faction} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border">
-                  <span className="font-medium text-gray-800">{t(`factions.${faction}`)}</span>
+                <div key={faction} className="flex items-center justify-between bg-parchment-50 p-3 rounded-lg border border-parchment-400">
+                  <span className="font-medium text-ink">{t(`factions.${faction}`)}</span>
                   <button
                     onClick={() => toggleAi(index)}
                     className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       aiPlayers[index]
-                        ? 'bg-blue-500 text-white hover:bg-blue-600'
-                        : 'bg-green-500 text-white hover:bg-green-600'
+                        ? 'bg-parchment-600 text-white hover:bg-parchment-700'
+                        : 'bg-accent text-white hover:bg-accent-hover'
                     }`}
                   >
                     {aiPlayers[index] ? t('menu.ai') : t('menu.human')}
@@ -168,40 +169,38 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
 
             {/* Validation message */}
             {aiPlayers.every(ai => ai) && (
-              <p className="text-red-500 text-sm">{t('menu.needOneHuman')}</p>
+              <p className="text-red-700 text-sm">{t('menu.needOneHuman')}</p>
             )}
 
             {/* Start button */}
             <button
               onClick={handleStartWithAi}
               disabled={aiPlayers.every(ai => ai)}
-              className="w-full py-4 px-6 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:text-gray-500 text-white rounded-lg font-semibold text-lg transition-colors"
+              className="w-full btn-accent py-4 px-6 text-lg"
             >
               {t('menu.startGame')}
             </button>
           </div>
         ) : !showJoinForm ? (
           <div className="space-y-4">
-            {/* Local play button - now opens game setup */}
+            {/* Local play button */}
             <button
               onClick={() => setShowGameSetup(true)}
-              className="w-full py-4 px-6 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-lg transition-colors"
+              className="w-full btn-accent py-4 px-6 text-lg"
             >
               {t('menu.playLocal')}
             </button>
 
             <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">{t('menu.orPlayOnline')}</span>
+              <div className="section-divider" />
+              <div className="relative flex justify-center text-sm -mt-3">
+                <span className="px-2 bg-parchment-50 text-ink-muted">{t('menu.orPlayOnline')}</span>
               </div>
             </div>
 
             {/* Player name input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-ink-light mb-1">
                 {t('menu.yourName')}
               </label>
               <input
@@ -209,7 +208,7 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 placeholder={t('menu.enterName')}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full p-3 border border-parchment-400 rounded-lg bg-parchment-50 text-ink focus:ring-2 focus:ring-accent focus:border-transparent"
                 maxLength={20}
               />
             </div>
@@ -218,7 +217,7 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
             <button
               onClick={handleCreateRoom}
               disabled={isLoading}
-              className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg font-semibold transition-colors"
+              className="w-full btn-accent py-3 px-6"
             >
               {isLoading ? t('menu.creating') : t('menu.createGame')}
             </button>
@@ -226,7 +225,7 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
             {/* Join room button */}
             <button
               onClick={() => setShowJoinForm(true)}
-              className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+              className="w-full btn-secondary py-3 px-6"
             >
               {t('menu.joinGame')}
             </button>
@@ -236,13 +235,13 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
           <div className="space-y-4">
             <button
               onClick={() => setShowJoinForm(false)}
-              className="text-gray-500 hover:text-gray-700 mb-2"
+              className="text-ink-muted hover:text-ink mb-2 text-sm"
             >
               {t('menu.back')}
             </button>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-ink-light mb-1">
                 {t('menu.yourName')}
               </label>
               <input
@@ -250,13 +249,13 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 placeholder={t('menu.enterName')}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full p-3 border border-parchment-400 rounded-lg bg-parchment-50 text-ink focus:ring-2 focus:ring-accent focus:border-transparent"
                 maxLength={20}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-ink-light mb-1">
                 {t('menu.roomCode')}
               </label>
               <input
@@ -264,7 +263,7 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                 placeholder={t('menu.roomCodePlaceholder')}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono text-lg text-center"
+                className="w-full p-3 border border-parchment-400 rounded-lg bg-parchment-50 text-ink focus:ring-2 focus:ring-accent focus:border-transparent font-mono text-lg text-center"
                 maxLength={11}
               />
             </div>
@@ -272,7 +271,7 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
             <button
               onClick={handleJoinRoom}
               disabled={isLoading || !roomCode.trim()}
-              className="w-full py-3 px-6 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg font-semibold transition-colors"
+              className="w-full btn-accent py-3 px-6"
             >
               {isLoading ? t('menu.joining') : t('menu.joinGame')}
             </button>
@@ -280,8 +279,8 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
         )}
 
         {/* Game info */}
-        <div className="mt-8 pt-4 border-t border-gray-200">
-          <p className="text-sm text-gray-500 text-center">
+        <div className="mt-8 pt-4 border-t border-parchment-400">
+          <p className="text-sm text-ink-muted text-center">
             {t('menu.gameInfo')}
           </p>
         </div>
