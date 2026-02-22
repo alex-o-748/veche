@@ -2510,7 +2510,7 @@ const PskovGame = () => {
 
           {/* Next Player / Done */}
           <div className="flex justify-end">
-            {mode === 'local' && (
+            {mode === 'local' && aiPlayers.filter(a => !a).length > 1 && (
               <button onClick={nextPlayer} className="btn-accent px-5 py-2 text-sm">
                 {t('game.nextPlayerTurn')}
               </button>
