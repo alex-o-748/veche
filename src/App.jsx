@@ -3139,8 +3139,11 @@ const PskovGame = () => {
  * - Lobby: Online multiplayer lobby
  * - PskovGame: The actual game
  */
+const FACTIONS_LIST = ['Nobles', 'Merchants', 'Commoners'];
+
 const App = () => {
   const [screen, setScreen] = useState('menu'); // 'menu' | 'lobby' | 'faction' | 'game'
+  const [soloFaction, setSoloFaction] = useState(null); // faction name for solo intro screen
 
   // Store state
   const mode = useGameStore((state) => state.mode);
@@ -3168,7 +3171,16 @@ const App = () => {
     }
   }, [mode, room?.gameStarted, gameState, roomId, screen]);
 
-  // Start local game (with optional AI config)
+  // Start solo game (1 human + 2 AI) with faction intro
+  const handleStartSolo = (factionIndex) => {
+    const aiConfig = [true, true, true];
+    aiConfig[factionIndex] = false;
+    initLocalGame(aiConfig);
+    setSoloFaction(FACTIONS_LIST[factionIndex]);
+    setScreen('faction');
+  };
+
+  // Start local hotseat game (with optional AI config)
   const handleStartLocal = (aiConfig) => {
     initLocalGame(aiConfig);
     setScreen('game');
@@ -3203,12 +3215,14 @@ const App = () => {
   const handleLeave = () => {
     leaveRoom();
     resetStore();
+    setSoloFaction(null);
     setScreen('menu');
   };
 
   // Go back to menu
   const handleBackToMenu = () => {
     resetStore();
+    setSoloFaction(null);
     setScreen('menu');
   };
 
@@ -3217,6 +3231,7 @@ const App = () => {
     case 'menu':
       return (
         <MainMenu
+          onStartSolo={handleStartSolo}
           onStartLocal={handleStartLocal}
           onCreateRoom={handleCreateRoom}
           onJoinRoom={handleJoinRoom}
@@ -3232,11 +3247,10 @@ const App = () => {
       );
 
     case 'faction': {
-      const FACTIONS = ['Nobles', 'Merchants', 'Commoners'];
-      const playerFaction = FACTIONS[playerId] || 'Nobles';
+      const faction = soloFaction || FACTIONS_LIST[playerId] || 'Nobles';
       return (
         <FactionScreen
-          faction={playerFaction}
+          faction={faction}
           onContinue={() => setScreen('game')}
         />
       );
@@ -3259,7 +3273,7 @@ const App = () => {
       );
 
     default:
-      return <MainMenu onStartLocal={handleStartLocal} onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom} />;
+      return <MainMenu onStartSolo={handleStartSolo} onStartLocal={handleStartLocal} onCreateRoom={handleCreateRoom} onJoinRoom={handleJoinRoom} />;
   }
 };
 
