@@ -16,6 +16,7 @@ import {
 } from './game';
 import {
   applyAction,
+  nextPhase,
   GameAction,
   RandomValues,
 } from './game/actions';
@@ -434,8 +435,10 @@ export class GameRoom extends DurableObject<Env> {
     room.gameStarted = true;
     await this.saveRoom(room);
 
-    // Create initial game state
-    const gameState = createInitialGameState();
+    // Create initial game state and auto-advance past resources phase
+    // (resources phase is auto-skipped; income is calculated and we start at construction)
+    const initialState = createInitialGameState();
+    const gameState = nextPhase(initialState, true);
     await this.saveGameState(gameState);
 
     // Broadcast game start to all players

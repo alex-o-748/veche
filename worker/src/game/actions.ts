@@ -224,14 +224,16 @@ function updateEffects(state: GameState): GameState {
 export function nextPhase(state: GameState, debugMode = false): GameState {
   const currentPhaseIndex = PHASES.indexOf(state.phase);
   const isLastPhase = currentPhaseIndex === PHASES.length - 1;
-  const nextPhaseName = isLastPhase ? PHASES[0] : PHASES[currentPhaseIndex + 1];
+  let nextPhaseName = isLastPhase ? PHASES[0] : PHASES[currentPhaseIndex + 1];
 
   let newState = { ...state };
 
   // Handle resources phase - calculate income
-  if (state.phase === 'resources') {
+  // If currently at resources (fallback), or transitioning TO resources (from veche),
+  // calculate income and skip straight to construction
+  if (state.phase === 'resources' || nextPhaseName === 'resources') {
     const republicRegions = countRepublicRegions(state.regions);
-    newState.players = state.players.map((player) => {
+    newState.players = (state.phase === 'resources' ? state : newState).players.map((player) => {
       const baseIncome = 0.5 + republicRegions * 0.25 + player.improvements * 0.25;
       const incomeModifier = getIncomeModifier(state.activeEffects, player.faction);
       const finalIncome = baseIncome * incomeModifier;
@@ -240,6 +242,9 @@ export function nextPhase(state: GameState, debugMode = false): GameState {
         money: player.money + finalIncome,
       };
     });
+    if (nextPhaseName === 'resources') {
+      nextPhaseName = 'construction';
+    }
   }
 
   // Draw event when moving TO events phase

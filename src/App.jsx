@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
 
@@ -73,6 +73,10 @@ const PskovGame = () => {
   const addDiscussionMessages = useGameStore((state) => state.addDiscussionMessages);
   const clearDiscussion = useGameStore((state) => state.clearDiscussion);
 
+  // Income notification state (shown briefly at top of construction phase)
+  const [incomeNotification, setIncomeNotification] = useState(null);
+  const incomeAdvancingRef = useRef(false);
+
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
   };
@@ -126,6 +130,46 @@ const PskovGame = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency - run only on mount
+
+  // Auto-advance from resources phase — calculate income and skip to construction
+  useEffect(() => {
+    if (!gameState || gameState.phase !== 'resources') return;
+    if (gameState.turn > 20 || gameState.gameOver) return;
+    // Online mode: server handles resources auto-skip
+    if (mode === 'online') return;
+    if (incomeAdvancingRef.current) return;
+
+    // Calculate income preview for the notification banner
+    const republicRegions = Object.values(gameState.regions).filter(r => r.controller === 'republic').length;
+    const incomeData = gameState.players.map((player) => {
+      const baseIncome = 0.5 + (republicRegions * 0.25) + (player.improvements * 0.25);
+      const modifier = getIncomeModifier(player.faction);
+      const finalIncome = baseIncome * modifier;
+      return { faction: player.faction, income: finalIncome };
+    });
+
+    setIncomeNotification({ turn: gameState.turn, incomes: incomeData });
+    incomeAdvancingRef.current = true;
+
+    // Auto-advance after a brief tick so React can process state
+    const timer = setTimeout(() => {
+      nextPhase();
+      incomeAdvancingRef.current = false;
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      incomeAdvancingRef.current = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase, gameState?.turn, gameState?.gameOver, mode]);
+
+  // Auto-dismiss income notification after a few seconds
+  useEffect(() => {
+    if (!incomeNotification) return;
+    const timer = setTimeout(() => setIncomeNotification(null), 6000);
+    return () => clearTimeout(timer);
+  }, [incomeNotification]);
 
   // Animate event image reveal after 2 seconds
   useEffect(() => {
@@ -2109,28 +2153,32 @@ const PskovGame = () => {
             </div>
           </div>
 
-          {/* Phase Pills */}
+          {/* Phase Pills (resources phase is auto-skipped, so hide it) */}
           <div className="flex items-center gap-1.5 flex-1 justify-center">
-            {phases.map((phase, index) => {
-              const isCurrent = phase === gameState.phase;
-              const isPast = index < phases.indexOf(gameState.phase);
-              return (
-                <div key={phase} className="flex items-center gap-1.5">
-                  {index > 0 && <div className="w-3 h-px bg-parchment-600" />}
-                  <div
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                      isCurrent
-                        ? 'bg-parchment-50 text-ink font-semibold shadow-sm'
-                        : isPast
-                        ? 'bg-parchment-600/40 text-parchment-300'
-                        : 'text-parchment-500'
-                    }`}
-                  >
-                    {phaseNames[phase]}
+            {(() => {
+              const visiblePhases = phases.filter(p => p !== 'resources');
+              const displayPhase = gameState.phase === 'resources' ? 'construction' : gameState.phase;
+              return visiblePhases.map((phase, index) => {
+                const isCurrent = phase === displayPhase;
+                const isPast = index < visiblePhases.indexOf(displayPhase);
+                return (
+                  <div key={phase} className="flex items-center gap-1.5">
+                    {index > 0 && <div className="w-3 h-px bg-parchment-600" />}
+                    <div
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                        isCurrent
+                          ? 'bg-parchment-50 text-ink font-semibold shadow-sm'
+                          : isPast
+                          ? 'bg-parchment-600/40 text-parchment-300'
+                          : 'text-parchment-500'
+                      }`}
+                    >
+                      {phaseNames[phase]}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
 
           {/* Controls */}
@@ -2271,6 +2319,29 @@ const PskovGame = () => {
 
         {/* Right Column: Phase Content + Discussion */}
         <main className="flex-1 min-w-0 space-y-4">
+
+          {/* Income notification banner (auto-dismissed) */}
+          {gameState.phase === 'construction' && incomeNotification && (
+            <div className="bg-parchment-100 border border-parchment-400 rounded-lg px-4 py-2.5 flex items-center justify-between phase-enter">
+              <div className="flex items-center gap-4 flex-1 justify-center">
+                <span className="text-xs font-medium text-ink-muted">
+                  {t('game.turn', { turn: incomeNotification.turn })}/20 &mdash; {t('phases.resources')}:
+                </span>
+                {incomeNotification.incomes.map(({ faction, income }) => (
+                  <span key={faction} className="text-sm text-ink">
+                    <span className="text-ink-light">{t(`factions.${faction}`)}</span>{' '}
+                    <span className="font-semibold text-emerald-700">+{income.toFixed(2)}&cir;</span>
+                  </span>
+                ))}
+              </div>
+              <button
+                onClick={() => setIncomeNotification(null)}
+                className="text-ink-muted hover:text-ink text-xs ml-2 px-1"
+              >
+                &times;
+              </button>
+            </div>
+          )}
 
           {/* Construction phase hint for active player */}
           {gameState.phase === 'construction' && (
@@ -3078,15 +3149,6 @@ const PskovGame = () => {
               End Assembly
             </button>
           </div>
-        </div>
-      )}
-
-      {/* ===== RESOURCES PHASE (brief summary) ===== */}
-      {gameState.phase === 'resources' && (
-        <div className="card-parchment-raised p-5 phase-enter text-center">
-          <h3 className="heading-serif text-lg mb-2">{phaseNames.resources}</h3>
-          <p className="text-sm text-ink-muted mb-3">{getPhaseDescription('resources')}</p>
-          <p className="text-xs text-ink-muted">Click "Next Phase" in the header to continue</p>
         </div>
       )}
 
