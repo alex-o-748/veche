@@ -2400,31 +2400,29 @@ const PskovGame = () => {
 
           <div className="section-divider" />
 
-          {/* Buildings + Equipment side by side */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Available Buildings */}
-            <div>
-              <h4 className="text-sm font-medium text-ink-light mb-2">{t('game.availableBuildings', { region: t(`regions.${gameState.selectedRegion}`) })}</h4>
-              <div className="space-y-2">
-                {getAvailableBuildings(activePlayerIndex).map(building => (
-                  <button
-                    key={building.type}
-                    onClick={() => buildBuilding(building.type)}
-                    disabled={
-                      !building.canBuild ||
-                      activePlayer.money < building.cost ||
-                      gameState.constructionActions[activePlayerIndex].improvement
-                    }
-                    className="w-full btn-accent p-2.5 text-sm flex items-center gap-3 text-left"
-                  >
-                    {BUILDING_IMAGES[building.type] && (
-                      <img
-                        src={BUILDING_IMAGES[building.type]}
-                        alt={building.name}
-                        className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                      />
-                    )}
-                    <div>
+          {/* Available Buildings - region-specific */}
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-ink-light mb-2">{t('game.availableBuildings', { region: t(`regions.${gameState.selectedRegion}`) })}</h4>
+            {getAvailableBuildings(activePlayerIndex).length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {getAvailableBuildings(activePlayerIndex).map(building => {
+                  const isDisabled = !building.canBuild ||
+                    activePlayer.money < building.cost ||
+                    gameState.constructionActions[activePlayerIndex].improvement;
+                  return (
+                    <button
+                      key={building.type}
+                      onClick={() => buildBuilding(building.type)}
+                      disabled={isDisabled}
+                      className="btn-accent p-2 text-sm flex flex-col items-center text-center"
+                    >
+                      {BUILDING_IMAGES[building.type] && (
+                        <img
+                          src={BUILDING_IMAGES[building.type]}
+                          alt={building.name}
+                          className="w-full aspect-square rounded-lg object-cover mb-2"
+                        />
+                      )}
                       <div className="font-medium">{t(`buildings.${building.type}`)}</div>
                       <div className="text-xs opacity-80">
                         {building.type.startsWith('merchant_')
@@ -2433,76 +2431,73 @@ const PskovGame = () => {
                         }
                         {' '}&middot; {t('game.cost', { cost: building.cost })}
                       </div>
-                    </div>
-                  </button>
-                ))}
-                {getAvailableBuildings(activePlayerIndex).length === 0 && (
-                  <p className="text-ink-muted text-center py-4 text-sm">
-                    {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov'
-                      ? t('game.merchantsPskovOnly')
-                      : t('game.noBuildingsRegion')
-                    }
-                  </p>
-                )}
+                    </button>
+                  );
+                })}
               </div>
-            </div>
+            ) : (
+              <p className="text-ink-muted text-center py-4 text-sm">
+                {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov'
+                  ? t('game.merchantsPskovOnly')
+                  : t('game.noBuildingsRegion')
+                }
+              </p>
+            )}
+          </div>
 
-            {/* Equipment */}
-            <div>
-              <h4 className="text-sm font-medium text-ink-light mb-2">{t('game.equipment')}</h4>
-              <div className="space-y-2">
-                <button
-                  onClick={() => buyItem(activePlayerIndex, 'weapons', 1)}
-                  disabled={
-                    activePlayer.money < 1 ||
-                    gameState.constructionActions[activePlayerIndex].equipment ||
-                    activePlayer.weapons >= 2
-                  }
-                  className="w-full btn-danger p-2.5 text-sm flex items-center gap-3 text-left"
-                >
-                  {getEquipmentImage('weapons', activePlayer.faction) && (
-                    <img
-                      src={getEquipmentImage('weapons', activePlayer.faction)}
-                      alt="Weapon"
-                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                    />
-                  )}
-                  <div>
-                    <div className="font-medium">{t('game.buyWeapon')}</div>
-                    <div className="text-xs opacity-80">
-                      {gameState.constructionActions[activePlayerIndex].equipment ? t('game.equipmentBought') :
-                       activePlayer.weapons >= 2 ? t('game.maxWeapons') :
-                       t('game.owned', { count: activePlayer.weapons })}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => buyItem(activePlayerIndex, 'armor', 1)}
-                  disabled={
-                    activePlayer.money < 1 ||
-                    gameState.constructionActions[activePlayerIndex].equipment ||
-                    activePlayer.armor >= 2
-                  }
-                  className="w-full p-2.5 text-sm flex items-center gap-3 text-left rounded font-semibold text-white transition-colors"
-                  style={{ background: activePlayer.money >= 1 && !gameState.constructionActions[activePlayerIndex].equipment && activePlayer.armor < 2 ? '#2563eb' : '#c9b896', cursor: activePlayer.money >= 1 && !gameState.constructionActions[activePlayerIndex].equipment && activePlayer.armor < 2 ? 'pointer' : 'not-allowed' }}
-                >
-                  {getEquipmentImage('armor', activePlayer.faction) && (
-                    <img
-                      src={getEquipmentImage('armor', activePlayer.faction)}
-                      alt="Armor"
-                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                    />
-                  )}
-                  <div>
-                    <div className="font-medium">{t('game.buyArmor')}</div>
-                    <div className="text-xs opacity-80">
-                      {gameState.constructionActions[activePlayerIndex].equipment ? t('game.equipmentBought') :
-                       activePlayer.armor >= 2 ? t('game.maxArmor') :
-                       t('game.owned', { count: activePlayer.armor })}
-                    </div>
-                  </div>
-                </button>
-              </div>
+          <div className="section-divider" />
+
+          {/* Equipment - global, not region-specific */}
+          <div>
+            <h4 className="text-sm font-medium text-ink-light mb-2">{t('game.equipment')}</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => buyItem(activePlayerIndex, 'weapons', 1)}
+                disabled={
+                  activePlayer.money < 1 ||
+                  gameState.constructionActions[activePlayerIndex].equipment ||
+                  activePlayer.weapons >= 2
+                }
+                className="btn-danger p-2 text-sm flex flex-col items-center text-center"
+              >
+                {getEquipmentImage('weapons', activePlayer.faction) && (
+                  <img
+                    src={getEquipmentImage('weapons', activePlayer.faction)}
+                    alt="Weapon"
+                    className="w-full aspect-square rounded-lg object-cover mb-2"
+                  />
+                )}
+                <div className="font-medium">{t('game.buyWeapon')}</div>
+                <div className="text-xs opacity-80">
+                  {gameState.constructionActions[activePlayerIndex].equipment ? t('game.equipmentBought') :
+                   activePlayer.weapons >= 2 ? t('game.maxWeapons') :
+                   t('game.owned', { count: activePlayer.weapons })}
+                </div>
+              </button>
+              <button
+                onClick={() => buyItem(activePlayerIndex, 'armor', 1)}
+                disabled={
+                  activePlayer.money < 1 ||
+                  gameState.constructionActions[activePlayerIndex].equipment ||
+                  activePlayer.armor >= 2
+                }
+                className="p-2 text-sm flex flex-col items-center text-center rounded font-semibold text-white transition-colors"
+                style={{ background: activePlayer.money >= 1 && !gameState.constructionActions[activePlayerIndex].equipment && activePlayer.armor < 2 ? '#2563eb' : '#c9b896', cursor: activePlayer.money >= 1 && !gameState.constructionActions[activePlayerIndex].equipment && activePlayer.armor < 2 ? 'pointer' : 'not-allowed' }}
+              >
+                {getEquipmentImage('armor', activePlayer.faction) && (
+                  <img
+                    src={getEquipmentImage('armor', activePlayer.faction)}
+                    alt="Armor"
+                    className="w-full aspect-square rounded-lg object-cover mb-2"
+                  />
+                )}
+                <div className="font-medium">{t('game.buyArmor')}</div>
+                <div className="text-xs opacity-80">
+                  {gameState.constructionActions[activePlayerIndex].equipment ? t('game.equipmentBought') :
+                   activePlayer.armor >= 2 ? t('game.maxArmor') :
+                   t('game.owned', { count: activePlayer.armor })}
+                </div>
+              </button>
             </div>
           </div>
 
