@@ -1,21 +1,30 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../store/gameStore';
+import { FACTION_IMAGES } from '../imageAssets';
 
 const FACTIONS = ['Nobles', 'Merchants', 'Commoners'];
+
+const FACTION_CARD_COLORS = {
+  Nobles: 'border-purple-400 hover:border-purple-500 hover:bg-purple-50',
+  Merchants: 'border-yellow-500 hover:border-yellow-600 hover:bg-yellow-50',
+  Commoners: 'border-green-500 hover:border-green-600 hover:bg-green-50',
+};
 
 /**
  * MainMenu Component
  *
  * Entry point for the game - allows choosing between:
- * - Local play with AI configuration (1-3 human players)
+ * - Solo play (pick a faction, play vs 2 AI)
+ * - Local hotseat (multi-human configuration)
  * - Create online room
  * - Join existing online room
  */
-export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
+export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }) => {
   const { t, i18n } = useTranslation();
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [showGameSetup, setShowGameSetup] = useState(false);
+  const [showFactionPicker, setShowFactionPicker] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -63,8 +72,7 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
   };
 
   const setPreset = (preset) => {
-    if (preset === 'solo') setAiPlayers([false, true, true]);
-    else if (preset === 'duo') setAiPlayers([false, false, true]);
+    if (preset === 'duo') setAiPlayers([false, false, true]);
     else setAiPlayers([false, false, false]);
   };
 
@@ -106,8 +114,44 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
           </div>
         )}
 
-        {/* Game Setup Screen */}
-        {showGameSetup ? (
+        {/* Faction Picker (Solo) */}
+        {showFactionPicker ? (
+          <div className="space-y-4">
+            <button
+              onClick={() => setShowFactionPicker(false)}
+              className="text-ink-muted hover:text-ink mb-2 text-sm"
+            >
+              {t('menu.back')}
+            </button>
+
+            <h3 className="heading-serif text-lg text-center">{t('menu.chooseFaction')}</h3>
+
+            <div className="space-y-3">
+              {FACTIONS.map((faction, index) => (
+                <button
+                  key={faction}
+                  onClick={() => onStartSolo(index)}
+                  className={`w-full flex items-center gap-4 p-3 rounded-lg border-2 bg-parchment-50 transition-colors cursor-pointer ${FACTION_CARD_COLORS[faction]}`}
+                >
+                  <div className="w-16 h-16 rounded-full overflow-hidden border border-parchment-400 flex-shrink-0">
+                    {FACTION_IMAGES[faction] && (
+                      <img
+                        src={FACTION_IMAGES[faction]}
+                        alt={t(`factions.${faction}`)}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-ink">{t(`factions.${faction}`)}</div>
+                    <div className="text-sm text-ink-muted">{t(`factions.${faction.toLowerCase()}Desc`)}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+        ) : showGameSetup ? (
           <div className="space-y-4">
             <button
               onClick={() => setShowGameSetup(false)}
@@ -120,14 +164,6 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
 
             {/* Quick presets */}
             <div className="flex gap-2">
-              <button
-                onClick={() => setPreset('solo')}
-                className={`flex-1 py-2 px-3 rounded text-sm font-medium border transition-colors ${
-                  humanCount === 1 ? 'bg-accent text-white border-accent' : 'border-parchment-400 text-ink-light hover:border-accent'
-                }`}
-              >
-                {t('menu.solo')}
-              </button>
               <button
                 onClick={() => setPreset('duo')}
                 className={`flex-1 py-2 px-3 rounded text-sm font-medium border transition-colors ${
@@ -183,10 +219,18 @@ export const MainMenu = ({ onStartLocal, onCreateRoom, onJoinRoom }) => {
           </div>
         ) : !showJoinForm ? (
           <div className="space-y-4">
-            {/* Local play button */}
+            {/* Solo play button */}
+            <button
+              onClick={() => setShowFactionPicker(true)}
+              className="w-full btn-accent py-4 px-6 text-lg"
+            >
+              {t('menu.playSolo')}
+            </button>
+
+            {/* Hotseat button */}
             <button
               onClick={() => setShowGameSetup(true)}
-              className="w-full btn-accent py-4 px-6 text-lg"
+              className="w-full btn-secondary py-3 px-6"
             >
               {t('menu.playLocal')}
             </button>
