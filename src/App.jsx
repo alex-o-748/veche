@@ -2415,13 +2415,13 @@ const PskovGame = () => {
                       activePlayer.money < building.cost ||
                       gameState.constructionActions[activePlayerIndex].improvement
                     }
-                    className="w-full btn-accent p-2.5 text-sm flex items-center gap-2 text-left"
+                    className="w-full btn-accent p-2.5 text-sm flex items-center gap-3 text-left"
                   >
                     {BUILDING_IMAGES[building.type] && (
                       <img
                         src={BUILDING_IMAGES[building.type]}
                         alt={building.name}
-                        className="w-9 h-9 rounded object-cover flex-shrink-0"
+                        className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                       />
                     )}
                     <div>
@@ -2458,13 +2458,13 @@ const PskovGame = () => {
                     gameState.constructionActions[activePlayerIndex].equipment ||
                     activePlayer.weapons >= 2
                   }
-                  className="w-full btn-danger p-2.5 text-sm flex items-center gap-2 text-left"
+                  className="w-full btn-danger p-2.5 text-sm flex items-center gap-3 text-left"
                 >
                   {getEquipmentImage('weapons', activePlayer.faction) && (
                     <img
                       src={getEquipmentImage('weapons', activePlayer.faction)}
                       alt="Weapon"
-                      className="w-8 h-8 rounded object-cover flex-shrink-0"
+                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                     />
                   )}
                   <div>
@@ -2483,14 +2483,14 @@ const PskovGame = () => {
                     gameState.constructionActions[activePlayerIndex].equipment ||
                     activePlayer.armor >= 2
                   }
-                  className="w-full p-2.5 text-sm flex items-center gap-2 text-left rounded font-semibold text-white transition-colors"
+                  className="w-full p-2.5 text-sm flex items-center gap-3 text-left rounded font-semibold text-white transition-colors"
                   style={{ background: activePlayer.money >= 1 && !gameState.constructionActions[activePlayerIndex].equipment && activePlayer.armor < 2 ? '#2563eb' : '#c9b896', cursor: activePlayer.money >= 1 && !gameState.constructionActions[activePlayerIndex].equipment && activePlayer.armor < 2 ? 'pointer' : 'not-allowed' }}
                 >
                   {getEquipmentImage('armor', activePlayer.faction) && (
                     <img
                       src={getEquipmentImage('armor', activePlayer.faction)}
                       alt="Armor"
-                      className="w-8 h-8 rounded object-cover flex-shrink-0"
+                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                     />
                   )}
                   <div>
