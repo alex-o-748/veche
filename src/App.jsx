@@ -548,7 +548,7 @@ const PskovGame = () => {
       }
     });
 
-    const regionDisplayName = regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1);
+    const regionDisplayName = regionName === 'bearhill' ? "Bear's Head" : regionName.charAt(0).toUpperCase() + regionName.slice(1);
 
     console.log("Regions after surrender:", Object.entries(newRegions).map(([name, region]) => `${name}: ${region.controller}`));
     console.log("=== SURRENDER REGION END ===");
@@ -1507,7 +1507,7 @@ const PskovGame = () => {
         };
 
         const buildingName = buildingNames[buildingType] || buildingType;
-        const regionDisplayName = regionName === 'bearhill' ? 'Bear Hill' : regionName.charAt(0).toUpperCase() + regionName.slice(1);
+        const regionDisplayName = regionName === 'bearhill' ? "Bear's Head" : regionName.charAt(0).toUpperCase() + regionName.slice(1);
 
         return { 
           ...gameState, 

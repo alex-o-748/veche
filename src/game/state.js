@@ -177,6 +177,6 @@ export const createInitialGameState = () => ({
 
 // Format region name for display
 export const formatRegionName = (regionName) => {
-  if (regionName === 'bearhill') return 'Bear Hill';
+  if (regionName === 'bearhill') return "Bear's Head";
   return regionName.charAt(0).toUpperCase() + regionName.slice(1);
 };

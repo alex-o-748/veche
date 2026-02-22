@@ -265,7 +265,7 @@ export function createInitialGameState(): GameState {
 
 // Format region name for display
 export function formatRegionName(regionName: string): string {
-  if (regionName === 'bearhill') return 'Bear Hill';
+  if (regionName === 'bearhill') return "Bear's Head";
   return regionName.charAt(0).toUpperCase() + regionName.slice(1);
 }
 
