@@ -356,6 +356,9 @@
       "no_isolation_effect": "Все: -25 силы/2 хода"
     }
   },
+  "factionScreen": {
+    "continue": "Начать"
+  },
   "discussion": {
     "title": "Обсуждение на вече",
     "aiThinking": "размышляет...",

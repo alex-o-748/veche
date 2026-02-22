@@ -356,6 +356,9 @@
       "no_isolation_effect": "All: -25 str/2 turns"
     }
   },
+  "factionScreen": {
+    "continue": "Begin"
+  },
   "discussion": {
     "title": "Council Discussion",
     "aiThinking": "deliberating...",

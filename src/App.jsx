@@ -6,7 +6,7 @@ import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEve
 import { useGameStore } from './store/gameStore';
 
 // Import UI components
-import { MainMenu, Lobby, GameMap, DiscussionPanel } from './components';
+import { MainMenu, Lobby, FactionScreen, GameMap, DiscussionPanel } from './components';
 
 // Import discussion service
 import { requestDiscussion } from './services/discussion';
@@ -3140,8 +3140,8 @@ const PskovGame = () => {
  * - PskovGame: The actual game
  */
 const App = () => {
-  const [screen, setScreen] = useState('menu'); // 'menu' | 'lobby' | 'game'
-  
+  const [screen, setScreen] = useState('menu'); // 'menu' | 'lobby' | 'faction' | 'game'
+
   // Store state
   const mode = useGameStore((state) => state.mode);
   const room = useGameStore((state) => state.room);
@@ -3158,13 +3158,15 @@ const App = () => {
   // Handle screen transitions based on game state
   useEffect(() => {
     if (mode === 'online' && room?.gameStarted && gameState) {
-      // Game has started
-      setScreen('game');
+      // Game has started - show faction screen before the game (only once)
+      if (screen === 'lobby') {
+        setScreen('faction');
+      }
     } else if (mode === 'online' && roomId && !room?.gameStarted) {
       // In lobby waiting for game to start
       setScreen('lobby');
     }
-  }, [mode, room?.gameStarted, gameState, roomId]);
+  }, [mode, room?.gameStarted, gameState, roomId, screen]);
 
   // Start local game (with optional AI config)
   const handleStartLocal = (aiConfig) => {
@@ -3228,6 +3230,17 @@ const App = () => {
           onLeave={handleLeave}
         />
       );
+
+    case 'faction': {
+      const FACTIONS = ['Nobles', 'Merchants', 'Commoners'];
+      const playerFaction = FACTIONS[playerId] || 'Nobles';
+      return (
+        <FactionScreen
+          faction={playerFaction}
+          onContinue={() => setScreen('game')}
+        />
+      );
+    }
 
     case 'game':
       return (
