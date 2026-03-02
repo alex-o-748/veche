@@ -118,7 +118,15 @@ export default {
 
         const body = await request.json() as {
           gameState: any;
-          event: { id: string; name: string; description: string; type: string; orderStrength?: number };
+          event: {
+            id: string;
+            name: string;
+            description: string;
+            type: string;
+            orderStrength?: number;
+            options?: Array<{ id: string; name: string; costText?: string; effectText?: string }>;
+            question?: string;
+          };
           votes: (string | boolean | null)[];
           aiPlayers: boolean[];
           language: string;
@@ -143,12 +151,39 @@ export default {
           ? gameState.activeEffects.map((e: any) => `${e.description} (${e.turnsRemaining} turns left)`).join(', ')
           : 'None';
 
-        // Build vote descriptions
+        // Build option lookup for readable vote labels
+        const optionMap: Record<string, string> = {};
+        if (event.options) {
+          for (const opt of event.options) {
+            optionMap[opt.id] = opt.name;
+          }
+        }
+
+        // Build vote descriptions with readable names
         const voteDescriptions = votes.map((vote: any, i: number) => {
           if (!aiPlayers[i]) return null;
-          const voteLabel = vote === true ? 'Yes / Defend' : vote === false ? 'No / Surrender' : String(vote);
+          let voteLabel: string;
+          if (vote === true) {
+            voteLabel = 'Yes / Defend';
+          } else if (vote === false) {
+            voteLabel = 'No / Surrender';
+          } else if (typeof vote === 'string' && optionMap[vote]) {
+            voteLabel = optionMap[vote];
+          } else {
+            voteLabel = String(vote);
+          }
           return `${factions[i]} (AI) voted: "${voteLabel}"`;
         }).filter(Boolean).join('\n');
+
+        // Build available options description
+        const optionsDescription = event.options
+          ? event.options.map(opt => {
+              const parts = [`"${opt.name}"`];
+              if (opt.costText) parts.push(`Cost: ${opt.costText}`);
+              if (opt.effectText) parts.push(`Effect: ${opt.effectText}`);
+              return `  - ${parts.join(' | ')}`;
+            }).join('\n')
+          : '';
 
         const lang = language === 'ru' ? 'Russian' : 'English';
 
@@ -164,6 +199,16 @@ Respond ONLY with a JSON object: {"messages": [{"playerIndex": <number>, "messag
 Only include messages for the AI players listed.
 ${lang !== 'English' ? `Write the messages in ${lang}.` : ''}`;
 
+        // Build event type context
+        let eventTypeContext = '';
+        if (event.type === 'order_attack') {
+          eventTypeContext = `This is a DEFENSE event. Each faction votes whether to contribute funds to defend against the Teutonic Order attack. Voting "Yes" means committing money to the war effort; voting "No" means refusing to help fund the defense.`;
+        } else if (event.type === 'participation') {
+          eventTypeContext = `This is a PARTICIPATION event. Each faction votes whether to participate (and share the cost) or sit out.`;
+        } else if (event.type === 'voting') {
+          eventTypeContext = `This is a VOTING event. The council chooses between the options below. The option with at least 2 out of 3 votes wins.`;
+        }
+
         const userPrompt = `GAME STATE (Turn ${gameState.turn}/20):
   ${playerSummaries}
   Republic regions: ${republicRegions.join(', ')}
@@ -173,6 +218,8 @@ ${lang !== 'English' ? `Write the messages in ${lang}.` : ''}`;
 EVENT: ${event.name}
 ${event.description}
 ${event.orderStrength ? `Order attack strength: ${event.orderStrength}` : ''}
+${eventTypeContext}
+${optionsDescription ? `\nAVAILABLE OPTIONS:\n${optionsDescription}` : ''}
 
 VOTES:
 ${voteDescriptions}

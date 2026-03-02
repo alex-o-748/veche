@@ -44,6 +44,8 @@ export async function requestDiscussion({ gameState, event, votes, aiPlayers, la
           description: event.description,
           type: event.type,
           orderStrength: event.orderStrength,
+          options: event.options,
+          question: event.question,
         },
         votes,
         aiPlayers,
