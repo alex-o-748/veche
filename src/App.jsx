@@ -548,16 +548,16 @@ const PskovGame = () => {
       }
     });
 
-    const regionDisplayName = regionName === 'bearhill' ? "Bear's Head" : regionName.charAt(0).toUpperCase() + regionName.slice(1);
+    const regionDisplayName = t(`regions.${regionName}`);
 
     console.log("Regions after surrender:", Object.entries(newRegions).map(([name, region]) => `${name}: ${region.controller}`));
     console.log("=== SURRENDER REGION END ===");
-    
+
     return {
       ...gameState,
       regions: newRegions,
       players: newPlayers,
-      lastEventResult: `${regionDisplayName} surrendered to the Order! All buildings destroyed.`
+      lastEventResult: t('battle.surrendered', { region: regionDisplayName })
     };
   };
 
@@ -801,7 +801,7 @@ const PskovGame = () => {
         } else {
           // No valid targets (shouldn't happen in normal gameplay)
           console.log("No valid attack targets - Order cannot attack");
-          return { ...gameState, lastEventResult: 'The Teutonic Order could not find a valid target to attack.' };
+          return { ...gameState, lastEventResult: t('battle.noValidTarget') };
         }
 
         console.log("Selected target region:", targetRegion);
@@ -930,12 +930,12 @@ const PskovGame = () => {
               currentEvent: orderAttackEvent,
               eventResolved: false,
               eventVotes: [null, null, null],
-              lastEventResult: `Rolled ${roll}! The Order attacks immediately!`
+              lastEventResult: t('battle.orderAttacksImmediately', { roll })
             };
           } else {
             return {
               ...gameState,
-              lastEventResult: `Rolled ${roll}. The robbery went unnoticed.`
+              lastEventResult: t('battle.robberyUnnoticed', { roll })
             };
           }
         },
@@ -960,13 +960,13 @@ const PskovGame = () => {
               ...gameState,
               players: newPlayers,
               activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
-              lastEventResult: 'Compensation demand failed! Merchants weakened for 3 turns.'
+              lastEventResult: t('battle.compensationFailed')
             };
           } else {
             return {
               ...gameState,
               players: newPlayers,
-              lastEventResult: 'Compensation received successfully.'
+              lastEventResult: t('battle.compensationReceived')
             };
           }
         },
@@ -982,7 +982,7 @@ const PskovGame = () => {
           return {
             ...gameState,
             activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
-            lastEventResult: 'Trade routes disrupted! Merchants lose 50% strength for 3 turns.'
+            lastEventResult: t('battle.tradeDisrupted')
           };
         }
       }
@@ -1038,7 +1038,7 @@ const PskovGame = () => {
             ...gameState, 
             players: newPlayers,
             activeEffects: [...gameState.activeEffects, nobleWeaknessEffect],
-            lastEventResult: 'Nobles punished for corruption! -2○ and -15 strength for 3 turns.'
+            lastEventResult: t('battle.noblesPunished')
           };
         },
         ignore: (gameState) => {
@@ -1077,15 +1077,7 @@ const PskovGame = () => {
                 });
 
                 // Track destroyed building for message
-                const buildingNames = {
-                  'commoner_huts': 'Huts',
-                  'commoner_church': 'Village Church',
-                  'noble_manor': 'Manor',
-                  'noble_monastery': 'Monastery',
-                  'merchant_mansion': 'Mansion',
-                  'merchant_church': 'Merchant Church'
-                };
-                destroyedBuildings.push(buildingNames[buildingType] || buildingType);
+                destroyedBuildings.push(t(`buildings.${buildingType}`) || buildingType);
 
                 // Remove from available buildings for next iteration
                 buildingTypes.splice(randomIndex, 1);
@@ -1104,12 +1096,12 @@ const PskovGame = () => {
                 turnsRemaining: 2,
                 description: 'Uprising strength penalty'
               }],
-              lastEventResult: `UPRISING! All factions lose 50% strength. Buildings destroyed: ${destroyedBuildings.join(', ')}`
+              lastEventResult: t('battle.uprising', { buildings: destroyedBuildings.join(', ') })
             };
           } else {
             return { 
               ...gameState,
-              lastEventResult: 'Corruption ignored. The people grumble but no uprising occurs.'
+              lastEventResult: t('battle.corruptionIgnored')
             };
           }
         }
@@ -1162,7 +1154,7 @@ const PskovGame = () => {
             return { 
               ...gameState,
               activeEffects: [...gameState.activeEffects, ...refusalEffects],
-              lastEventResult: 'Embassy refused! Grand Prince is insulted. -50% strength and income for 5 turns.'
+              lastEventResult: t('battle.embassyRefused')
             };
           }
 
@@ -1176,7 +1168,7 @@ const PskovGame = () => {
           return { 
             ...gameState, 
             players: newPlayers,
-            lastEventResult: 'Embassy received modestly. Relations maintained.'
+            lastEventResult: t('battle.embassyModest')
           };
         },
         luxurious: (gameState, votes) => {
@@ -1216,7 +1208,7 @@ const PskovGame = () => {
             ...gameState, 
             players: newPlayers,
             activeEffects: [...gameState.activeEffects, strengthEffect],
-            lastEventResult: 'Embassy received luxuriously! +10 strength for 3 turns.'
+            lastEventResult: t('battle.embassyLuxurious')
           };
         },
         refuse: (gameState) => {
@@ -1242,7 +1234,7 @@ const PskovGame = () => {
           return { 
             ...gameState,
             activeEffects: [...gameState.activeEffects, ...newEffects],
-            lastEventResult: 'Embassy refused! Grand Prince is insulted.  Strength -15 and income -50% for 5 turns.'
+            lastEventResult: t('battle.embassyRefused')
           };
         }
       }
@@ -1276,7 +1268,7 @@ const PskovGame = () => {
             ...gameState, 
             players: newPlayers,
             activeEffects: [...gameState.activeEffects, relicsBoostEffect],
-            lastEventResult: 'Church built for holy relics! +5 strength for 3 turns.'
+            lastEventResult: t('battle.relicsChurchBuilt')
           };
           },
         deception: (gameState) => {
@@ -1293,7 +1285,7 @@ const PskovGame = () => {
           return { 
             ...gameState,
             activeEffects: [...gameState.activeEffects, cynicismEffect],
-            lastEventResult: 'Relics declared false! Religious cynicism spreads. -5 strength for 3 turns.'
+            lastEventResult: t('battle.relicsDeception')
           };
         }
       }
@@ -1348,7 +1340,7 @@ const PskovGame = () => {
             ...gameState, 
             players: newPlayers,
             activeEffects: [...gameState.activeEffects, izhoraAllianceEffect],
-            lastEventResult: 'Izhorians accepted into service! +5 strength for 6 turns.'
+            lastEventResult: t('battle.izhorianAccepted')
           };
           },
         rob: (gameState) => {
@@ -1370,7 +1362,7 @@ const PskovGame = () => {
             ...gameState, 
             players: newPlayers,
             activeEffects: [...gameState.activeEffects, izhoraHostilityEffect],
-            lastEventResult: 'Izhorians robbed! They become hostile. -5 strength for 6 turns.'
+            lastEventResult: t('battle.izhorianRobbed')
           };
         },
         send_back: (gameState) => {
@@ -1430,7 +1422,7 @@ const PskovGame = () => {
           return { 
             ...gameState, 
             players: newPlayers,
-            lastEventResult: 'Emergency food purchased! Famine avoided.'
+            lastEventResult: t('battle.droughtFoodPurchased')
           };
         },
         no_food: (gameState) => {
@@ -1446,7 +1438,7 @@ const PskovGame = () => {
           return { 
             ...gameState,
             activeEffects: [...gameState.activeEffects, famineEffect],
-            lastEventResult: 'Famine strikes! Commoners lose 50% strength for 3 turns.'
+            lastEventResult: t('battle.droughtFamine')
           };
         }
       }
@@ -1470,7 +1462,7 @@ const PskovGame = () => {
           // No buildings to burn
           return { 
             ...gameState, 
-            lastEventResult: `Fire breaks out in ${regionName.charAt(0).toUpperCase() + regionName.slice(1)}, but there are no buildings to burn.`
+            lastEventResult: t('battle.fireNoBuildings', { region: t(`regions.${regionName}`) })
           };
         }
 
@@ -1496,24 +1488,14 @@ const PskovGame = () => {
           return player;
         });
 
-        // Create human-readable building name
-        const buildingNames = {
-          'commoner_huts': 'Huts',
-          'commoner_church': 'Village Church',
-          'noble_manor': 'Manor',
-          'noble_monastery': 'Monastery',
-          'merchant_mansion': 'Mansion',
-          'merchant_church': 'Merchant Church'
-        };
+        const buildingName = t(`buildings.${buildingType}`) || buildingType;
+        const regionDisplayName = t(`regions.${regionName}`);
 
-        const buildingName = buildingNames[buildingType] || buildingType;
-        const regionDisplayName = regionName === 'bearhill' ? "Bear's Head" : regionName.charAt(0).toUpperCase() + regionName.slice(1);
-
-        return { 
-          ...gameState, 
+        return {
+          ...gameState,
           regions: newRegions,
           players: newPlayers,
-          lastEventResult: `Fire destroys ${buildingName} in ${regionDisplayName}!`
+          lastEventResult: t('battle.fireDestroysBuilding', { building: buildingName, region: regionDisplayName })
         };
       }
     },
@@ -1530,7 +1512,7 @@ const PskovGame = () => {
         if (buildingTypes.length === 0) {
           return { 
             ...gameState, 
-            lastEventResult: `Fire breaks out in Pskov, but there are no buildings to burn.`
+            lastEventResult: t('battle.cityFireNoBuildings')
           };
         }
 
@@ -1556,23 +1538,13 @@ const PskovGame = () => {
           return player;
         });
 
-        // Create human-readable building name
-        const buildingNames = {
-          'commoner_huts': 'Huts',
-          'commoner_church': 'Village Church',
-          'noble_manor': 'Manor',
-          'noble_monastery': 'Monastery',
-          'merchant_mansion': 'Mansion',
-          'merchant_church': 'Merchant Church'
-        };
+        const buildingName = t(`buildings.${buildingType}`) || buildingType;
 
-        const buildingName = buildingNames[buildingType] || buildingType;
-
-        return { 
-          ...gameState, 
+        return {
+          ...gameState,
           regions: newRegions,
           players: newPlayers,
-          lastEventResult: `City fire destroys ${buildingName} in Pskov!`
+          lastEventResult: t('battle.cityFireDestroysBuilding', { building: buildingName })
         };
       }
     },
@@ -1594,7 +1566,7 @@ const PskovGame = () => {
         return { 
           ...gameState,
           activeEffects: [...gameState.activeEffects, heresyEffect],
-          lastEventResult: 'Heretical ideas spread! All factions lose 10 strength for 2 turns.'
+          lastEventResult: t('battle.heresy')
         };
       }
     },
@@ -1684,7 +1656,7 @@ const PskovGame = () => {
             ...gameState, 
             players: newPlayers,
             activeEffects: [...gameState.activeEffects, mildPlagueEffect],
-            lastEventResult: 'Plague partially contained! All factions lose 5 strength for 2 turns.'
+            lastEventResult: t('battle.plagueContained')
           };
         },
         no_isolation: (gameState) => {
@@ -1700,7 +1672,7 @@ const PskovGame = () => {
           return { 
             ...gameState,
             activeEffects: [...gameState.activeEffects, plagueEffect],
-            lastEventResult: 'Plague spreads unchecked! All factions lose 25 strength for 2 turns.'
+            lastEventResult: t('battle.plagueSpread')
           };
         }
       }

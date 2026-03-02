@@ -238,7 +238,33 @@
     "attackDefeat": "💀 DEFEAT! Attack on {{region}} failed! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
     "fortressBuilt": "🏰 Fortress built in {{region}}! (+10 defense bonus)",
     "defenseFailed": "💀 DEFEAT! {{region}} lost to the Order! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
-    "fortressCancelledInsufficient": "❌ Fortress construction cancelled - insufficient funding!"
+    "fortressCancelledInsufficient": "❌ Fortress construction cancelled - insufficient funding!",
+    "surrendered": "{{region}} surrendered to the Order! All buildings destroyed.",
+    "noValidTarget": "The Teutonic Order could not find a valid target to attack.",
+    "orderAttacksImmediately": "Rolled {{roll}}! The Order attacks immediately!",
+    "robberyUnnoticed": "Rolled {{roll}}. The robbery went unnoticed.",
+    "compensationFailed": "Compensation demand failed! Merchants weakened for 3 turns.",
+    "compensationReceived": "Compensation received successfully.",
+    "tradeDisrupted": "Trade routes disrupted! Merchants lose 50% strength for 3 turns.",
+    "noblesPunished": "Nobles punished for corruption! -2○ and -15 strength for 3 turns.",
+    "uprising": "UPRISING! All factions lose 50% strength. Buildings destroyed: {{buildings}}",
+    "corruptionIgnored": "Corruption ignored. The people grumble but no uprising occurs.",
+    "embassyRefused": "Embassy refused! Grand Prince is insulted. Strength -15 and income -50% for 5 turns.",
+    "embassyModest": "Embassy received modestly. Relations maintained.",
+    "embassyLuxurious": "Embassy received luxuriously! +10 strength for 3 turns.",
+    "relicsChurchBuilt": "Church built for holy relics! +5 strength for 3 turns.",
+    "relicsDeception": "Relics declared false! Religious cynicism spreads. -5 strength for 3 turns.",
+    "izhorianAccepted": "Izhorians accepted into service! +5 strength for 6 turns.",
+    "izhorianRobbed": "Izhorians robbed! They become hostile. -5 strength for 6 turns.",
+    "droughtFoodPurchased": "Emergency food purchased! Famine avoided.",
+    "droughtFamine": "Famine strikes! Commoners lose 50% strength for 3 turns.",
+    "fireNoBuildings": "Fire breaks out in {{region}}, but there are no buildings to burn.",
+    "fireDestroysBuilding": "Fire destroys {{building}} in {{region}}!",
+    "cityFireNoBuildings": "Fire breaks out in Pskov, but there are no buildings to burn.",
+    "cityFireDestroysBuilding": "City fire destroys {{building}} in Pskov!",
+    "heresy": "Heretical ideas spread! All factions lose 10 strength for 2 turns.",
+    "plagueContained": "Plague partially contained! All factions lose 5 strength for 2 turns.",
+    "plagueSpread": "Plague spreads unchecked! All factions lose 25 strength for 2 turns."
   },
   "eventCards": {
     "merchants_robbed": {
@@ -364,6 +390,7 @@
   "discussion": {
     "title": "Council Discussion",
     "aiThinking": "deliberating...",
-    "empty": "AI council members will share their thoughts during events."
+    "empty": "AI council members will share their thoughts during events.",
+    "noAiPlayers": "No AI players detected"
   }
 }
