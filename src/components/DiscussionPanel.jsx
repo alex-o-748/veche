@@ -54,7 +54,7 @@ const DiscussionPanel = () => {
           <p className="text-xs text-ink-muted italic text-center py-3">
             {hasAiPlayers
               ? t('discussion.empty')
-              : 'No AI players detected'}
+              : t('discussion.noAiPlayers')}
           </p>
         )}
 
