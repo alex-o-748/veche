@@ -11,7 +11,7 @@ export const FACTION_IMAGES = {
 // Building images - displayed in construction UI
 export const BUILDING_IMAGES = {
   noble_manor: '/images/buildings/alexsyggr_A_manor_of_a_medieval_Russian_nobleman_several_wood_7c4b29b2-f640-4577-8296-75faa4c1360a_1.png',
-  noble_monastery: 'public/images/buildings/alexsyggr_blue_sky_--ar_916_--v_6.1_9d21074b-6af5-4ca4-b440-009e16f8e74b_0.png',
+  noble_monastery: '/images/buildings/alexsyggr_blue_sky_--ar_916_--v_6.1_9d21074b-6af5-4ca4-b440-009e16f8e74b_0.png',
   merchant_mansion: '/images/buildings/alexsyggr_a_white_two-story_building_with_small_windows_in_th_b1ce883e-0ce1-438d-9afc-a0bc4bd6cf02_1.png',
   merchant_church: null, // Not yet added
   commoner_huts: null, // Not yet added
@@ -23,7 +23,7 @@ export const BUILDING_IMAGES = {
 export const EQUIPMENT_IMAGES = {
   weapons: {
     Nobles: '/images/equipment/alexsyggr_fancy_medieval_Russian_swords_with_golden_accents_l_310414eb-8c83-4204-89d3-a76a2fcf8b65_3.png',
-    Merchants: '/images/equipment/alexsyggr_sturdy_unadorned_medieval_Russian_swords_lying_on_a_e88b3060-7a7f-42ce-b6e65cb0e2e2_3.png',
+    Merchants: '/images/equipment/alexsyggr_sturdy_unadorned_medieval_Russian_swords_lying_on_a_e88b3060-7a7f-42be-82ce-b6e65cb0e2e2_3.png',
     Commoners: '/images/equipment/alexsyggr_sharp_and_shiny_metal_spear_point_--ar_1117_--v_6.1_43177e5f-864a-4b1d-9faf-588fe98a1af2_1.png',
   },
   armor: {
