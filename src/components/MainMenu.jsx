@@ -24,7 +24,7 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
   const { t, i18n } = useTranslation();
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [showGameSetup, setShowGameSetup] = useState(false);
-  const [showFactionPicker, setShowFactionPicker] = useState(false);
+  const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -114,44 +114,7 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
           </div>
         )}
 
-        {/* Faction Picker (Solo) */}
-        {showFactionPicker ? (
-          <div className="space-y-4">
-            <button
-              onClick={() => setShowFactionPicker(false)}
-              className="text-ink-muted hover:text-ink mb-2 text-sm"
-            >
-              {t('menu.back')}
-            </button>
-
-            <h3 className="heading-serif text-lg text-center">{t('menu.chooseFaction')}</h3>
-
-            <div className="space-y-3">
-              {FACTIONS.map((faction, index) => (
-                <button
-                  key={faction}
-                  onClick={() => onStartSolo(index)}
-                  className={`w-full flex items-center gap-4 p-3 rounded-lg border-2 bg-parchment-50 transition-colors cursor-pointer ${FACTION_CARD_COLORS[faction]}`}
-                >
-                  <div className="w-16 h-16 rounded-full overflow-hidden border border-parchment-400 flex-shrink-0">
-                    {FACTION_IMAGES[faction] && (
-                      <img
-                        src={FACTION_IMAGES[faction]}
-                        alt={t(`factions.${faction}`)}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="text-left">
-                    <div className="font-semibold text-ink">{t(`factions.${faction}`)}</div>
-                    <div className="text-sm text-ink-muted">{t(`factions.${faction.toLowerCase()}Desc`)}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-        ) : showGameSetup ? (
+        {showGameSetup ? (
           <div className="space-y-4">
             <button
               onClick={() => setShowGameSetup(false)}
@@ -217,64 +180,7 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
               {t('menu.startGame')}
             </button>
           </div>
-        ) : !showJoinForm ? (
-          <div className="space-y-4">
-            {/* Solo play button */}
-            <button
-              onClick={() => setShowFactionPicker(true)}
-              className="w-full btn-accent py-4 px-6 text-lg"
-            >
-              {t('menu.playSolo')}
-            </button>
-
-            {/* Hotseat button */}
-            <button
-              onClick={() => setShowGameSetup(true)}
-              className="w-full btn-secondary py-3 px-6"
-            >
-              {t('menu.playLocal')}
-            </button>
-
-            <div className="relative">
-              <div className="section-divider" />
-              <div className="relative flex justify-center text-sm -mt-3">
-                <span className="px-2 bg-parchment-50 text-ink-muted">{t('menu.orPlayOnline')}</span>
-              </div>
-            </div>
-
-            {/* Player name input */}
-            <div>
-              <label className="block text-sm font-medium text-ink-light mb-1">
-                {t('menu.yourName')}
-              </label>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder={t('menu.enterName')}
-                className="w-full p-3 border border-parchment-400 rounded-lg bg-parchment-50 text-ink focus:ring-2 focus:ring-accent focus:border-transparent"
-                maxLength={20}
-              />
-            </div>
-
-            {/* Create room button */}
-            <button
-              onClick={handleCreateRoom}
-              disabled={isLoading}
-              className="w-full btn-accent py-3 px-6"
-            >
-              {isLoading ? t('menu.creating') : t('menu.createGame')}
-            </button>
-
-            {/* Join room button */}
-            <button
-              onClick={() => setShowJoinForm(true)}
-              className="w-full btn-secondary py-3 px-6"
-            >
-              {t('menu.joinGame')}
-            </button>
-          </div>
-        ) : (
+        ) : showJoinForm ? (
           /* Join game form */
           <div className="space-y-4">
             <button
@@ -319,6 +225,92 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
             >
               {isLoading ? t('menu.joining') : t('menu.joinGame')}
             </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Solo — inline faction picker (one click to play) */}
+            <p className="text-sm text-ink-muted text-center">{t('menu.chooseFaction')}</p>
+
+            <div className="space-y-3">
+              {FACTIONS.map((faction, index) => (
+                <button
+                  key={faction}
+                  onClick={() => onStartSolo(index)}
+                  className={`w-full flex items-center gap-4 p-3 rounded-lg border-2 bg-parchment-50 transition-colors cursor-pointer ${FACTION_CARD_COLORS[faction]}`}
+                >
+                  <div className="w-16 h-16 rounded-full overflow-hidden border border-parchment-400 flex-shrink-0">
+                    {FACTION_IMAGES[faction] && (
+                      <img
+                        src={FACTION_IMAGES[faction]}
+                        alt={t(`factions.${faction}`)}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-ink">{t(`factions.${faction}`)}</div>
+                    <div className="text-sm text-ink-muted">{t(`factions.${faction.toLowerCase()}Desc`)}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Collapsible multiplayer section */}
+            <div className="relative">
+              <div className="section-divider" />
+              <div className="relative flex justify-center text-sm -mt-3">
+                <button
+                  onClick={() => setShowMultiplayer(!showMultiplayer)}
+                  className="px-2 bg-parchment-50 text-ink-muted hover:text-ink transition-colors cursor-pointer"
+                >
+                  {t('menu.moreWaysToPlay')} {showMultiplayer ? '▴' : '▾'}
+                </button>
+              </div>
+            </div>
+
+            {showMultiplayer && (
+              <div className="space-y-3">
+                {/* Hotseat button */}
+                <button
+                  onClick={() => setShowGameSetup(true)}
+                  className="w-full btn-secondary py-3 px-6"
+                >
+                  {t('menu.playLocal')}
+                </button>
+
+                {/* Player name input */}
+                <div>
+                  <label className="block text-sm font-medium text-ink-light mb-1">
+                    {t('menu.yourName')}
+                  </label>
+                  <input
+                    type="text"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    placeholder={t('menu.enterName')}
+                    className="w-full p-3 border border-parchment-400 rounded-lg bg-parchment-50 text-ink focus:ring-2 focus:ring-accent focus:border-transparent"
+                    maxLength={20}
+                  />
+                </div>
+
+                {/* Create room button */}
+                <button
+                  onClick={handleCreateRoom}
+                  disabled={isLoading}
+                  className="w-full btn-accent py-3 px-6"
+                >
+                  {isLoading ? t('menu.creating') : t('menu.createGame')}
+                </button>
+
+                {/* Join room button */}
+                <button
+                  onClick={() => setShowJoinForm(true)}
+                  className="w-full btn-secondary py-3 px-6"
+                >
+                  {t('menu.joinGame')}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
