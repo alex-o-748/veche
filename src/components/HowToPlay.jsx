@@ -43,14 +43,6 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
         t('howToPlay.action4'),
       ],
     },
-    {
-      title: t('howToPlay.factionsTitle'),
-      items: [
-        t('howToPlay.faction1'),
-        t('howToPlay.faction2'),
-        t('howToPlay.faction3'),
-      ],
-    },
   ];
 
   const content = (

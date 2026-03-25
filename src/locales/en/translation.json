@@ -400,10 +400,6 @@
     "action2": "Vote on events — some cost money, some are free, all have consequences",
     "action3": "Fund defense when the Order attacks, or risk losing territory",
     "action4": "Coordinate attacks and fortress-building with the other factions in the Veche",
-    "factionsTitle": "The Three Factions",
-    "faction1": "Nobles — strongest military (40 str), build manors and monasteries across all regions",
-    "faction2": "Merchants — wealthiest (15 str), build mansions and churches in Pskov only (up to 7 each)",
-    "faction3": "Commoners — the people (25 str), build huts and village churches across all regions",
     "startPlaying": "Start Playing",
     "close": "Got It",
     "helpButton": "?"
