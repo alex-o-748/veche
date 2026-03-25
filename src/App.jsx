@@ -6,7 +6,7 @@ import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEve
 import { useGameStore } from './store/gameStore';
 
 // Import UI components
-import { MainMenu, Lobby, FactionScreen, GameMap, DiscussionPanel } from './components';
+import { MainMenu, Lobby, FactionScreen, GameMap, DiscussionPanel, HowToPlay } from './components';
 
 // Import discussion service
 import { requestDiscussion } from './services/discussion';
@@ -72,6 +72,9 @@ const PskovGame = () => {
   const setDiscussionLoading = useGameStore((state) => state.setDiscussionLoading);
   const addDiscussionMessages = useGameStore((state) => state.addDiscussionMessages);
   const clearDiscussion = useGameStore((state) => state.clearDiscussion);
+
+  // Help modal state
+  const [showHelp, setShowHelp] = useState(false);
 
   // Income notification state (shown briefly at top of construction phase)
   const [incomeNotification, setIncomeNotification] = useState(null);
@@ -2172,6 +2175,15 @@ const PskovGame = () => {
                t('game.nextPhase')}
             </button>
 
+            {/* Help Button */}
+            <button
+              onClick={() => setShowHelp(true)}
+              className="w-6 h-6 rounded-full border border-parchment-500 text-parchment-400 hover:text-parchment-50 hover:border-parchment-300 text-xs font-bold transition-colors flex items-center justify-center"
+              title={t('howToPlay.title')}
+            >
+              {t('howToPlay.helpButton')}
+            </button>
+
             {/* Language Toggle */}
             <button
               onClick={toggleLanguage}
@@ -3161,6 +3173,11 @@ const PskovGame = () => {
 
       </div>
 
+      {/* Help Modal */}
+      {showHelp && (
+        <HowToPlay isModal onContinue={() => setShowHelp(false)} />
+      )}
+
     </div>
   );
 };
@@ -3176,7 +3193,7 @@ const PskovGame = () => {
 const FACTIONS_LIST = ['Nobles', 'Merchants', 'Commoners'];
 
 const App = () => {
-  const [screen, setScreen] = useState('menu'); // 'menu' | 'lobby' | 'faction' | 'game'
+  const [screen, setScreen] = useState('menu'); // 'menu' | 'lobby' | 'faction' | 'howtoplay' | 'game'
   const [soloFaction, setSoloFaction] = useState(null); // faction name for solo intro screen
 
   // Store state
@@ -3217,7 +3234,7 @@ const App = () => {
   // Start local hotseat game (with optional AI config)
   const handleStartLocal = (aiConfig) => {
     initLocalGame(aiConfig);
-    setScreen('game');
+    setScreen('howtoplay');
   };
 
   // Create online room
@@ -3285,10 +3302,17 @@ const App = () => {
       return (
         <FactionScreen
           faction={faction}
-          onContinue={() => setScreen('game')}
+          onContinue={() => setScreen('howtoplay')}
         />
       );
     }
+
+    case 'howtoplay':
+      return (
+        <HowToPlay
+          onContinue={() => setScreen('game')}
+        />
+      );
 
     case 'game':
       return (

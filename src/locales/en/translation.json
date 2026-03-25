@@ -384,6 +384,30 @@
       "no_isolation_effect": "All: -25 str/2 turns"
     }
   },
+  "howToPlay": {
+    "title": "How to Play",
+    "goalTitle": "Your Goal",
+    "goal1": "Survive 20 turns defending the Pskov Republic from the Teutonic Order",
+    "goal2": "If Pskov (the capital) falls, you lose immediately",
+    "goal3": "After 20 turns, victory points are tallied from money, buildings, equipment, and military strength",
+    "phasesTitle": "Each Turn Has 4 Phases",
+    "phase1": "Resources — collect income from your territories and buildings",
+    "phase2": "Construction — build one improvement (2 coins) or buy equipment (1 coin)",
+    "phase3": "Events — a random event card is drawn; vote on how to respond",
+    "phase4": "City Assembly (Veche) — vote to attack Order territories or build fortresses (6 coins shared)",
+    "actionsTitle": "What You Do",
+    "action1": "Build to earn more income each turn and score points at the end",
+    "action2": "Vote on events — some cost money, some are free, all have consequences",
+    "action3": "Fund defense when the Order attacks, or risk losing territory",
+    "action4": "Coordinate attacks and fortress-building with the other factions in the Veche",
+    "factionsTitle": "The Three Factions",
+    "faction1": "Nobles — strongest military (40 str), build manors and monasteries across all regions",
+    "faction2": "Merchants — wealthiest (15 str), build mansions and churches in Pskov only (up to 7 each)",
+    "faction3": "Commoners — the people (25 str), build huts and village churches across all regions",
+    "startPlaying": "Start Playing",
+    "close": "Got It",
+    "helpButton": "?"
+  },
   "factionScreen": {
     "continue": "Begin"
   },
