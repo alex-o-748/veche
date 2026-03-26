@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { toggleLanguage } from '../i18n';
 import { useGameStore } from '../store/gameStore';
 
 const FACTIONS = ['Nobles', 'Merchants', 'Commoners'];
@@ -26,10 +27,6 @@ export const Lobby = ({ onSelectFaction, onLeave }) => {
   const toggleReady = useGameStore((state) => state.toggleReady);
   const error = useGameStore((state) => state.error);
   const clearError = useGameStore((state) => state.clearError);
-
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
-  };
 
   const players = room?.players || [null, null, null];
   const allReady = players.every((p) => p !== null && p.ready);

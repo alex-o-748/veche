@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toggleLanguage } from './i18n';
 import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
 
 // Import Zustand store
@@ -80,9 +81,6 @@ const PskovGame = () => {
   const [incomeNotification, setIncomeNotification] = useState(null);
   const incomeAdvancingRef = useRef(false);
 
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
-  };
 
   // Helper functions to get translated event content
   const getEventName = (event) => {
