@@ -1,58 +1,59 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-// Settlement icons as SVG components
+// Settlement icons as monochrome SVG components
+// Shape distinguishes faction: circle = republic, diamond = order
+// Battlements distinguish fortress from town; capital is unique
 const PskovIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Capital city - grand fortress with cathedral domes */}
-    <circle cx="0" cy="0" r="28" fill="#3b82f6" stroke="#1e40af" strokeWidth="3" opacity="0.9"/>
-    <path d="M -12,-8 L -12,-18 L -8,-22 L -4,-18 L -4,-8 Z" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.5"/>
-    <circle cx="-8" cy="-22" r="3" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1"/>
-    <path d="M 4,-8 L 4,-18 L 8,-22 L 12,-18 L 12,-8 Z" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.5"/>
-    <circle cx="8" cy="-22" r="3" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1"/>
-    <rect x="-15" y="-8" width="30" height="12" fill="#dc2626" stroke="#991b1b" strokeWidth="2"/>
-    <rect x="-18" y="4" width="36" height="8" fill="#78716c" stroke="#57534e" strokeWidth="2"/>
+    {/* Capital city - hexagonal shield with star */}
+    <path d="M 0,-30 L 26,-15 L 26,15 L 0,30 L -26,15 L -26,-15 Z"
+          fill="#1c1917" stroke="white" strokeWidth="3" opacity="0.9"/>
+    {/* Five-pointed star */}
+    <path d="M 0,-16 L 4,-5 L 16,-5 L 6,2 L 10,14 L 0,7 L -10,14 L -6,2 L -16,-5 L -4,-5 Z"
+          fill="white"/>
   </g>
 );
 
 const RepublicTownIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Simple unfortified town - circle with cross */}
-    <circle cx="0" cy="0" r="16" fill="#10b981" stroke="#059669" strokeWidth="2.5" opacity="0.9"/>
-    <rect x="-1.5" y="-8" width="3" height="16" fill="white"/>
-    <rect x="-8" y="-1.5" width="16" height="3" fill="white"/>
+    {/* Republic town - filled circle */}
+    <circle cx="0" cy="0" r="14" fill="#1c1917" stroke="white" strokeWidth="2.5" opacity="0.9"/>
+    <circle cx="0" cy="0" r="5" fill="white"/>
   </g>
 );
 
 const RepublicFortressIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Fortified town - castle with towers */}
-    <circle cx="0" cy="0" r="20" fill="#10b981" stroke="#059669" strokeWidth="3" opacity="0.9"/>
-    <rect x="-12" y="-6" width="24" height="12" fill="#78716c" stroke="#57534e" strokeWidth="2"/>
-    <rect x="-14" y="-10" width="6" height="8" fill="#78716c" stroke="#57534e" strokeWidth="1.5"/>
-    <rect x="8" y="-10" width="6" height="8" fill="#78716c" stroke="#57534e" strokeWidth="1.5"/>
-    <rect x="-3" y="-2" width="6" height="8" fill="#292524" stroke="#1c1917" strokeWidth="1"/>
+    {/* Republic fortress - circle with battlements */}
+    <circle cx="0" cy="0" r="18" fill="#1c1917" stroke="white" strokeWidth="2.5" opacity="0.9"/>
+    {/* Battlement crenellations */}
+    <rect x="-12" y="-4" width="24" height="10" fill="white"/>
+    <rect x="-12" y="-10" width="5" height="8" fill="white"/>
+    <rect x="7" y="-10" width="5" height="8" fill="white"/>
+    <rect x="-3" y="0" width="6" height="6" fill="#1c1917"/>
   </g>
 );
 
 const OrderTownIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Order unfortified - circle with Teutonic cross */}
-    <circle cx="0" cy="0" r="16" fill="#ef4444" stroke="#dc2626" strokeWidth="2.5" opacity="0.9"/>
-    <path d="M -2,-10 L -2,-3 L -10,-3 L -10,3 L -2,3 L -2,10 L 2,10 L 2,3 L 10,3 L 10,-3 L 2,-3 L 2,-10 Z"
-          fill="white" stroke="#1c1917" strokeWidth="0.5"/>
+    {/* Order town - filled diamond */}
+    <rect x="-10" y="-10" width="20" height="20" fill="#1c1917" stroke="white" strokeWidth="2.5"
+          transform="rotate(45)" opacity="0.9"/>
+    <rect x="-3.5" y="-3.5" width="7" height="7" fill="white" transform="rotate(45)"/>
   </g>
 );
 
 const OrderFortressIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Order fortress - intimidating castle */}
-    <circle cx="0" cy="0" r="20" fill="#ef4444" stroke="#dc2626" strokeWidth="3" opacity="0.9"/>
-    <rect x="-12" y="-6" width="24" height="12" fill="#1c1917" stroke="#000000" strokeWidth="2"/>
-    <rect x="-14" y="-10" width="6" height="8" fill="#1c1917" stroke="#000000" strokeWidth="1.5"/>
-    <rect x="8" y="-10" width="6" height="8" fill="#1c1917" stroke="#000000" strokeWidth="1.5"/>
-    <path d="M -2,-10 L -2,-5 L -6,-5 L -6,-1 L -2,-1 L -2,4 L 2,4 L 2,-1 L 6,-1 L 6,-5 L 2,-5 L 2,-10 Z"
-          fill="white" stroke="#1c1917" strokeWidth="0.5"/>
+    {/* Order fortress - diamond with battlements */}
+    <rect x="-13" y="-13" width="26" height="26" fill="#1c1917" stroke="white" strokeWidth="2.5"
+          transform="rotate(45)" opacity="0.9"/>
+    {/* Battlement crenellations */}
+    <rect x="-12" y="-4" width="24" height="10" fill="white"/>
+    <rect x="-12" y="-10" width="5" height="8" fill="white"/>
+    <rect x="7" y="-10" width="5" height="8" fill="white"/>
+    <rect x="-3" y="0" width="6" height="6" fill="#1c1917"/>
   </g>
 );
 
