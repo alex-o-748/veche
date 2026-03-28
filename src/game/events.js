@@ -112,6 +112,60 @@ export const eventTypes = {
     },
   },
 
+  auction: {
+    resolve: (event, state, votes) => {
+      // Parse bids (votes are stored as numeric strings)
+      const bids = votes.map((v, i) => ({
+        playerIndex: i,
+        bid: v !== null ? parseFloat(v) : 0,
+      }));
+
+      // Find the highest bid
+      const maxBid = Math.max(...bids.map(b => b.bid));
+
+      // If nobody bid anything meaningful, no winner
+      if (maxBid < 1) {
+        return {
+          ...state,
+          lastEventResult: 'No one placed a worthy bid. The furs remain unsold.',
+        };
+      }
+
+      // Winners: all top bidders pay their bid and split the bonus point
+      const topBidders = bids.filter(b => b.bid === maxBid);
+      const pointShare = 1 / topBidders.length;
+      const topBidderIndices = new Set(topBidders.map(b => b.playerIndex));
+
+      const newPlayers = state.players.map((player, index) => {
+        if (topBidderIndices.has(index)) {
+          return {
+            ...player,
+            money: player.money - maxBid,
+            bonusPoints: (player.bonusPoints || 0) + pointShare,
+          };
+        }
+        return player;
+      });
+
+      if (topBidders.length === 1) {
+        const winnerFaction = state.players[topBidders[0].playerIndex].faction;
+        return {
+          ...state,
+          players: newPlayers,
+          lastEventResult: `${winnerFaction} wins the auction with a bid of ${maxBid}○! They sport magnificent fur coats — the envy of all Pskov. (+1 Victory Point)`,
+        };
+      }
+
+      const tiedFactions = topBidders.map(b => state.players[b.playerIndex].faction).join(' & ');
+      const pointText = topBidders.length === 2 ? '½' : `1/${topBidders.length}`;
+      return {
+        ...state,
+        players: newPlayers,
+        lastEventResult: `${tiedFactions} tied at ${maxBid}○! They split the furs and each pay ${maxBid}○. (+${pointText} Victory Point each)`,
+      };
+    },
+  },
+
   voting: {
     resolve: (event, state, votes) => {
       const voteCounts = {};
@@ -806,6 +860,14 @@ export const eventDeck = [
     minCostPerPlayer: 1,
   },
   {
+    id: 'fur_auction',
+    name: 'Grand Fur Auction',
+    description:
+      'Hunters have returned from the northern forests with a magnificent haul of furs — sable, marten, and fox pelts of the finest quality. A grand auction is held in the Pskov marketplace. The highest bidder wins the furs and gains lasting prestige!',
+    type: 'auction',
+    minBid: 1,
+  },
+  {
     id: 'plague',
     name: 'Plague',
     description: 'A plague spreads through the city. How will you respond?',
@@ -997,6 +1059,32 @@ export const getVotingResult = (votes) => {
     });
 
     return winningOption || 'send_back';
+  }
+  return null;
+};
+
+// Get auction result (for bid events)
+export const getAuctionResult = (votes) => {
+  const completedVotes = votes.filter((v) => v !== null);
+
+  if (completedVotes.length === 3) {
+    const bids = votes.map((v, i) => ({
+      playerIndex: i,
+      bid: v !== null ? parseFloat(v) : 0,
+    }));
+    const maxBid = Math.max(...bids.map((b) => b.bid));
+
+    if (maxBid < 1) {
+      return { result: 'no_bids' };
+    }
+
+    const topBidders = bids.filter((b) => b.bid === maxBid);
+    if (topBidders.length > 1) {
+      return { result: 'tie', amount: maxBid, tiedIndices: topBidders.map(b => b.playerIndex) };
+    }
+
+    const winner = topBidders[0];
+    return { result: 'winner', winnerIndex: winner.playerIndex, amount: maxBid };
   }
   return null;
 };

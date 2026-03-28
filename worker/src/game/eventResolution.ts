@@ -499,6 +499,64 @@ export function resolveOrderAttackEvent(
 }
 
 /**
+ * Resolve an auction event (sealed-bid auction)
+ */
+export function resolveAuctionEvent(
+  event: FullGameEvent,
+  state: GameState,
+  votes: (string | null)[]
+): GameState {
+  // Parse bids
+  const bids = votes.map((v, i) => ({
+    playerIndex: i,
+    bid: v !== null ? parseFloat(v) : 0,
+  }));
+
+  const maxBid = Math.max(...bids.map(b => b.bid));
+
+  // No meaningful bids
+  if (maxBid < 1) {
+    return {
+      ...state,
+      lastEventResult: 'No one placed a worthy bid. The furs remain unsold.',
+    };
+  }
+
+  // Winners: all top bidders pay their bid and split the bonus point
+  const topBidders = bids.filter(b => b.bid === maxBid);
+  const pointShare = 1 / topBidders.length;
+  const topBidderIndices = new Set(topBidders.map(b => b.playerIndex));
+
+  const newPlayers = state.players.map((player, index) => {
+    if (topBidderIndices.has(index)) {
+      return {
+        ...player,
+        money: player.money - maxBid,
+        bonusPoints: (player.bonusPoints || 0) + pointShare,
+      };
+    }
+    return player;
+  });
+
+  if (topBidders.length === 1) {
+    const winnerFaction = state.players[topBidders[0].playerIndex].faction;
+    return {
+      ...state,
+      players: newPlayers,
+      lastEventResult: `${winnerFaction} wins the auction with a bid of ${maxBid}○! Magnificent fur coats — the envy of all Pskov. (+1 Victory Point)`,
+    };
+  }
+
+  const tiedFactions = topBidders.map(b => state.players[b.playerIndex].faction).join(' & ');
+  const pointText = topBidders.length === 2 ? '½' : `1/${topBidders.length}`;
+  return {
+    ...state,
+    players: newPlayers,
+    lastEventResult: `${tiedFactions} tied at ${maxBid}○! They split the furs and each pay ${maxBid}○. (+${pointText} Victory Point each)`,
+  };
+}
+
+/**
  * Main event resolution dispatcher
  */
 export function resolveEvent(
@@ -516,6 +574,9 @@ export function resolveEvent(
 
     case 'order_attack':
       return resolveOrderAttackEvent(event, state, votes, randomValues);
+
+    case 'auction':
+      return resolveAuctionEvent(event, state, votes);
 
     default:
       return {

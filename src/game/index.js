@@ -71,6 +71,7 @@ export {
   drawEvent,
   resolveEvent,
   getVotingResult,
+  getAuctionResult,
   getParticipationResult,
 } from './events.js';
 

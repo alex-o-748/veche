@@ -116,9 +116,9 @@ export const createInitialRegions = () => ({
 
 // Create initial player state
 export const createInitialPlayers = () => [
-  { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0 },
-  { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0 },
-  { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0 },
+  { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
+  { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
+  { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
 ];
 
 // Create initial construction actions

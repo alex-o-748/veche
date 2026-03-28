@@ -80,6 +80,7 @@ export interface Player {
   weapons: number;
   armor: number;
   improvements: number;
+  bonusPoints: number;
 }
 
 // Construction action tracking
@@ -101,7 +102,7 @@ export interface ActiveEffect {
 export interface GameEvent {
   id: string;
   name: string;
-  type: 'immediate' | 'participation' | 'order_attack' | 'voting';
+  type: 'immediate' | 'participation' | 'order_attack' | 'voting' | 'auction';
   description: string;
   image?: string;
 }
@@ -214,9 +215,9 @@ export function createInitialRegions(): Record<string, Region> {
 // Create initial player state
 export function createInitialPlayers(): Player[] {
   return [
-    { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0 },
-    { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0 },
-    { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0 },
+    { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
+    { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
+    { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
   ];
 }
 

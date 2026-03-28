@@ -599,7 +599,7 @@ export const getAvailableBuildings = (state) => {
 
 // Calculate victory points
 export const calculateVictoryPoints = (player) => {
-  return player.improvements;
+  return player.improvements + (player.bonusPoints || 0);
 };
 
 // Check game result
