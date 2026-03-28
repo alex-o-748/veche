@@ -13,9 +13,9 @@ export const BUILDING_IMAGES = {
   noble_manor: '/images/buildings/alexsyggr_A_manor_of_a_medieval_Russian_nobleman_several_wood_7c4b29b2-f640-4577-8296-75faa4c1360a_1.png',
   noble_monastery: '/images/buildings/alexsyggr_blue_sky_--ar_916_--v_6.1_9d21074b-6af5-4ca4-b440-009e16f8e74b_0.png',
   merchant_mansion: '/images/buildings/alexsyggr_a_white_two-story_building_with_small_windows_in_th_b1ce883e-0ce1-438d-9afc-a0bc4bd6cf02_1.png',
-  merchant_church: null, // Not yet added
-  commoner_huts: null, // Not yet added
-  commoner_church: null, // Not yet added
+  merchant_church: '/images/buildings/alexsyggr_an_austere_white_church_in_Medieval_Russian_style_o_31caee18-bef4-4f2e-ac1c-917f6aefcd77_0.jpeg',
+  commoner_huts: '/images/buildings/alexsyggr_a_board_game_card_with_a_small_Russian_hamlet_with__05df951a-2c96-4a00-9b44-f424939dd294_2.jpeg',
+  commoner_church: '/images/buildings/alexsyggr_A_small_medieval_Russian_log_church_among_the_trees_3237fc53-3b82-4d6e-98bc-f0bb83c07d79_3.jpeg',
   fortress: '/images/buildings/alexsyggr_a_simple_and_austere_old_Russian_fortress_built_of__066240a6-a9a9-4861-97f7-f45351b398c0_0.png',
 };
 
@@ -27,8 +27,8 @@ export const EQUIPMENT_IMAGES = {
     Commoners: '/images/equipment/alexsyggr_sharp_and_shiny_metal_spear_point_--ar_1117_--v_6.1_43177e5f-864a-4b1d-9faf-588fe98a1af2_1.png',
   },
   armor: {
-    Nobles: '/images/equipment/alexsyggr_wooden_wall_--ar_1117_--v_6.1_748c2b2f-ec73-4005-80d7-aa8eee5b7bc2_1.png',
-    Merchants: null, // Not yet added
+    Nobles: '/images/equipment/alexsyggr_medieval_Russian_armour_with_golden_accents_hanging_20caea06-4f70-40a1-a4dd-4416406c6780_1.jpeg',
+    Merchants: '/images/equipment/alexsyggr_wooden_wall_--ar_1117_--v_6.1_748c2b2f-ec73-4005-80d7-aa8eee5b7bc2_1.png',
     Commoners: '/images/equipment/alexsyggr_medieval_peasants_simple_wooden_shield_and_second-h_2f0077a2-222c-4b72-a97e-3bdd7d45bfd7_1.png',
   },
 };
@@ -41,13 +41,13 @@ export const EVENT_IMAGES = {
   embassy: '/images/events/alexsyggr_group_of_Russian_nobles_in_the_early_Middle_Ages_dr_699d9660-94d7-434d-88d5-202fe8a7e104_2.png',
   relics_found: '/images/events/alexsyggr_an_Orthodox_priest_in_ornate_clothing_heading_a_rel_0cba2a95-bdba-46b2-b5a5-c9d56f25a882_2.png',
   izhorian_delegation: '/images/events/alexsyggr_a_delegation_of_a_remote_tribe_in_austere_fur_cloth_80512fd8-6a3f-4845-9480-a58943925a16_2.png',
-  drought: null, // Not yet added
+  drought: '/images/events/alexsyggr_a_field_parched_due_to_draught_withered_crops_small_2e14e3e1-b46b-41df-ae6e-38e4ab766037_0.jpeg',
   plague: '/images/events/alexsyggr_a_street_in_a_medieval_Russian_town_suffering_from__670d54fc-409b-4146-aa5a-f5b70fa990a1_2.png',
 
   // Immediate events
   good_harvest: '/images/events/alexsyggr_medieval_peasants_celebrating_a_good_harvest_amidst_afa9f5c8-81d3-4dea-b8f2-ce81e945abad_0.png',
-  fire: null, // Not yet added
-  city_fire: null, // Not yet added
+  fire: '/images/events/alexsyggr_a_small_medieval_Russian_hamlet_engulfed_by_fire._S_057c9cff-c024-40ff-b511-344cb3e9c49e_2.jpeg',
+  city_fire: '/images/events/alexsyggr_a_fire_in_a_medieval_Russian_city_with_mostly_woode_9cae393b-8584-432f-8e58-ef7943433a7b_1.jpeg',
   heresy: '/images/events/alexsyggr_a_street_preacher_in_ragged_clothes_standing_in_fro_be26bd8e-6607-427d-936f-2cf776b4c576_1.png',
 
   // Order attacks - all use same image
@@ -61,7 +61,7 @@ export const EVENT_IMAGES = {
 
   // Future events (not yet in deck)
   hunters_brought_furs: '/images/events/alexsyggr_a_stall_with_fur_pelts_in_a_marketplace_in_a_mediev_edaaadeb-ea66-48c2-8e25-b190cd24e740_0.png',
-  huge_squirrels_found: '/images/events/alexsyggr_Hunters_come_back_to_a_medieval_Russian_village_wit_35940424-a2d1-4488-bb62-57a61b91cde3_1.png',
+  huge_squirrels_found: '/images/events/alexsyggr_giant_squirrels_35940424-a2d1-4488-bb62-57a61b91cde3_1.png',
 };
 
 // Helper function to get event image, with fallback for order attacks
