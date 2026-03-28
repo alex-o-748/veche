@@ -59,7 +59,8 @@ export const EVENT_IMAGES = {
   order_attack_110: '/images/events/alexsyggr_knights_with_black_crosses_on_their_white_shields_r_a2c78c6a-9860-4d06-b99c-1c13874b176a_1.png',
   order_attack_rob_foreign: '/images/events/alexsyggr_knights_with_black_crosses_on_their_white_shields_r_a2c78c6a-9860-4d06-b99c-1c13874b176a_1.png',
 
-  // Future events (not yet in deck)
+  // Auction events
+  fur_auction: '/images/events/alexsyggr_a_stall_with_fur_pelts_in_a_marketplace_in_a_mediev_edaaadeb-ea66-48c2-8e25-b190cd24e740_0.png',
   hunters_brought_furs: '/images/events/alexsyggr_a_stall_with_fur_pelts_in_a_marketplace_in_a_mediev_edaaadeb-ea66-48c2-8e25-b190cd24e740_0.png',
   huge_squirrels_found: '/images/events/alexsyggr_giant_squirrels_35940424-a2d1-4488-bb62-57a61b91cde3_1.png',
 };

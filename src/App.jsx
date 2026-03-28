@@ -1765,9 +1765,35 @@ const PskovGame = () => {
     return null;
   };
 
+  // Check if auction bidding is complete and get result
+  const getAuctionResult = () => {
+    const votes = gameState.eventVotes;
+    const completedVotes = votes.filter(v => v !== null);
+
+    if (completedVotes.length === 3) {
+      const bids = votes.map((v, i) => ({
+        playerIndex: i,
+        bid: v !== null ? parseFloat(v) : 0,
+      }));
+      const maxBid = Math.max(...bids.map(b => b.bid));
+
+      if (maxBid < 1) {
+        return { result: 'no_bids' };
+      }
+
+      const topBidders = bids.filter(b => b.bid === maxBid);
+      if (topBidders.length > 1) {
+        return { result: 'tie', amount: maxBid };
+      }
+
+      return { result: 'winner', winnerIndex: topBidders[0].playerIndex, amount: maxBid };
+    }
+    return null;
+  };
+
   // Calculate victory points for each player
   const calculateVictoryPoints = (player) => {
-    return player.improvements;
+    return player.improvements + (player.bonusPoints || 0);
   };
 
   // Check if game is over and determine winner
@@ -2654,6 +2680,104 @@ const PskovGame = () => {
                         <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">
                           Apply Decision
                         </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Auction Event */}
+              {gameState.currentEvent.type === 'auction' && !gameState.eventResolved && (
+                <div>
+                  <h4 className="text-sm font-semibold text-ink-light mb-2">Fur Auction</h4>
+                  <p className="text-sm text-ink-muted mb-3">Place your bid! Highest unique bidder wins the furs and earns +1 Victory Point. Tied bids void the auction.</p>
+
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    {gameState.players.map((player, index) => {
+                      const hasBid = gameState.eventVotes[index] !== null;
+                      const isCurrentPlayer = mode === 'online' ? index === playerId : !aiPlayers[index];
+                      const maxAffordable = Math.floor(player.money);
+                      const factionBorder = player.faction === 'Nobles' ? 'border-l-purple-600'
+                        : player.faction === 'Merchants' ? 'border-l-amber-600'
+                        : 'border-l-emerald-600';
+
+                      return (
+                        <div key={index} className={`border-l-3 ${factionBorder} pl-3 py-2`}>
+                          <h5 className="text-sm font-semibold text-ink mb-1">
+                            {t(`factions.${player.faction}`)}
+                            {mode === 'online' && index === playerId && <span className="text-accent ml-1 text-xs">{t('game.you')}</span>}
+                          </h5>
+                          <div className="text-xs text-ink-muted mb-2">{player.money.toFixed(1)}○</div>
+
+                          {isCurrentPlayer ? (
+                            hasBid ? (
+                              <div className="text-xs text-accent font-medium italic py-1">
+                                Bid placed (sealed)
+                              </div>
+                            ) : (
+                              <div className="space-y-1.5">
+                                <button
+                                  onClick={() => voteOnEvent(index, '0')}
+                                  className="w-full px-3 py-1.5 rounded text-xs font-medium btn-secondary"
+                                >
+                                  Pass (bid 0)
+                                </button>
+                                {[1, 2, 3, 4, 5, 6].filter(amt => amt <= maxAffordable).map(amt => (
+                                  <button
+                                    key={amt}
+                                    onClick={() => voteOnEvent(index, String(amt))}
+                                    className="w-full px-3 py-1.5 rounded text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                                  >
+                                    Bid {amt}○
+                                  </button>
+                                ))}
+                              </div>
+                            )
+                          ) : (
+                            <div className="text-xs text-ink-muted italic py-1">
+                              {hasBid ? (
+                                <span className="text-accent font-medium">Bid placed (sealed)</span>
+                              ) : (
+                                <span>Considering...</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {getAuctionResult() && (
+                    <div className="text-center">
+                      {(() => {
+                        const auction = getAuctionResult();
+                        let resultText = '';
+                        let resultColor = 'text-ink-light';
+
+                        if (auction.result === 'no_bids') {
+                          resultText = 'No worthy bids placed. The furs go unsold.';
+                        } else if (auction.result === 'tie') {
+                          resultText = `Tied bids at ${auction.amount}○ — auction void!`;
+                          resultColor = 'text-red-700';
+                        } else if (auction.result === 'winner') {
+                          const winnerFaction = gameState.players[auction.winnerIndex].faction;
+                          resultText = `${winnerFaction} wins with ${auction.amount}○! (+1 Victory Point)`;
+                          resultColor = 'text-emerald-700';
+                        }
+
+                        return (
+                          <div className="mb-3">
+                            <p className={`text-sm font-semibold ${resultColor} mb-1`}>
+                              Bids: {gameState.players.map((p, i) => `${p.faction}: ${gameState.eventVotes[i]}○`).join(' · ')}
+                            </p>
+                            <p className={`text-sm font-semibold ${resultColor}`}>{resultText}</p>
+                          </div>
+                        );
+                      })()}
+                      {mode === 'online' ? (
+                        <p className="text-sm text-ink-muted italic">Auto-applying result...</p>
+                      ) : (
+                        <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">Apply Result</button>
                       )}
                     </div>
                   )}

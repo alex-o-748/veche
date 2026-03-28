@@ -469,6 +469,60 @@ export function resolveOrderAttackEvent(
 }
 
 /**
+ * Resolve an auction event (sealed-bid auction)
+ */
+export function resolveAuctionEvent(
+  event: FullGameEvent,
+  state: GameState,
+  votes: (string | null)[]
+): GameState {
+  // Parse bids
+  const bids = votes.map((v, i) => ({
+    playerIndex: i,
+    bid: v !== null ? parseFloat(v) : 0,
+  }));
+
+  const maxBid = Math.max(...bids.map(b => b.bid));
+
+  // No meaningful bids
+  if (maxBid < 1) {
+    return {
+      ...state,
+      lastEventResult: 'No one placed a worthy bid. The furs remain unsold.',
+    };
+  }
+
+  // Tie at the top
+  const topBidders = bids.filter(b => b.bid === maxBid);
+  if (topBidders.length > 1) {
+    return {
+      ...state,
+      lastEventResult: `Bidding war! ${topBidders.length} factions tied at ${maxBid}○ — the auction is void.`,
+    };
+  }
+
+  // Single winner
+  const winner = topBidders[0];
+  const winnerFaction = state.players[winner.playerIndex].faction;
+  const newPlayers = state.players.map((player, index) => {
+    if (index === winner.playerIndex) {
+      return {
+        ...player,
+        money: player.money - winner.bid,
+        bonusPoints: (player.bonusPoints || 0) + 1,
+      };
+    }
+    return player;
+  });
+
+  return {
+    ...state,
+    players: newPlayers,
+    lastEventResult: `${winnerFaction} wins the auction with a bid of ${maxBid}○! Magnificent fur coats — the envy of all Pskov. (+1 Victory Point)`,
+  };
+}
+
+/**
  * Main event resolution dispatcher
  */
 export function resolveEvent(
@@ -486,6 +540,9 @@ export function resolveEvent(
 
     case 'order_attack':
       return resolveOrderAttackEvent(event, state, votes, randomValues);
+
+    case 'auction':
+      return resolveAuctionEvent(event, state, votes);
 
     default:
       return {

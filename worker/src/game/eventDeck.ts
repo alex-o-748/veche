@@ -21,6 +21,7 @@ export interface FullGameEvent extends GameEvent {
   minCostPerPlayer?: number;
   totalCost?: number;
   acceptCost?: number;
+  minBid?: number;
 }
 
 export const eventDeck: FullGameEvent[] = [
@@ -237,6 +238,13 @@ export const eventDeck: FullGameEvent[] = [
     orderStrength: 110,
     question: 'Who will help fund the defense? Cost will be split evenly among participants.',
     minCostPerPlayer: 1,
+  },
+  {
+    id: 'fur_auction',
+    name: 'Grand Fur Auction',
+    type: 'auction',
+    description: 'Hunters have returned with magnificent furs — sable, marten, and fox pelts of the finest quality. A grand auction is held. The highest bidder gains lasting prestige!',
+    minBid: 1,
   },
   {
     id: 'plague',

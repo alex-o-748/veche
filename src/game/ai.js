@@ -105,6 +105,9 @@ export const decideEventVote = (state, playerIndex, event) => {
     case 'participation':
       return decideParticipation(state, playerIndex, event);
 
+    case 'auction':
+      return decideAuctionBid(state, playerIndex, event);
+
     case 'immediate':
       // Immediate events don't need votes
       return null;
@@ -188,6 +191,26 @@ const decideParticipation = (state, playerIndex, event) => {
   }
 
   return true;
+};
+
+/**
+ * Decide how much to bid in an auction event.
+ * AI bids up to half its available money (after keeping defense reserve),
+ * with some randomness to avoid predictability.
+ * Returns the bid as a string.
+ */
+const decideAuctionBid = (state, playerIndex, event) => {
+  const player = state.players[playerIndex];
+  const available = Math.floor(player.money) - DEFENSE_RESERVE;
+
+  if (available < 1) {
+    return '0'; // Can't afford to bid
+  }
+
+  // Bid between 1 and half of available money (randomized)
+  const maxBid = Math.max(1, Math.floor(available / 2));
+  const bid = Math.floor(Math.random() * maxBid) + 1;
+  return String(bid);
 };
 
 /**

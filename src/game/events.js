@@ -112,6 +112,56 @@ export const eventTypes = {
     },
   },
 
+  auction: {
+    resolve: (event, state, votes) => {
+      // Parse bids (votes are stored as numeric strings)
+      const bids = votes.map((v, i) => ({
+        playerIndex: i,
+        bid: v !== null ? parseFloat(v) : 0,
+      }));
+
+      // Find the highest bid
+      const maxBid = Math.max(...bids.map(b => b.bid));
+
+      // If nobody bid anything meaningful, no winner
+      if (maxBid < 1) {
+        return {
+          ...state,
+          lastEventResult: 'No one placed a worthy bid. The furs remain unsold.',
+        };
+      }
+
+      // Check for ties at the top
+      const topBidders = bids.filter(b => b.bid === maxBid);
+      if (topBidders.length > 1) {
+        return {
+          ...state,
+          lastEventResult: `Bidding war! ${topBidders.length} factions tied at ${maxBid}○ — the auction is void. No one gets the furs.`,
+        };
+      }
+
+      // Single winner - deduct money, award bonus point
+      const winner = topBidders[0];
+      const newPlayers = state.players.map((player, index) => {
+        if (index === winner.playerIndex) {
+          return {
+            ...player,
+            money: player.money - winner.bid,
+            bonusPoints: (player.bonusPoints || 0) + 1,
+          };
+        }
+        return player;
+      });
+
+      const winnerFaction = state.players[winner.playerIndex].faction;
+      return {
+        ...state,
+        players: newPlayers,
+        lastEventResult: `${winnerFaction} wins the auction with a bid of ${maxBid}○! They sport magnificent fur coats — the envy of all Pskov. (+1 Victory Point)`,
+      };
+    },
+  },
+
   voting: {
     resolve: (event, state, votes) => {
       const voteCounts = {};
@@ -806,6 +856,14 @@ export const eventDeck = [
     minCostPerPlayer: 1,
   },
   {
+    id: 'fur_auction',
+    name: 'Grand Fur Auction',
+    description:
+      'Hunters have returned from the northern forests with a magnificent haul of furs — sable, marten, and fox pelts of the finest quality. A grand auction is held in the Pskov marketplace. The highest bidder wins the furs and gains lasting prestige!',
+    type: 'auction',
+    minBid: 1,
+  },
+  {
     id: 'plague',
     name: 'Plague',
     description: 'A plague spreads through the city. How will you respond?',
@@ -929,6 +987,32 @@ export const getVotingResult = (votes) => {
     });
 
     return winningOption || 'send_back';
+  }
+  return null;
+};
+
+// Get auction result (for bid events)
+export const getAuctionResult = (votes) => {
+  const completedVotes = votes.filter((v) => v !== null);
+
+  if (completedVotes.length === 3) {
+    const bids = votes.map((v, i) => ({
+      playerIndex: i,
+      bid: v !== null ? parseFloat(v) : 0,
+    }));
+    const maxBid = Math.max(...bids.map((b) => b.bid));
+
+    if (maxBid < 1) {
+      return { result: 'no_bids' };
+    }
+
+    const topBidders = bids.filter((b) => b.bid === maxBid);
+    if (topBidders.length > 1) {
+      return { result: 'tie', amount: maxBid };
+    }
+
+    const winner = topBidders[0];
+    return { result: 'winner', winnerIndex: winner.playerIndex, amount: maxBid };
   }
   return null;
 };
