@@ -1966,7 +1966,7 @@ const PskovGame = () => {
 
       // Draw event when moving TO events phase
       if (nextPhase === 'events') {
-        newState.currentEvent = drawEvent(prev.debugEventIndex);
+        newState.currentEvent = drawEvent(DEBUG_MODE, prev.debugEventIndex);
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
         newState.eventImageRevealed = false; // Start with hidden image
