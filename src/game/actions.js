@@ -5,6 +5,10 @@ import {
   PHASES,
   BUILDING_TYPES,
   EQUIPMENT_COSTS,
+  EXPEDITION_COST,
+  EXPEDITION_MAX_PER_GAME,
+  EXPEDITION_PROFIT,
+  EXPEDITION_WINDFALL,
   createInitialGameState,
   createInitialConstructionActions,
   formatRegionName,
@@ -28,6 +32,7 @@ export const ActionTypes = {
   SELECT_REGION: 'SELECT_REGION',
   BUILD_BUILDING: 'BUILD_BUILDING',
   BUY_EQUIPMENT: 'BUY_EQUIPMENT',
+  SEND_EXPEDITION: 'SEND_EXPEDITION',
 
   // Events phase
   VOTE_EVENT: 'VOTE_EVENT',
@@ -68,6 +73,15 @@ export const validateAction = (state, action, playerId) => {
       if (state.constructionActions[playerId].equipment) {
         return { error: 'Already bought equipment this turn' };
       }
+      return { valid: true };
+
+    case ActionTypes.SEND_EXPEDITION:
+      if (state.phase !== 'construction') return { error: 'Not in construction phase' };
+      if (state.currentPlayer !== playerId) return { error: 'Not your turn' };
+      if (state.players[playerId].faction !== 'Merchants') return { error: 'Only Merchants can send expeditions' };
+      if (state.players[playerId].money < EXPEDITION_COST) return { error: 'Not enough money' };
+      if (state.players[playerId].expeditions >= EXPEDITION_MAX_PER_GAME) return { error: 'Maximum expeditions reached' };
+      if (state.constructionActions[playerId].expedition) return { error: 'Already sent expedition this turn' };
       return { valid: true };
 
     case ActionTypes.VOTE_EVENT:
@@ -124,6 +138,9 @@ export const applyAction = (state, action, playerId = null, randomValues = {}) =
         newState: buyEquipment(state, action.item),
         result: { type: 'equipment_bought' },
       };
+
+    case ActionTypes.SEND_EXPEDITION:
+      return sendExpedition(state, randomValues);
 
     case ActionTypes.VOTE_EVENT:
       return {
@@ -228,6 +245,7 @@ export const nextPhase = (state, debugMode = false) => {
     newState.currentPlayer = 0;
     newState.selectedRegion = 'pskov';
     newState.constructionActions = createInitialConstructionActions();
+    newState.lastExpeditionResult = null;
   }
 
   // Clear event state when leaving events phase
@@ -327,6 +345,54 @@ export const buyEquipment = (state, item) => {
     ...state,
     players: newPlayers,
     constructionActions: newConstructionActions,
+  };
+};
+
+// Send a trading expedition overseas (Merchants only, max 2 per game)
+export const sendExpedition = (state, randomValues = {}) => {
+  const playerIndex = state.currentPlayer;
+  const player = state.players[playerIndex];
+
+  if (player.faction !== 'Merchants' || player.money < EXPEDITION_COST || player.expeditions >= EXPEDITION_MAX_PER_GAME) {
+    return { newState: state, error: 'Cannot send expedition' };
+  }
+
+  // Roll for outcome: 0 = loss, 1 = profit, 2 = windfall
+  const roll = randomValues.expeditionRoll !== undefined
+    ? randomValues.expeditionRoll
+    : Math.floor(Math.random() * 3);
+
+  let moneyChange = -EXPEDITION_COST;
+  let outcome;
+  if (roll === 0) {
+    outcome = 'loss';
+    // Total loss - just lose the cost
+  } else if (roll === 1) {
+    outcome = 'profit';
+    moneyChange += EXPEDITION_PROFIT;
+  } else {
+    outcome = 'windfall';
+    moneyChange += EXPEDITION_WINDFALL;
+  }
+
+  const newPlayers = state.players.map((p, i) =>
+    i === playerIndex
+      ? { ...p, money: p.money + moneyChange, expeditions: p.expeditions + 1 }
+      : p
+  );
+
+  const newConstructionActions = state.constructionActions.map((ca, i) =>
+    i === playerIndex ? { ...ca, expedition: true } : ca
+  );
+
+  return {
+    newState: {
+      ...state,
+      players: newPlayers,
+      constructionActions: newConstructionActions,
+      lastExpeditionResult: { outcome, moneyChange, playerIndex },
+    },
+    result: { type: 'expedition_sent', outcome, moneyChange },
   };
 };
 

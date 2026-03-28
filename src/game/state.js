@@ -50,6 +50,12 @@ export const EQUIPMENT_COSTS = {
   armor: 1,
 };
 
+// Expedition constants
+export const EXPEDITION_COST = 1;
+export const EXPEDITION_MAX_PER_GAME = 2;
+export const EXPEDITION_PROFIT = 3;
+export const EXPEDITION_WINDFALL = 6;
+
 // Combat constants
 export const FORTRESS_DEFENSE_BONUS = 10;
 export const EQUIPMENT_STRENGTH_BONUS = 5;
@@ -116,16 +122,16 @@ export const createInitialRegions = () => ({
 
 // Create initial player state
 export const createInitialPlayers = () => [
-  { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
-  { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
-  { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
+  { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0, expeditions: 0 },
+  { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0, expeditions: 0 },
+  { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0, expeditions: 0 },
 ];
 
 // Create initial construction actions
 export const createInitialConstructionActions = () => [
-  { improvement: false, equipment: false },
-  { improvement: false, equipment: false },
-  { improvement: false, equipment: false },
+  { improvement: false, equipment: false, expedition: false },
+  { improvement: false, equipment: false, expedition: false },
+  { improvement: false, equipment: false, expedition: false },
 ];
 
 // Create complete initial game state
@@ -149,6 +155,9 @@ export const createInitialGameState = () => ({
   lastEventResult: null,
   eventImageRevealed: false,
   debugEventIndex: 0,
+
+  // Expedition result (shown during construction)
+  lastExpeditionResult: null,
 
   // Active effects
   activeEffects: [],

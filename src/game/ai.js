@@ -1,7 +1,7 @@
 // AI Player decision engine
 // Simple heuristic-based AI for filling empty player slots
 
-import { FACTION_BASE_STRENGTH, BUILDING_TYPES } from './state.js';
+import { FACTION_BASE_STRENGTH, BUILDING_TYPES, EXPEDITION_COST, EXPEDITION_MAX_PER_GAME } from './state.js';
 import { getValidRepublicAttackTargets, getRegionsForFortress, canSelectRegion } from './regions.js';
 import { calculatePlayerStrength, calculateTotalStrength } from './combat.js';
 
@@ -18,7 +18,7 @@ const DEFENSE_RESERVE = 1;
  */
 export const decideConstruction = (state, playerIndex) => {
   const player = state.players[playerIndex];
-  const result = { regionName: null, buildingType: null, equipmentType: null };
+  const result = { regionName: null, buildingType: null, equipmentType: null, sendExpedition: false };
 
   const buildCost = 2;
   const equipCost = 1;
@@ -39,6 +39,16 @@ export const decideConstruction = (state, playerIndex) => {
       result.equipmentType = 'weapons';
     } else {
       result.equipmentType = 'armor';
+    }
+  }
+
+  // Merchants: consider sending an expedition if they have remaining uses
+  if (player.faction === 'Merchants' && player.expeditions < EXPEDITION_MAX_PER_GAME) {
+    const moneyAfterActions = player.money
+      - (result.buildingType ? buildCost : 0)
+      - (result.equipmentType ? equipCost : 0);
+    if (moneyAfterActions >= EXPEDITION_COST + DEFENSE_RESERVE) {
+      result.sendExpedition = true;
     }
   }
 

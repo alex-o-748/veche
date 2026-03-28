@@ -65,6 +65,9 @@ export const EVENT_IMAGES = {
   giant_squirrels: '/images/events/alexsyggr_giant_squirrels_35940424-a2d1-4488-bb62-57a61b91cde3_1.png',
 };
 
+// Expedition image
+export const EXPEDITION_IMAGE = '/images/alexsyggr_a_small_medieval_merchant_ship_with_one_sail_seen_f_47eb22a5-0516-48ba-a63b-9e37e8cec0c0_1.png';
+
 // Helper function to get event image, with fallback for order attacks
 export const getEventImage = (eventId) => {
   if (eventId && eventId.startsWith('order_attack')) {
