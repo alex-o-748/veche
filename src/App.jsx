@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toggleLanguage } from './i18n';
-import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, getEventImage, getEquipmentImage } from './imageAssets';
+import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, EXPEDITION_IMAGE, getEventImage, getEquipmentImage } from './imageAssets';
 
 // Import Zustand store
 import { useGameStore } from './store/gameStore';
@@ -20,6 +20,8 @@ import {
   PHASE_DESCRIPTIONS,
   BUILDING_NAMES,
   FORTRESS_DEFENSE_BONUS,
+  EXPEDITION_COST,
+  EXPEDITION_MAX_PER_GAME,
 
   // Region logic
   MAP_ADJACENCY,
@@ -250,6 +252,25 @@ const PskovGame = () => {
               ),
               constructionActions: state.constructionActions.map((ca, i) =>
                 i === aiIndex ? { ...ca, equipment: true } : ca
+              ),
+            };
+          }
+
+          // Send expedition if decided (Merchants only)
+          if (decision.sendExpedition && state.players[aiIndex].money >= 1
+              && !state.constructionActions[aiIndex].expedition
+              && state.players[aiIndex].expeditions < 2) {
+            const roll = Math.floor(Math.random() * 3);
+            let moneyChange = -1;
+            if (roll === 1) moneyChange += 3;
+            else if (roll === 2) moneyChange += 6;
+            state = {
+              ...state,
+              players: state.players.map((p, i) =>
+                i === aiIndex ? { ...p, money: p.money + moneyChange, expeditions: p.expeditions + 1 } : p
+              ),
+              constructionActions: state.constructionActions.map((ca, i) =>
+                i === aiIndex ? { ...ca, expedition: true } : ca
               ),
             };
           }
@@ -1980,10 +2001,11 @@ const PskovGame = () => {
         newState.currentPlayer = 0;
         newState.selectedRegion = 'pskov';
         newState.constructionActions = [
-          { improvement: false, equipment: false },
-          { improvement: false, equipment: false },
-          { improvement: false, equipment: false }
+          { improvement: false, equipment: false, expedition: false },
+          { improvement: false, equipment: false, expedition: false },
+          { improvement: false, equipment: false, expedition: false }
         ];
+        newState.lastExpeditionResult = null;
       }
 
       // Clear event when leaving events phase
@@ -2079,6 +2101,50 @@ const PskovGame = () => {
         ...prev,
         players: newPlayers,
         constructionActions: newConstructionActions
+      };
+    });
+  };
+
+  // Send a trading expedition (Merchants only)
+  const sendExpeditionAction = (playerIndex) => {
+    if (mode === 'online') {
+      if (playerIndex !== playerId) return;
+      sendAction({ type: 'SEND_EXPEDITION' });
+      return;
+    }
+
+    setGameState(prev => {
+      const player = prev.players[playerIndex];
+      if (player.faction !== 'Merchants' || player.money < EXPEDITION_COST
+          || player.expeditions >= EXPEDITION_MAX_PER_GAME
+          || prev.constructionActions[playerIndex].expedition) {
+        return prev;
+      }
+
+      const roll = Math.floor(Math.random() * 3);
+      let moneyChange = -EXPEDITION_COST;
+      let outcome;
+      if (roll === 0) {
+        outcome = 'loss';
+      } else if (roll === 1) {
+        outcome = 'profit';
+        moneyChange += 3;
+      } else {
+        outcome = 'windfall';
+        moneyChange += 6;
+      }
+
+      return {
+        ...prev,
+        players: prev.players.map((p, i) =>
+          i === playerIndex
+            ? { ...p, money: p.money + moneyChange, expeditions: p.expeditions + 1 }
+            : p
+        ),
+        constructionActions: prev.constructionActions.map((ca, i) =>
+          i === playerIndex ? { ...ca, expedition: true } : ca
+        ),
+        lastExpeditionResult: { outcome, moneyChange, playerIndex },
       };
     });
   };
@@ -2513,6 +2579,66 @@ const PskovGame = () => {
               </div>
             </div>
           </div>
+
+          {/* Overseas Expedition - Merchants only */}
+          {activePlayer.faction === 'Merchants' && (
+            <>
+              <div className="section-divider" />
+              <div>
+                <h4 className="text-sm font-medium text-ink-light mb-2">{t('game.expeditionTitle')}</h4>
+                <button
+                  onClick={() => sendExpeditionAction(activePlayerIndex)}
+                  disabled={
+                    activePlayer.money < EXPEDITION_COST ||
+                    activePlayer.expeditions >= EXPEDITION_MAX_PER_GAME ||
+                    gameState.constructionActions[activePlayerIndex].expedition
+                  }
+                  className="w-full p-2.5 text-sm flex items-center gap-3 text-left rounded font-semibold text-white transition-colors"
+                  style={{
+                    background: activePlayer.money >= EXPEDITION_COST
+                      && activePlayer.expeditions < EXPEDITION_MAX_PER_GAME
+                      && !gameState.constructionActions[activePlayerIndex].expedition
+                      ? '#0d7377' : '#c9b896',
+                    cursor: activePlayer.money >= EXPEDITION_COST
+                      && activePlayer.expeditions < EXPEDITION_MAX_PER_GAME
+                      && !gameState.constructionActions[activePlayerIndex].expedition
+                      ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  <img
+                    src={EXPEDITION_IMAGE}
+                    alt="Expedition"
+                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                  />
+                  <div>
+                    <div className="font-medium">{t('game.sendExpedition')}</div>
+                    <div className="text-xs opacity-80">
+                      {gameState.constructionActions[activePlayerIndex].expedition
+                        ? t('game.expeditionSent')
+                        : activePlayer.expeditions >= EXPEDITION_MAX_PER_GAME
+                        ? t('game.expeditionMaxReached')
+                        : t('game.expeditionInfo', { sent: activePlayer.expeditions, max: EXPEDITION_MAX_PER_GAME })}
+                    </div>
+                  </div>
+                </button>
+                {gameState.lastExpeditionResult && gameState.lastExpeditionResult.playerIndex === activePlayerIndex && (
+                  <div className={`mt-2 p-2.5 rounded text-sm font-medium text-center ${
+                    gameState.lastExpeditionResult.outcome === 'loss'
+                      ? 'bg-red-100 text-red-800'
+                      : gameState.lastExpeditionResult.outcome === 'profit'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {gameState.lastExpeditionResult.outcome === 'loss'
+                      ? t('game.expeditionLoss')
+                      : gameState.lastExpeditionResult.outcome === 'profit'
+                      ? t('game.expeditionProfit')
+                      : t('game.expeditionWindfall')}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="section-divider" />
 
