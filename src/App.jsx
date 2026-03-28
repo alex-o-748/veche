@@ -2646,7 +2646,7 @@ const PskovGame = () => {
           <div className="flex justify-end">
             {mode === 'local' && (
               <button onClick={nextPlayer} className="btn-accent px-5 py-2 text-sm">
-                {t('game.nextPlayerTurn')}
+                {aiPlayers.some(Boolean) ? t('game.endTurn') : t('game.nextPlayerTurn')}
               </button>
             )}
             {mode === 'online' && (
