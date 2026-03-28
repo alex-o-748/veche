@@ -265,7 +265,9 @@
     "cityFireDestroysBuilding": "City fire destroys {{building}} in Pskov!",
     "heresy": "Heretical ideas spread! All factions lose 10 strength for 2 turns.",
     "plagueContained": "Plague partially contained! All factions lose 5 strength for 2 turns.",
-    "plagueSpread": "Plague spreads unchecked! All factions lose 25 strength for 2 turns."
+    "plagueSpread": "Plague spreads unchecked! All factions lose 25 strength for 2 turns.",
+    "squirrelsSkinned": "Squirrels skinned for magnificent furs! +25% income but commoners are furious. -12 strength for 3 turns.",
+    "squirrelsBefriended": "Giant squirrels welcomed! They help find forest paths and bring nuts. -25% income but +5 strength for 3 turns."
   },
   "eventCards": {
     "merchants_robbed": {
@@ -383,6 +385,14 @@
       "fund_isolation_effect": "All: -5 str/2 turns",
       "no_isolation": "Trust in God - no isolation",
       "no_isolation_effect": "All: -25 str/2 turns"
+    },
+    "giant_squirrels": {
+      "name": "Giant Squirrels",
+      "description": "Hunters have returned from the forest with incredible news — they befriended giant squirrels! What shall the veche decide?",
+      "skin_them": "Skin them for furs",
+      "skin_them_effect": "+25% income, Commoners: -12 str/3 turns",
+      "befriend": "Very well, let them stay!",
+      "befriend_effect": "-25% income, All: +5 str/3 turns"
     }
   },
   "howToPlay": {
