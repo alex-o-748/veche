@@ -27,7 +27,7 @@ export const EQUIPMENT_IMAGES = {
     Commoners: '/images/equipment/alexsyggr_sharp_and_shiny_metal_spear_point_--ar_1117_--v_6.1_43177e5f-864a-4b1d-9faf-588fe98a1af2_1.png',
   },
   armor: {
-    Nobles: null, // Not yet added
+    Nobles: '/images/equipment/alexsyggr_medieval_Russian_armour_with_golden_accents_hanging_20caea06-4f70-40a1-a4dd-4416406c6780_1.jpeg',
     Merchants: '/images/equipment/alexsyggr_wooden_wall_--ar_1117_--v_6.1_748c2b2f-ec73-4005-80d7-aa8eee5b7bc2_1.png',
     Commoners: '/images/equipment/alexsyggr_medieval_peasants_simple_wooden_shield_and_second-h_2f0077a2-222c-4b72-a97e-3bdd7d45bfd7_1.png',
   },
@@ -47,7 +47,7 @@ export const EVENT_IMAGES = {
   // Immediate events
   good_harvest: '/images/events/alexsyggr_medieval_peasants_celebrating_a_good_harvest_amidst_afa9f5c8-81d3-4dea-b8f2-ce81e945abad_0.png',
   fire: '/images/events/alexsyggr_a_small_medieval_Russian_hamlet_engulfed_by_fire._S_057c9cff-c024-40ff-b511-344cb3e9c49e_2.jpeg',
-  city_fire: '/images/events/alexsyggr_a_small_medieval_Russian_hamlet_engulfed_by_fire._S_057c9cff-c024-40ff-b511-344cb3e9c49e_2.jpeg',
+  city_fire: '/images/events/alexsyggr_a_fire_in_a_medieval_Russian_city_with_mostly_woode_9cae393b-8584-432f-8e58-ef7943433a7b_1.jpeg',
   heresy: '/images/events/alexsyggr_a_street_preacher_in_ragged_clothes_standing_in_fro_be26bd8e-6607-427d-936f-2cf776b4c576_1.png',
 
   // Order attacks - all use same image
