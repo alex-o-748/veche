@@ -258,6 +258,26 @@ export const eventDeck: FullGameEvent[] = [
       },
     ],
   },
+  {
+    id: 'giant_squirrels',
+    name: 'Giant Squirrels',
+    type: 'voting',
+    description:
+      'Hunters have returned from the forest with incredible news — they befriended giant squirrels! What shall the veche decide?',
+    defaultOption: 'befriend',
+    options: [
+      {
+        id: 'skin_them',
+        name: 'Skin them for furs',
+        effectText: '+25% income, Commoners: -12 str/3 turns',
+      },
+      {
+        id: 'befriend',
+        name: 'Very well, let them stay!',
+        effectText: '-25% income, All: +5 str/3 turns',
+      },
+    ],
+  },
 ];
 
 /**

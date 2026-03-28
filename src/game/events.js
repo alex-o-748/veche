@@ -882,6 +882,74 @@ export const eventDeck = [
       },
     },
   },
+  {
+    id: 'giant_squirrels',
+    name: 'Giant Squirrels',
+    description:
+      'Hunters have returned from the forest with incredible news — they befriended giant squirrels! What shall the veche decide?',
+    type: 'voting',
+    defaultOption: 'befriend',
+    options: [
+      {
+        id: 'skin_them',
+        name: 'Skin them for furs',
+        effectText: '+25% income, Commoners: -12 str/3 turns',
+      },
+      {
+        id: 'befriend',
+        name: 'Very well, let them stay!',
+        effectText: '-25% income, All: +5 str/3 turns',
+      },
+    ],
+    effects: {
+      skin_them: (state) => {
+        const incomeBoost = createEffect(
+          'income_penalty',
+          'all',
+          0.25,
+          3,
+          'Squirrel fur trade boost'
+        );
+        const commonerAnger = createEffect(
+          'strength_penalty',
+          'Commoners',
+          -12,
+          3,
+          'Commoners outraged by squirrel slaughter'
+        );
+
+        return {
+          ...state,
+          activeEffects: [...state.activeEffects, incomeBoost, commonerAnger],
+          lastEventResult:
+            'The squirrels are skinned for their magnificent furs! +25% income but commoners are furious. -12 strength for 3 turns.',
+        };
+      },
+      befriend: (state) => {
+        const incomeLoss = createEffect(
+          'income_penalty',
+          'all',
+          -0.25,
+          3,
+          'Less fur trade due to squirrel friendship'
+        );
+        const squirrelHelp = createEffect(
+          'strength_bonus',
+          'all',
+          5,
+          3,
+          'Giant squirrels help find paths and bring nuts'
+        );
+
+        return {
+          ...state,
+          activeEffects: [...state.activeEffects, incomeLoss, squirrelHelp],
+          lastEventResult:
+            'The giant squirrels are welcomed! They help find forest paths and bring nuts. -25% income but +5 strength for 3 turns.',
+        };
+      },
+    },
+  },
 ];
 
 // Draw a random event (or sequential in debug mode)

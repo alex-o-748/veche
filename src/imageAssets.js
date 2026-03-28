@@ -61,7 +61,7 @@ export const EVENT_IMAGES = {
 
   // Future events (not yet in deck)
   hunters_brought_furs: '/images/events/alexsyggr_a_stall_with_fur_pelts_in_a_marketplace_in_a_mediev_edaaadeb-ea66-48c2-8e25-b190cd24e740_0.png',
-  huge_squirrels_found: '/images/events/alexsyggr_giant_squirrels_35940424-a2d1-4488-bb62-57a61b91cde3_1.png',
+  giant_squirrels: '/images/events/alexsyggr_giant_squirrels_35940424-a2d1-4488-bb62-57a61b91cde3_1.png',
 };
 
 // Helper function to get event image, with fallback for order attacks

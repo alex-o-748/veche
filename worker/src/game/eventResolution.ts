@@ -126,6 +126,9 @@ function applyVotingEffects(
     case 'plague':
       return resolvePlague(state, winningOption);
 
+    case 'giant_squirrels':
+      return resolveGiantSquirrels(state, winningOption);
+
     default:
       return {
         ...state,
@@ -384,6 +387,33 @@ function resolvePlague(state: GameState, option: string): GameState {
         ...state,
         activeEffects: [...state.activeEffects, effect],
         lastEventResult: 'Plague spreads unchecked! All factions lose 25 strength for 2 turns.',
+      };
+    }
+
+    default:
+      return state;
+  }
+}
+
+function resolveGiantSquirrels(state: GameState, option: string): GameState {
+  switch (option) {
+    case 'skin_them': {
+      const incomeBoost = createEffect('income_penalty', 'all', 0.25, 3, 'Squirrel fur trade boost');
+      const commonerAnger = createEffect('strength_penalty', 'Commoners', -12, 3, 'Commoners outraged by squirrel slaughter');
+      return {
+        ...state,
+        activeEffects: [...state.activeEffects, incomeBoost, commonerAnger],
+        lastEventResult: 'Squirrels skinned for furs! +25% income but commoners lose 12 strength for 3 turns.',
+      };
+    }
+
+    case 'befriend': {
+      const incomeLoss = createEffect('income_penalty', 'all', -0.25, 3, 'Less fur trade due to squirrel friendship');
+      const squirrelHelp = createEffect('strength_bonus', 'all', 5, 3, 'Giant squirrels help find paths and bring nuts');
+      return {
+        ...state,
+        activeEffects: [...state.activeEffects, incomeLoss, squirrelHelp],
+        lastEventResult: 'Giant squirrels welcomed! -25% income but +5 strength for 3 turns.',
       };
     }
 
