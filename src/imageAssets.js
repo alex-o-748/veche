@@ -27,8 +27,8 @@ export const EQUIPMENT_IMAGES = {
     Commoners: '/images/equipment/alexsyggr_sharp_and_shiny_metal_spear_point_--ar_1117_--v_6.1_43177e5f-864a-4b1d-9faf-588fe98a1af2_1.png',
   },
   armor: {
-    Nobles: '/images/equipment/alexsyggr_wooden_wall_--ar_1117_--v_6.1_748c2b2f-ec73-4005-80d7-aa8eee5b7bc2_1.png',
-    Merchants: null, // Not yet added
+    Nobles: null, // Not yet added
+    Merchants: '/images/equipment/alexsyggr_wooden_wall_--ar_1117_--v_6.1_748c2b2f-ec73-4005-80d7-aa8eee5b7bc2_1.png',
     Commoners: '/images/equipment/alexsyggr_medieval_peasants_simple_wooden_shield_and_second-h_2f0077a2-222c-4b72-a97e-3bdd7d45bfd7_1.png',
   },
 };
