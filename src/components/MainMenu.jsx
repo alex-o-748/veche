@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toggleLanguage } from '../i18n';
 import { useGameStore } from '../store/gameStore';
 import { FACTION_IMAGES } from '../imageAssets';
 
@@ -31,10 +32,6 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
   const [aiPlayers, setAiPlayers] = useState([false, false, false]);
   const error = useGameStore((state) => state.error);
   const clearError = useGameStore((state) => state.clearError);
-
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en');
-  };
 
   const handleCreateRoom = async () => {
     setIsLoading(true);
