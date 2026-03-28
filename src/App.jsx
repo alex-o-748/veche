@@ -1783,7 +1783,7 @@ const PskovGame = () => {
 
       const topBidders = bids.filter(b => b.bid === maxBid);
       if (topBidders.length > 1) {
-        return { result: 'tie', amount: maxBid };
+        return { result: 'tie', amount: maxBid, tiedIndices: topBidders.map(b => b.playerIndex) };
       }
 
       return { result: 'winner', winnerIndex: topBidders[0].playerIndex, amount: maxBid };
@@ -2757,8 +2757,10 @@ const PskovGame = () => {
                         if (auction.result === 'no_bids') {
                           resultText = 'No worthy bids placed. The furs go unsold.';
                         } else if (auction.result === 'tie') {
-                          resultText = `Tied bids at ${auction.amount}○ — auction void!`;
-                          resultColor = 'text-red-700';
+                          const tiedFactions = auction.tiedIndices.map(i => gameState.players[i].faction).join(' & ');
+                          const pointText = auction.tiedIndices.length === 2 ? '½' : `1/${auction.tiedIndices.length}`;
+                          resultText = `${tiedFactions} tied at ${auction.amount}○! Split the furs. (+${pointText} VP each)`;
+                          resultColor = 'text-amber-700';
                         } else if (auction.result === 'winner') {
                           const winnerFaction = gameState.players[auction.winnerIndex].faction;
                           resultText = `${winnerFaction} wins with ${auction.amount}○! (+1 Victory Point)`;

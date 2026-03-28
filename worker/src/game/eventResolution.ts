@@ -492,33 +492,37 @@ export function resolveAuctionEvent(
     };
   }
 
-  // Tie at the top
+  // Winners: all top bidders pay their bid and split the bonus point
   const topBidders = bids.filter(b => b.bid === maxBid);
-  if (topBidders.length > 1) {
-    return {
-      ...state,
-      lastEventResult: `Bidding war! ${topBidders.length} factions tied at ${maxBid}○ — the auction is void.`,
-    };
-  }
+  const pointShare = 1 / topBidders.length;
+  const topBidderIndices = new Set(topBidders.map(b => b.playerIndex));
 
-  // Single winner
-  const winner = topBidders[0];
-  const winnerFaction = state.players[winner.playerIndex].faction;
   const newPlayers = state.players.map((player, index) => {
-    if (index === winner.playerIndex) {
+    if (topBidderIndices.has(index)) {
       return {
         ...player,
-        money: player.money - winner.bid,
-        bonusPoints: (player.bonusPoints || 0) + 1,
+        money: player.money - maxBid,
+        bonusPoints: (player.bonusPoints || 0) + pointShare,
       };
     }
     return player;
   });
 
+  if (topBidders.length === 1) {
+    const winnerFaction = state.players[topBidders[0].playerIndex].faction;
+    return {
+      ...state,
+      players: newPlayers,
+      lastEventResult: `${winnerFaction} wins the auction with a bid of ${maxBid}○! Magnificent fur coats — the envy of all Pskov. (+1 Victory Point)`,
+    };
+  }
+
+  const tiedFactions = topBidders.map(b => state.players[b.playerIndex].faction).join(' & ');
+  const pointText = topBidders.length === 2 ? '½' : `1/${topBidders.length}`;
   return {
     ...state,
     players: newPlayers,
-    lastEventResult: `${winnerFaction} wins the auction with a bid of ${maxBid}○! Magnificent fur coats — the envy of all Pskov. (+1 Victory Point)`,
+    lastEventResult: `${tiedFactions} tied at ${maxBid}○! They split the furs and each pay ${maxBid}○. (+${pointText} Victory Point each)`,
   };
 }
 
