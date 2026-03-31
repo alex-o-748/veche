@@ -1,55 +1,44 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-// Settlement icons as monochrome SVG components
-// Shape distinguishes faction: circle = republic, diamond = order
-// Battlements distinguish fortress from town; capital is unique
+// Settlement icons — color distinguishes faction, battlements distinguish fortress
+// Republic: dark gray (#44403c), Order: black (#1c1917), Capital: dark blue (#1e3a5f)
 const PskovIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Capital city - hexagonal shield with star */}
-    <path d="M 0,-30 L 26,-15 L 26,15 L 0,30 L -26,15 L -26,-15 Z"
-          fill="#1c1917" stroke="white" strokeWidth="3" opacity="0.9"/>
-    {/* Five-pointed star */}
-    <path d="M 0,-16 L 4,-5 L 16,-5 L 6,2 L 10,14 L 0,7 L -10,14 L -6,2 L -16,-5 L -4,-5 Z"
+    {/* Capital city - larger circle with star */}
+    <circle cx="0" cy="0" r="24" fill="#1e3a5f" stroke="white" strokeWidth="3" opacity="0.9"/>
+    <path d="M 0,-14 L 3.5,-4.5 L 14,-4.5 L 5.5,1.5 L 8.5,12 L 0,6 L -8.5,12 L -5.5,1.5 L -14,-4.5 L -3.5,-4.5 Z"
           fill="white"/>
   </g>
 );
 
 const RepublicTownIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Republic town - filled circle */}
-    <circle cx="0" cy="0" r="14" fill="#1c1917" stroke="white" strokeWidth="2.5" opacity="0.9"/>
+    <circle cx="0" cy="0" r="14" fill="#44403c" stroke="white" strokeWidth="2.5" opacity="0.9"/>
     <circle cx="0" cy="0" r="5" fill="white"/>
   </g>
 );
 
 const RepublicFortressIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Republic fortress - circle with battlements */}
-    <circle cx="0" cy="0" r="18" fill="#1c1917" stroke="white" strokeWidth="2.5" opacity="0.9"/>
-    {/* Battlement crenellations */}
+    <circle cx="0" cy="0" r="18" fill="#44403c" stroke="white" strokeWidth="2.5" opacity="0.9"/>
     <rect x="-12" y="-4" width="24" height="10" fill="white"/>
     <rect x="-12" y="-10" width="5" height="8" fill="white"/>
     <rect x="7" y="-10" width="5" height="8" fill="white"/>
-    <rect x="-3" y="0" width="6" height="6" fill="#1c1917"/>
+    <rect x="-3" y="0" width="6" height="6" fill="#44403c"/>
   </g>
 );
 
 const OrderTownIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Order town - filled diamond */}
-    <rect x="-10" y="-10" width="20" height="20" fill="#1c1917" stroke="white" strokeWidth="2.5"
-          transform="rotate(45)" opacity="0.9"/>
-    <rect x="-3.5" y="-3.5" width="7" height="7" fill="white" transform="rotate(45)"/>
+    <circle cx="0" cy="0" r="14" fill="#1c1917" stroke="white" strokeWidth="2.5" opacity="0.9"/>
+    <circle cx="0" cy="0" r="5" fill="white"/>
   </g>
 );
 
 const OrderFortressIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    {/* Order fortress - diamond with battlements */}
-    <rect x="-13" y="-13" width="26" height="26" fill="#1c1917" stroke="white" strokeWidth="2.5"
-          transform="rotate(45)" opacity="0.9"/>
-    {/* Battlement crenellations */}
+    <circle cx="0" cy="0" r="18" fill="#1c1917" stroke="white" strokeWidth="2.5" opacity="0.9"/>
     <rect x="-12" y="-4" width="24" height="10" fill="white"/>
     <rect x="-12" y="-10" width="5" height="8" fill="white"/>
     <rect x="7" y="-10" width="5" height="8" fill="white"/>
