@@ -194,11 +194,12 @@ const PskovGame = () => {
     if (!gameState || mode !== 'local' || gameState.gameOver || gameState.turn > 20) return;
 
     // --- Construction phase: auto-play AI turns ---
-    if (gameState.phase === 'construction' && aiPlayers[gameState.currentPlayer]) {
+    if (gameState.phase === 'construction' && aiPlayers[gameState.currentPlayer] && !gameState.constructionReady[gameState.currentPlayer]) {
       const timer = setTimeout(() => {
         const currentState = useGameStore.getState().gameState;
         if (!currentState || currentState.phase !== 'construction') return;
         const aiIndex = currentState.currentPlayer;
+        if (currentState.constructionReady[aiIndex]) return;
         if (!aiPlayers[aiIndex]) return;
 
         const decision = decideConstruction(currentState, aiIndex);
@@ -275,8 +276,10 @@ const PskovGame = () => {
             };
           }
 
-          // Advance to next player
-          return { ...state, currentPlayer: (aiIndex + 1) % 3 };
+          // Mark AI as done and advance to next player
+          const newReady = [...state.constructionReady];
+          newReady[aiIndex] = true;
+          return { ...state, currentPlayer: (aiIndex + 1) % 3, constructionReady: newReady };
         });
       }, 800); // Short delay so human can see AI is taking a turn
       return () => clearTimeout(timer);
@@ -370,6 +373,18 @@ const PskovGame = () => {
     mode,
     setGameState,
   ]);
+
+  // --- Solo mode: auto-advance construction phase when all players are done ---
+  useEffect(() => {
+    if (!gameState || mode !== 'local' || gameState.phase !== 'construction') return;
+    if (!aiPlayers.some(Boolean)) return; // only in solo mode
+    if (!gameState.constructionReady.every(Boolean)) return; // not all done yet
+
+    const timer = setTimeout(() => {
+      nextPhase();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [gameState?.phase, gameState?.constructionReady, aiPlayers, mode]);
 
   // --- AI Discussion: trigger after all AI players have voted on events ---
   useEffect(() => {
@@ -2005,6 +2020,7 @@ const PskovGame = () => {
           { improvement: false, equipment: false, expedition: false },
           { improvement: false, equipment: false, expedition: false }
         ];
+        newState.constructionReady = [false, false, false];
         newState.lastExpeditionResult = null;
       }
 
@@ -2037,10 +2053,15 @@ const PskovGame = () => {
     }
 
     // Local mode: update state directly
-    setGameState(prev => ({
-      ...prev,
-      currentPlayer: (prev.currentPlayer + 1) % 3
-    }));
+    setGameState(prev => {
+      const newReady = [...prev.constructionReady];
+      newReady[prev.currentPlayer] = true;
+      return {
+        ...prev,
+        currentPlayer: (prev.currentPlayer + 1) % 3,
+        constructionReady: newReady,
+      };
+    });
   };
 
   const setConstructionReady = () => {
@@ -2646,7 +2667,7 @@ const PskovGame = () => {
           <div className="flex justify-end">
             {mode === 'local' && (
               <button onClick={nextPlayer} className="btn-accent px-5 py-2 text-sm">
-                {t('game.nextPlayerTurn')}
+                {aiPlayers.some(Boolean) ? t('game.endTurn') : t('game.nextPlayerTurn')}
               </button>
             )}
             {mode === 'online' && (
