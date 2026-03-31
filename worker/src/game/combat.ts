@@ -47,15 +47,9 @@ export function calculateTotalStrength(
  * Get victory chance based on strength difference
  */
 export function getVictoryChance(strengthDiff: number): number {
-  if (strengthDiff >= 20) return 95; // almost certain
-  if (strengthDiff >= 15) return 85; // very high chance
-  if (strengthDiff >= 10) return 70; // high chance
-  if (strengthDiff >= 5) return 60; // good chance
-  if (strengthDiff >= 0) return 50; // even
-  if (strengthDiff >= -5) return 40; // slightly unfavorable
-  if (strengthDiff >= -10) return 30; // low chance
-  if (strengthDiff >= -15) return 15; // very low chance
-  return 5; // almost no chance
+  // Linear scaling: each point of strength difference = 1% chance shift
+  // Clamped to [5, 95] so there's always a small chance either way
+  return Math.min(95, Math.max(5, 50 + strengthDiff));
 }
 
 /**
