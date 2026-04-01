@@ -2982,32 +2982,47 @@ const PskovGame = () => {
                   {getParticipationResult() && (
                     <div className="text-center">
                       {(() => {
-                        const participants = gameState.eventVotes.filter(v => v === true).length;
-                        const costPerParticipant = participants > 0 ? (gameState.currentEvent.totalCost / participants) : 0;
-
-                        let allCanAfford = true;
-                        let insufficientFunds = [];
+                        // Iteratively determine actual defenders (same logic as resolution)
+                        const totalCost = gameState.currentEvent.totalCost || 3;
+                        let candidates = [];
                         gameState.players.forEach((player, index) => {
-                          if (gameState.eventVotes[index] === true && player.money < costPerParticipant) {
-                            allCanAfford = false;
-                            insufficientFunds.push(player.faction);
+                          if (gameState.eventVotes[index] === true) {
+                            candidates.push(index);
                           }
                         });
 
-                        const purchaseSucceeds = participants > 0 && allCanAfford;
+                        let stable = false;
+                        let excluded = [];
+                        while (!stable && candidates.length > 0) {
+                          const cost = totalCost / candidates.length;
+                          const affordable = candidates.filter(
+                            (i) => gameState.players[i].money >= cost
+                          );
+                          if (affordable.length === candidates.length) {
+                            stable = true;
+                          } else {
+                            excluded = excluded.concat(candidates.filter(i => !affordable.includes(i)));
+                            candidates = affordable;
+                          }
+                        }
+
+                        const actualParticipants = candidates.length;
+                        const costPerParticipant = actualParticipants > 0 ? totalCost / actualParticipants : 0;
+                        const purchaseSucceeds = actualParticipants > 0;
+                        const excludedFactions = excluded.map(i => gameState.players[i].faction);
 
                         return (
                           <div className="mb-3">
                             <p className="text-sm text-ink-light mb-1">
-                              {participants > 0 ? (
-                                <>Participants: {participants} &middot; Cost: {costPerParticipant.toFixed(1)}○ each</>
+                              {actualParticipants > 0 ? (
+                                <>Participants: {actualParticipants} &middot; Cost: {costPerParticipant.toFixed(1)}○ each</>
                               ) : (
                                 <>No participants</>
                               )}
                             </p>
-                            {!allCanAfford && participants > 0 && (
+                            {excludedFactions.length > 0 && (
                               <p className="text-sm text-red-700 mb-1">
-                                {insufficientFunds.join(', ')} cannot afford {costPerParticipant.toFixed(1)}○
+                                {excludedFactions.join(', ')} cannot afford to participate
                               </p>
                             )}
                             <p className={`text-sm font-semibold ${purchaseSucceeds ? 'text-emerald-700' : 'text-red-700'}`}>
@@ -3112,8 +3127,26 @@ const PskovGame = () => {
                     <div className="text-center">
                       <p className="text-sm text-ink-light mb-2">
                         {(() => {
-                          const participants = gameState.eventVotes.filter(v => v === true).length;
-                          return participants > 0 ? t('events.defendersReady', { count: participants }) : t('events.noDefenders');
+                          // Iteratively determine actual defenders (same logic as resolution)
+                          let candidates = [];
+                          gameState.players.forEach((player, index) => {
+                            if (gameState.eventVotes[index] === true) {
+                              candidates.push(index);
+                            }
+                          });
+                          let stable = false;
+                          while (!stable && candidates.length > 0) {
+                            const cost = 3 / candidates.length;
+                            const affordable = candidates.filter(
+                              (i) => gameState.players[i].money >= cost
+                            );
+                            if (affordable.length === candidates.length) {
+                              stable = true;
+                            } else {
+                              candidates = affordable;
+                            }
+                          }
+                          return candidates.length > 0 ? t('events.defendersReady', { count: candidates.length }) : t('events.noDefenders');
                         })()}
                       </p>
                       {mode === 'online' ? (

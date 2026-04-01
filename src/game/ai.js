@@ -133,9 +133,12 @@ export const decideEventVote = (state, playerIndex, event) => {
  */
 const decideDefenseVote = (state, playerIndex, event) => {
   const player = state.players[playerIndex];
-  const costPerPlayer = 3 / 3; // defense cost split 3 ways = 1 per player
+  // Minimum possible cost if all 3 players defend (3/3 = 1).
+  // Actual cost may be higher if fewer participate (3/2 = 1.5 or 3/1 = 3).
+  // The resolution logic will gracefully exclude us if we can't afford the final cost.
+  const costPerPlayer = 3 / 3;
 
-  // Always defend if we can afford it
+  // Volunteer to defend if we can afford at least the minimum cost
   if (player.money >= costPerPlayer) {
     return true;
   }
