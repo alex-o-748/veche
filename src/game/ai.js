@@ -13,8 +13,10 @@ const DEFENSE_RESERVE = 1;
  * Returns an object: { regionName, buildingType, equipmentType }
  * Any field can be null if the AI decides not to act.
  *
- * The AI keeps a reserve so it can afford to defend against Order attacks.
- * It only builds when it has enough money for both the building AND the reserve.
+ * The AI prioritizes buildings over equipment because buildings generate
+ * permanent income (+0.25/turn). It only keeps a defense reserve when it
+ * already has some buildings, to avoid the cold-start problem where AI
+ * never accumulates enough to build.
  */
 export const decideConstruction = (state, playerIndex) => {
   const player = state.players[playerIndex];
@@ -23,8 +25,12 @@ export const decideConstruction = (state, playerIndex) => {
   const buildCost = 2;
   const equipCost = 1;
 
-  // Only build if we can afford it AND still have a defense reserve
-  if (player.money >= buildCost + DEFENSE_RESERVE) {
+  // Early game: skip defense reserve to ensure AI can actually build.
+  // Buildings generate +0.25 income/turn, so building early is critical.
+  const reserve = player.improvements >= 2 ? DEFENSE_RESERVE : 0;
+
+  // Prioritize building: it provides permanent income
+  if (player.money >= buildCost + reserve) {
     const buildOption = findBestBuilding(state, playerIndex);
     if (buildOption) {
       result.regionName = buildOption.regionName;
@@ -32,9 +38,9 @@ export const decideConstruction = (state, playerIndex) => {
     }
   }
 
-  // Buy equipment only if we still have enough left over after the reserve
+  // Buy equipment only with leftover money after building and reserve
   const moneyAfterBuild = result.buildingType ? player.money - buildCost : player.money;
-  if (moneyAfterBuild >= equipCost + DEFENSE_RESERVE) {
+  if (moneyAfterBuild >= equipCost + reserve) {
     if (player.weapons <= player.armor) {
       result.equipmentType = 'weapons';
     } else {
@@ -47,7 +53,7 @@ export const decideConstruction = (state, playerIndex) => {
     const moneyAfterActions = player.money
       - (result.buildingType ? buildCost : 0)
       - (result.equipmentType ? equipCost : 0);
-    if (moneyAfterActions >= EXPEDITION_COST + DEFENSE_RESERVE) {
+    if (moneyAfterActions >= EXPEDITION_COST + reserve) {
       result.sendExpedition = true;
     }
   }
