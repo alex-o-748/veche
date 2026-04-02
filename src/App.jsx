@@ -2425,7 +2425,7 @@ const PskovGame = () => {
                 {incomeNotification.incomes.map(({ faction, income }) => (
                   <span key={faction} className="text-sm text-ink">
                     <span className="text-ink-light">{t(`factions.${faction}`)}</span>{' '}
-                    <span className="font-semibold text-emerald-700">+{income.toFixed(2)}&cir;</span>
+                    <span className="font-semibold text-emerald-700">+{income.toFixed(2)}○</span>
                   </span>
                 ))}
               </div>
