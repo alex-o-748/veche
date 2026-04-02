@@ -41,7 +41,7 @@ export const useGameStore = create(
     error: null,
 
     // Debug mode (debugEventIndex is in gameState)
-    debugMode: true,
+    debugMode: false,
 
     // AI discussion state
     discussionMessages: [], // Array of { playerIndex, faction, message, timestamp }
