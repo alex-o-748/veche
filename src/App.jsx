@@ -2689,22 +2689,23 @@ const PskovGame = () => {
             </div>
           )}
 
-          {getEventImage(gameState.currentEvent.id) && gameState.eventImageRevealed && (
-            <div className="event-card-revealed mb-5">
-              <div className="event-frame mx-auto" style={{ maxWidth: '600px' }}>
-                <img
-                  src={getEventImage(gameState.currentEvent.id)}
-                  alt={gameState.currentEvent.name}
-                  className="w-full object-cover"
-                  style={{ maxHeight: '50vh' }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Event Content - Only show after reveal */}
+          {/* Side-by-side layout: image left, content right */}
           {(gameState.eventImageRevealed || !getEventImage(gameState.currentEvent.id)) && (
-            <div className="card-parchment-raised p-5">
+            <div className={getEventImage(gameState.currentEvent.id) && gameState.eventImageRevealed ? 'flex gap-4 items-start' : ''}>
+
+              {getEventImage(gameState.currentEvent.id) && gameState.eventImageRevealed && (
+                <div className="event-card-revealed w-2/5 flex-shrink-0">
+                  <div className="event-frame sticky top-3">
+                    <img
+                      src={getEventImage(gameState.currentEvent.id)}
+                      alt={gameState.currentEvent.name}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="card-parchment-raised p-5 flex-1 min-w-0">
               <h3 className="heading-serif text-xl text-center mb-3">{t('game.event', { name: getEventName(gameState.currentEvent) })}</h3>
               <p className="text-ink-light text-center mb-4">{getEventDescription(gameState.currentEvent)}</p>
 
@@ -3173,6 +3174,7 @@ const PskovGame = () => {
                   <p className="text-xs text-ink-muted">Click "Next Phase" in the header to continue</p>
                 </div>
               )}
+            </div>
             </div>
           )}
         </div>
