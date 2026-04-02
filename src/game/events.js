@@ -65,32 +65,40 @@ export const eventTypes = {
         };
       }
 
-      const participants = votes.filter((v) => v === true).length;
-      const costPerParticipant = participants > 0 ? 3 / participants : 0;
-
-      // Check if defense is funded
-      let allCanAfford = true;
-      const defendingPlayers = [];
-
+      // Iteratively determine who can actually afford to defend.
+      // When fewer players participate, cost per player increases, which may
+      // price out additional players. Loop until the set of defenders is stable.
+      let candidates = [];
       state.players.forEach((player, index) => {
         if (votes[index] === true) {
-          if (player.money < costPerParticipant) {
-            allCanAfford = false;
-          } else {
-            defendingPlayers.push(index);
-          }
+          candidates.push(index);
         }
       });
 
-      const defenseFunded = participants > 0 && allCanAfford;
+      let stable = false;
+      while (!stable && candidates.length > 0) {
+        const cost = 3 / candidates.length;
+        const affordable = candidates.filter(
+          (index) => state.players[index].money >= cost
+        );
+        if (affordable.length === candidates.length) {
+          stable = true;
+        } else {
+          candidates = affordable;
+        }
+      }
 
-      if (!defenseFunded) {
+      const defendingPlayers = candidates;
+
+      if (defendingPlayers.length === 0) {
         return surrenderRegion(state, targetRegion);
       }
 
-      // Deduct money from participants
+      const costPerParticipant = 3 / defendingPlayers.length;
+
+      // Deduct money only from actual defenders
       const newPlayers = state.players.map((player, index) => {
-        if (votes[index] === true) {
+        if (defendingPlayers.includes(index)) {
           return { ...player, money: player.money - costPerParticipant };
         }
         return player;

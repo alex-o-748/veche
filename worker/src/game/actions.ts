@@ -668,7 +668,7 @@ export function applyAction(
 
     case ActionTypes.VOTE_EVENT:
       if (playerId === null) return { newState: state, error: 'Player ID required' };
-      if (!action.vote) return { newState: state, error: 'Vote option required' };
+      if (action.vote === undefined || action.vote === null) return { newState: state, error: 'Vote option required' };
       return {
         newState: voteOnEvent(state, playerId, action.vote),
         result: { type: 'vote_cast' },
