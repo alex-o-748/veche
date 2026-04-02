@@ -73,6 +73,9 @@ export const validateAction = (state, action, playerId) => {
       if (state.constructionActions[playerId].equipment) {
         return { error: 'Already bought equipment this turn' };
       }
+      if (action.item && state.players[playerId][action.item] >= 2) {
+        return { error: 'Maximum equipment of this type reached' };
+      }
       return { valid: true };
 
     case ActionTypes.SEND_EXPEDITION:
@@ -289,6 +292,13 @@ export const buildBuilding = (state, buildingType) => {
     return state;
   }
 
+  const currentRegion = state.regions[state.selectedRegion];
+  const currentCount = currentRegion.buildings[buildingType] || 0;
+  const maxPerRegion = BUILDING_TYPES[buildingType]?.maxPerRegion || 1;
+  if (currentCount >= maxPerRegion) {
+    return state;
+  }
+
   const newPlayers = state.players.map((p, i) =>
     i === state.currentPlayer
       ? { ...p, money: p.money - 2, improvements: p.improvements + 1 }
@@ -299,7 +309,6 @@ export const buildBuilding = (state, buildingType) => {
     i === state.currentPlayer ? { ...ca, improvement: true } : ca
   );
 
-  const currentRegion = state.regions[state.selectedRegion];
   const newBuildings = buildingType.startsWith('merchant_')
     ? { ...currentRegion.buildings, [buildingType]: currentRegion.buildings[buildingType] + 1 }
     : { ...currentRegion.buildings, [buildingType]: 1 };

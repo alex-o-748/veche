@@ -2102,7 +2102,7 @@ const PskovGame = () => {
     setGameState(prev => {
       const player = prev.players[playerIndex];
 
-      if (player.money < cost) {
+      if (player.money < cost || player[item] >= 2) {
         return prev;
       }
 
