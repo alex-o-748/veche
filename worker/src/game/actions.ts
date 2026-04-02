@@ -13,6 +13,7 @@ import {
   FACTION_BASE_STRENGTH,
   EQUIPMENT_STRENGTH_BONUS,
   FORTRESS_DEFENSE_BONUS,
+  BUILDING_TYPES,
   Player,
   ActiveEffect,
 } from './state';
@@ -115,6 +116,9 @@ export function validateAction(
       if (state.constructionActions[playerId].equipment) {
         return { error: 'Already bought equipment this turn' };
       }
+      if (action.item && state.players[playerId][action.item] >= 2) {
+        return { error: 'Maximum equipment of this type reached' };
+      }
       return { valid: true };
 
     case ActionTypes.SET_CONSTRUCTION_READY:
@@ -157,7 +161,7 @@ function getIncomeModifier(activeEffects: ActiveEffect[], faction: string): numb
 function getStrengthModifier(activeEffects: ActiveEffect[], faction: string): number {
   let modifier = 0;
   for (const effect of activeEffects) {
-    if (effect.type === 'strength' && (effect.target === faction || effect.target === 'all')) {
+    if ((effect.type === 'strength_bonus' || effect.type === 'strength_penalty') && (effect.target === faction || effect.target === 'all')) {
       modifier += effect.value;
     }
   }
@@ -317,6 +321,14 @@ function buildBuilding(state: GameState, buildingType: string, playerId: number 
     return state;
   }
 
+  const currentRegion = state.regions[state.selectedRegion];
+  const currentBuildings = currentRegion.buildings;
+  const currentCount = currentBuildings[buildingType] ?? 0;
+  const maxPerRegion = BUILDING_TYPES[buildingType]?.maxPerRegion ?? 1;
+  if (currentCount >= maxPerRegion) {
+    return state;
+  }
+
   const newPlayers = state.players.map((p, i) =>
     i === playerIndex ? { ...p, money: p.money - 2, improvements: p.improvements + 1 } : p
   );
@@ -325,9 +337,6 @@ function buildBuilding(state: GameState, buildingType: string, playerId: number 
     i === playerIndex ? { ...ca, improvement: true } : ca
   );
 
-  const currentRegion = state.regions[state.selectedRegion];
-  const currentBuildings = currentRegion.buildings;
-  const currentCount = currentBuildings[buildingType] ?? 0;
   const newBuildings = {
     ...currentBuildings,
     [buildingType]: buildingType.startsWith('merchant_') ? currentCount + 1 : 1,
@@ -356,7 +365,7 @@ function buyEquipment(state: GameState, item: 'weapons' | 'armor', playerId: num
   const player = state.players[playerIndex];
   const cost = EQUIPMENT_COSTS[item] || 1;
 
-  if (player.money < cost) {
+  if (player.money < cost || player[item] >= 2) {
     return state;
   }
 
