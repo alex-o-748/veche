@@ -356,7 +356,7 @@ function buyEquipment(state: GameState, item: 'weapons' | 'armor', playerId: num
   const player = state.players[playerIndex];
   const cost = EQUIPMENT_COSTS[item] || 1;
 
-  if (player.money < cost) {
+  if (player.money < cost || player[item] >= 2) {
     return state;
   }
 

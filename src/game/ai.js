@@ -35,10 +35,12 @@ export const decideConstruction = (state, playerIndex) => {
   // Buy equipment only if we still have enough left over after the reserve
   const moneyAfterBuild = result.buildingType ? player.money - buildCost : player.money;
   if (moneyAfterBuild >= equipCost + DEFENSE_RESERVE) {
-    if (player.weapons <= player.armor) {
+    if (player.weapons < 2 && player.weapons <= player.armor) {
       result.equipmentType = 'weapons';
-    } else {
+    } else if (player.armor < 2) {
       result.equipmentType = 'armor';
+    } else if (player.weapons < 2) {
+      result.equipmentType = 'weapons';
     }
   }
 

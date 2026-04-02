@@ -244,7 +244,7 @@ const PskovGame = () => {
           }
 
           // Buy equipment if decided and affordable
-          if (decision.equipmentType && state.players[aiIndex].money >= 1 && !state.constructionActions[aiIndex].equipment) {
+          if (decision.equipmentType && state.players[aiIndex].money >= 1 && !state.constructionActions[aiIndex].equipment && state.players[aiIndex][decision.equipmentType] < 2) {
             const eqType = decision.equipmentType;
             state = {
               ...state,
