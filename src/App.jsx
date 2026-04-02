@@ -2068,9 +2068,14 @@ const PskovGame = () => {
     setGameState(prev => {
       const newReady = [...prev.constructionReady];
       newReady[prev.currentPlayer] = true;
+      const nextPlayerIndex = (prev.currentPlayer + 1) % 3;
+      // Auto-select Pskov for Merchants since they can only build there
+      const nextFaction = prev.players[nextPlayerIndex].faction;
+      const nextRegion = nextFaction === 'Merchants' ? 'pskov' : prev.selectedRegion;
       return {
         ...prev,
-        currentPlayer: (prev.currentPlayer + 1) % 3,
+        currentPlayer: nextPlayerIndex,
+        selectedRegion: nextRegion,
         constructionReady: newReady,
       };
     });
@@ -2484,7 +2489,12 @@ const PskovGame = () => {
                 return (
                   <button
                     key={regionName}
-                    onClick={() => setGameState(prev => ({ ...prev, selectedRegion: regionName }))}
+                    onClick={() => {
+                      setGameState(prev => ({ ...prev, selectedRegion: regionName }));
+                      if (mode === 'online') {
+                        sendAction({ type: 'SELECT_REGION', regionName });
+                      }
+                    }}
                     disabled={!isAvailable}
                     className={`px-3 py-1.5 rounded text-sm border transition-colors ${
                       gameState.selectedRegion === regionName
