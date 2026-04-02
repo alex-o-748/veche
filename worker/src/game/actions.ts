@@ -396,7 +396,7 @@ function setConstructionReady(state: GameState, playerIndex: number): GameState 
     // Reset ready status and advance phase
     // Use debug mode for consistent event order in multiplayer
     return {
-      ...nextPhase(state, true),
+      ...nextPhase(state, false),
       constructionReady: [false, false, false],
     };
   }
@@ -645,7 +645,7 @@ export function applyAction(
   switch (action.type) {
     case ActionTypes.NEXT_PHASE:
       // Always use debug mode on server for consistent event order in multiplayer
-      return { newState: nextPhase(state, true), result: { type: 'phase_changed' } };
+      return { newState: nextPhase(state, false), result: { type: 'phase_changed' } };
 
     case ActionTypes.NEXT_PLAYER:
       return { newState: nextPlayer(state), result: { type: 'player_changed' } };
