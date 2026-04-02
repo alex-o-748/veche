@@ -289,26 +289,34 @@ export const eventDeck: FullGameEvent[] = [
 ];
 
 /**
- * Draw a random event from the deck
- * @param debugMode - If true, use sequential event selection
- * @param debugIndex - Current debug index for sequential selection
- * @returns The selected event and updated debug index
+ * Fisher-Yates shuffle: returns a shuffled array of indices [0..deckLength-1]
+ */
+export function shuffleEventDeck(): number[] {
+  const indices = Array.from({ length: eventDeck.length }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  return indices;
+}
+
+/**
+ * Draw an event using shuffle-without-replacement.
+ * When the shuffled order is exhausted or empty, a new shuffle is generated.
  */
 export function drawEvent(
-  debugMode: boolean = false,
-  debugIndex: number = 0
-): { event: FullGameEvent; nextDebugIndex: number } {
-  if (debugMode) {
-    const index = debugIndex % eventDeck.length;
-    return {
-      event: eventDeck[index],
-      nextDebugIndex: (debugIndex + 1) % eventDeck.length,
-    };
-  } else {
-    const randomIndex = Math.floor(Math.random() * eventDeck.length);
-    return {
-      event: eventDeck[randomIndex],
-      nextDebugIndex: debugIndex, // Don't change in random mode
-    };
+  shuffledEventOrder: number[] = [],
+  eventDrawIndex: number = 0
+): { event: FullGameEvent; shuffledEventOrder: number[]; eventDrawIndex: number } {
+  let order = shuffledEventOrder;
+  let index = eventDrawIndex;
+  if (order.length === 0 || index >= order.length) {
+    order = shuffleEventDeck();
+    index = 0;
   }
+  return {
+    event: eventDeck[order[index]],
+    shuffledEventOrder: order,
+    eventDrawIndex: index + 1,
+  };
 }

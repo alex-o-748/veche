@@ -154,7 +154,8 @@ export const createInitialGameState = () => ({
   eventResolved: false,
   lastEventResult: null,
   eventImageRevealed: false,
-  debugEventIndex: 0,
+  shuffledEventOrder: [],
+  eventDrawIndex: 0,
 
   // Expedition result (shown during construction)
   lastExpeditionResult: null,

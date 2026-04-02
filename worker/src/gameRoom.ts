@@ -438,7 +438,7 @@ export class GameRoom extends DurableObject<Env> {
     // Create initial game state and auto-advance past resources phase
     // (resources phase is auto-skipped; income is calculated and we start at construction)
     const initialState = createInitialGameState();
-    const gameState = nextPhase(initialState, false);
+    const gameState = nextPhase(initialState);
     await this.saveGameState(gameState);
 
     // Broadcast game start to all players

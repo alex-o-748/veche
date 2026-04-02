@@ -40,9 +40,6 @@ export const useGameStore = create(
     // UI state
     error: null,
 
-    // Debug mode (debugEventIndex is in gameState)
-    debugMode: false,
-
     // AI discussion state
     discussionMessages: [], // Array of { playerIndex, faction, message, timestamp }
     discussionLoading: false,
@@ -76,9 +73,6 @@ export const useGameStore = create(
 
     // AI players
     setAiPlayers: (aiPlayers) => set({ aiPlayers }),
-
-    // Debug mode
-    setDebugMode: (debugMode) => set({ debugMode }),
 
     // AI discussion
     setDiscussionLoading: (discussionLoading) => set({ discussionLoading }),

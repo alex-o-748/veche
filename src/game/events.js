@@ -1022,13 +1022,30 @@ export const eventDeck = [
   },
 ];
 
-// Draw a random event (or sequential in debug mode)
-export const drawEvent = (debugMode = false, debugEventIndex = 0) => {
-  if (debugMode) {
-    return eventDeck[debugEventIndex % eventDeck.length];
-  } else {
-    return eventDeck[Math.floor(Math.random() * eventDeck.length)];
+// Fisher-Yates shuffle: returns a shuffled array of indices [0..deckLength-1]
+export const shuffleEventDeck = () => {
+  const indices = Array.from({ length: eventDeck.length }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
   }
+  return indices;
+};
+
+// Draw an event using shuffle-without-replacement
+// Returns { event, shuffledEventOrder, eventDrawIndex }
+export const drawEvent = (shuffledEventOrder = [], eventDrawIndex = 0) => {
+  let order = shuffledEventOrder;
+  let index = eventDrawIndex;
+  if (order.length === 0 || index >= order.length) {
+    order = shuffleEventDeck();
+    index = 0;
+  }
+  return {
+    event: eventDeck[order[index]],
+    shuffledEventOrder: order,
+    eventDrawIndex: index + 1,
+  };
 };
 
 // Resolve an event
