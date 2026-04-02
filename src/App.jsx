@@ -2953,9 +2953,9 @@ const PskovGame = () => {
                               className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                                 gameState.eventVotes[index] === true
                                   ? 'bg-emerald-700 text-white'
-                                  : canAfford
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                  : 'bg-parchment-300 text-ink-muted cursor-not-allowed'
+                                  : (hasDecided || !canAfford)
+                                  ? 'bg-parchment-300 text-ink-muted cursor-not-allowed'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                               }`}
                             >
                               {gameState.eventVotes[index] === true ? 'Participating' :
@@ -2968,6 +2968,8 @@ const PskovGame = () => {
                               className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                                 gameState.eventVotes[index] === false
                                   ? 'bg-red-700 text-white'
+                                  : hasDecided
+                                  ? 'bg-parchment-300 text-ink-muted cursor-not-allowed'
                                   : 'btn-secondary'
                               }`}
                             >
@@ -3084,9 +3086,9 @@ const PskovGame = () => {
                                 className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                                   gameState.eventVotes[index] === true
                                     ? 'bg-emerald-700 text-white'
-                                    : canAfford
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                    : 'bg-parchment-300 text-ink-muted cursor-not-allowed'
+                                    : (hasDecided || !canAfford)
+                                    ? 'bg-parchment-300 text-ink-muted cursor-not-allowed'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                                 }`}
                               >
                                 {gameState.eventVotes[index] === true ? 'Defending' :
@@ -3099,6 +3101,8 @@ const PskovGame = () => {
                                 className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                                   gameState.eventVotes[index] === false
                                     ? 'bg-red-700 text-white'
+                                    : hasDecided
+                                    ? 'bg-parchment-300 text-ink-muted cursor-not-allowed'
                                     : 'btn-secondary'
                                 }`}
                               >
