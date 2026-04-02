@@ -157,7 +157,7 @@ function getIncomeModifier(activeEffects: ActiveEffect[], faction: string): numb
 function getStrengthModifier(activeEffects: ActiveEffect[], faction: string): number {
   let modifier = 0;
   for (const effect of activeEffects) {
-    if (effect.type === 'strength' && (effect.target === faction || effect.target === 'all')) {
+    if ((effect.type === 'strength_bonus' || effect.type === 'strength_penalty') && (effect.target === faction || effect.target === 'all')) {
       modifier += effect.value;
     }
   }
