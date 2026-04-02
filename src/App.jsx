@@ -3174,6 +3174,11 @@ const PskovGame = () => {
                   <p className="text-xs text-ink-muted">Click "Next Phase" in the header to continue</p>
                 </div>
               )}
+
+              {/* Council Discussion - inline in events column */}
+              <div className="mt-4">
+                <DiscussionPanel />
+              </div>
             </div>
             </div>
           )}
@@ -3476,8 +3481,8 @@ const PskovGame = () => {
         </div>
       )}
 
-          {/* Discussion Panel - elevated, below phase content */}
-          <DiscussionPanel />
+          {/* Discussion Panel - elevated, below phase content (skip during events, shown inline there) */}
+          {gameState.phase !== 'events' && <DiscussionPanel />}
 
         </main>
 
