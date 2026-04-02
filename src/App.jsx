@@ -82,6 +82,18 @@ const PskovGame = () => {
   // Income notification state (shown briefly at top of construction phase)
   const [incomeNotification, setIncomeNotification] = useState(null);
   const incomeAdvancingRef = useRef(false);
+  const sidebarRef = useRef(null);
+  const [sidebarHeight, setSidebarHeight] = useState(0);
+
+  // Track sidebar height for matching event image / right panel sizing
+  useEffect(() => {
+    if (!sidebarRef.current) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setSidebarHeight(entry.contentRect.height);
+    });
+    observer.observe(sidebarRef.current);
+    return () => observer.disconnect();
+  }, []);
 
 
   // Helper functions to get translated event content
@@ -2326,7 +2338,7 @@ const PskovGame = () => {
       <div className="flex gap-4 max-w-screen-2xl mx-auto px-4 pt-3 pb-6">
 
         {/* Left Column: Map + Players */}
-        <aside className="w-[380px] flex-shrink-0 space-y-3">
+        <aside ref={sidebarRef} className="w-[380px] flex-shrink-0 space-y-3">
           <GameMap gameState={gameState} />
 
           {/* Compact Player Strip */}
@@ -2694,18 +2706,18 @@ const PskovGame = () => {
             <div className={getEventImage(gameState.currentEvent.id) && gameState.eventImageRevealed ? 'flex gap-4 items-start' : ''}>
 
               {getEventImage(gameState.currentEvent.id) && gameState.eventImageRevealed && (
-                <div className="event-card-revealed w-2/5 flex-shrink-0">
-                  <div className="event-frame sticky top-3">
+                <div className="event-card-revealed w-2/5 flex-shrink-0 overflow-hidden" style={sidebarHeight ? { height: sidebarHeight } : undefined}>
+                  <div className="event-frame h-full">
                     <img
                       src={getEventImage(gameState.currentEvent.id)}
                       alt={gameState.currentEvent.name}
-                      className="w-full"
+                      className="w-full h-full object-cover"
                     />
                   </div>
                 </div>
               )}
 
-              <div className="card-parchment-raised p-5 flex-1 min-w-0">
+              <div className="card-parchment-raised p-5 flex-1 min-w-0" style={sidebarHeight ? { minHeight: sidebarHeight } : undefined}>
               <h3 className="heading-serif text-xl text-center mb-3">{t('game.event', { name: getEventName(gameState.currentEvent) })}</h3>
               <p className="text-ink-light text-center mb-4">{getEventDescription(gameState.currentEvent)}</p>
 
