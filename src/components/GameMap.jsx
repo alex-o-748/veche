@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 // Settlement icons — color distinguishes faction, battlements distinguish fortress
-// Republic: dark gray (#44403c), Order: black (#1c1917), Capital: dark blue (#1e3a5f)
+// Republic (incl. capital): dark blue (#1e3a5f), Order: black (#1c1917)
 const PskovIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
     {/* Capital city - larger circle with star */}
@@ -14,18 +14,18 @@ const PskovIcon = ({ x, y }) => (
 
 const RepublicTownIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    <circle cx="0" cy="0" r="14" fill="#44403c" stroke="white" strokeWidth="2.5" opacity="0.9"/>
+    <circle cx="0" cy="0" r="14" fill="#1e3a5f" stroke="white" strokeWidth="2.5" opacity="0.9"/>
     <circle cx="0" cy="0" r="5" fill="white"/>
   </g>
 );
 
 const RepublicFortressIcon = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
-    <circle cx="0" cy="0" r="18" fill="#44403c" stroke="white" strokeWidth="2.5" opacity="0.9"/>
+    <circle cx="0" cy="0" r="18" fill="#1e3a5f" stroke="white" strokeWidth="2.5" opacity="0.9"/>
     <rect x="-12" y="-4" width="24" height="10" fill="white"/>
     <rect x="-12" y="-10" width="5" height="8" fill="white"/>
     <rect x="7" y="-10" width="5" height="8" fill="white"/>
-    <rect x="-3" y="0" width="6" height="6" fill="#44403c"/>
+    <rect x="-3" y="0" width="6" height="6" fill="#1e3a5f"/>
   </g>
 );
 
