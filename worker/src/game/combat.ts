@@ -8,10 +8,21 @@ import {
   FACTION_BASE_STRENGTH,
   EQUIPMENT_STRENGTH_BONUS,
   FORTRESS_DEFENSE_BONUS,
+  ORDER_TURN_SCALING,
+  ORDER_SCALING_INTERVAL,
   BUILDING_NAMES,
   formatRegionName,
 } from './state';
 import { getStrengthModifier } from './effects';
+
+/**
+ * Calculate Order turn-based strength bonus
+ * The Order grows stronger over time, gaining ORDER_TURN_SCALING strength
+ * every ORDER_SCALING_INTERVAL turns.
+ */
+export function getOrderTurnBonus(turn: number): number {
+  return Math.floor(turn / ORDER_SCALING_INTERVAL) * ORDER_TURN_SCALING;
+}
 
 /**
  * Calculate strength for a single player

@@ -13,6 +13,8 @@ import {
   FACTION_BASE_STRENGTH,
   EQUIPMENT_STRENGTH_BONUS,
   FORTRESS_DEFENSE_BONUS,
+  ORDER_TURN_SCALING,
+  ORDER_SCALING_INTERVAL,
   BUILDING_TYPES,
   Player,
   ActiveEffect,
@@ -166,6 +168,11 @@ function getStrengthModifier(activeEffects: ActiveEffect[], faction: string): nu
     }
   }
   return modifier;
+}
+
+// Calculate Order turn-based strength bonus
+function getOrderTurnBonus(turn: number): number {
+  return Math.floor(turn / ORDER_SCALING_INTERVAL) * ORDER_TURN_SCALING;
 }
 
 // Calculate player strength
@@ -492,8 +499,8 @@ function executeAttack(state: GameState, randomValues: RandomValues): ActionResu
     if (vote === true) attackingPlayers.push(index);
   });
 
-  // Calculate Order strength
-  const orderStrength = 100 + (regions[attackTarget]?.fortress ? FORTRESS_DEFENSE_BONUS : 0);
+  // Calculate Order strength (base 100 + turn bonus + fortress bonus)
+  const orderStrength = 100 + getOrderTurnBonus(state.turn) + (regions[attackTarget]?.fortress ? FORTRESS_DEFENSE_BONUS : 0);
 
   // Calculate Pskov strength
   const pskovStrength = calculateTotalStrength(newPlayers, attackingPlayers, activeEffects);
