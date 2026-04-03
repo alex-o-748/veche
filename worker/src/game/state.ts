@@ -21,6 +21,11 @@ export const FORTRESS_DEFENSE_BONUS = 10;
 export const EQUIPMENT_STRENGTH_BONUS = 5;
 export const ORDER_BASE_STRENGTH = 100;
 
+// Order turn-based scaling: Order grows stronger over time
+// Every ORDER_SCALING_INTERVAL turns, Order gains ORDER_TURN_SCALING strength
+export const ORDER_TURN_SCALING = 5;
+export const ORDER_SCALING_INTERVAL = 4;
+
 // Building type definition
 export interface BuildingType {
   name: string;

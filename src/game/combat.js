@@ -4,10 +4,19 @@ import {
   FACTION_BASE_STRENGTH,
   EQUIPMENT_STRENGTH_BONUS,
   FORTRESS_DEFENSE_BONUS,
+  ORDER_TURN_SCALING,
+  ORDER_SCALING_INTERVAL,
   BUILDING_NAMES,
   formatRegionName,
 } from './state.js';
 import { getStrengthModifier } from './effects.js';
+
+// Calculate Order turn-based strength bonus
+// The Order grows stronger over time, gaining ORDER_TURN_SCALING strength
+// every ORDER_SCALING_INTERVAL turns.
+export const getOrderTurnBonus = (turn) => {
+  return Math.floor(turn / ORDER_SCALING_INTERVAL) * ORDER_TURN_SCALING;
+};
 
 // Calculate strength for a single player
 export const calculatePlayerStrength = (player, activeEffects) => {
@@ -143,8 +152,8 @@ export const executeBattle = (
 export const executeAttack = (state, targetRegion, attackingPlayers, randomValue = null) => {
   const { players, regions, activeEffects } = state;
 
-  // Calculate Order strength (base 100 + fortress bonus)
-  const orderStrength = 100 + (regions[targetRegion]?.fortress ? FORTRESS_DEFENSE_BONUS : 0);
+  // Calculate Order strength (base 100 + turn bonus + fortress bonus)
+  const orderStrength = 100 + getOrderTurnBonus(state.turn) + (regions[targetRegion]?.fortress ? FORTRESS_DEFENSE_BONUS : 0);
 
   // Calculate Pskov strength (attacking, so no fortress bonus for attackers)
   const pskovStrength = calculateTotalStrength(players, attackingPlayers, activeEffects);

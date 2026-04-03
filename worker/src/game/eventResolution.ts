@@ -7,7 +7,7 @@ import { GameState } from './state';
 import { FullGameEvent } from './eventDeck';
 import { createEffect, addEffects } from './effects';
 import { getValidOrderAttackTargets } from './regions';
-import { executeBattle, surrenderRegion, destroyRandomBuildings } from './combat';
+import { executeBattle, surrenderRegion, destroyRandomBuildings, getOrderTurnBonus } from './combat';
 
 interface RandomValues {
   battleRoll?: number;
@@ -496,9 +496,11 @@ export function resolveOrderAttackEvent(
     players: newPlayers,
   };
 
+  const scaledOrderStrength = (event.orderStrength || 100) + getOrderTurnBonus(state.turn);
+
   return executeBattle(
     stateWithPayment,
-    event.orderStrength || 100,
+    scaledOrderStrength,
     targetRegion,
     defendingPlayers,
     randomValues.battleRoll

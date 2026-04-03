@@ -2,7 +2,7 @@
 
 import { createEffect, addEffects } from './effects.js';
 import { getValidOrderAttackTargets } from './regions.js';
-import { executeBattle, surrenderRegion, destroyRandomBuildings } from './combat.js';
+import { executeBattle, surrenderRegion, destroyRandomBuildings, getOrderTurnBonus } from './combat.js';
 import { formatRegionName, BUILDING_NAMES } from './state.js';
 
 // Event type handlers
@@ -110,9 +110,11 @@ export const eventTypes = {
         players: newPlayers,
       };
 
+      const scaledOrderStrength = event.orderStrength + getOrderTurnBonus(state.turn);
+
       return executeBattle(
         stateWithPayment,
-        event.orderStrength,
+        scaledOrderStrength,
         targetRegion,
         defendingPlayers,
         randomValues.battleRoll
