@@ -225,7 +225,7 @@ function updateEffects(state: GameState): GameState {
 }
 
 // Phase transition logic
-export function nextPhase(state: GameState, debugMode = false): GameState {
+export function nextPhase(state: GameState): GameState {
   const currentPhaseIndex = PHASES.indexOf(state.phase);
   const isLastPhase = currentPhaseIndex === PHASES.length - 1;
   let nextPhaseName = isLastPhase ? PHASES[0] : PHASES[currentPhaseIndex + 1];
@@ -253,12 +253,13 @@ export function nextPhase(state: GameState, debugMode = false): GameState {
 
   // Draw event when moving TO events phase
   if (nextPhaseName === 'events') {
-    const { event, nextDebugIndex } = drawEvent(debugMode, state.debugEventIndex);
-    newState.currentEvent = event;
+    const drawn = drawEvent(state.shuffledEventOrder, state.eventDrawIndex);
+    newState.currentEvent = drawn.event;
+    newState.shuffledEventOrder = drawn.shuffledEventOrder;
+    newState.eventDrawIndex = drawn.eventDrawIndex;
     newState.eventVotes = [null, null, null];
     newState.eventResolved = false;
     newState.eventImageRevealed = false;
-    newState.debugEventIndex = nextDebugIndex;
   }
 
   // Reset construction state when leaving construction phase
@@ -405,9 +406,8 @@ function setConstructionReady(state: GameState, playerIndex: number): GameState 
 
   if (allReady) {
     // Reset ready status and advance phase
-    // Use debug mode for consistent event order in multiplayer
     return {
-      ...nextPhase(state, false),
+      ...nextPhase(state),
       constructionReady: [false, false, false],
     };
   }
@@ -655,8 +655,7 @@ export function applyAction(
 
   switch (action.type) {
     case ActionTypes.NEXT_PHASE:
-      // Always use debug mode on server for consistent event order in multiplayer
-      return { newState: nextPhase(state, false), result: { type: 'phase_changed' } };
+      return { newState: nextPhase(state), result: { type: 'phase_changed' } };
 
     case ActionTypes.NEXT_PLAYER:
       return { newState: nextPlayer(state), result: { type: 'player_changed' } };

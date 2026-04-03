@@ -211,7 +211,7 @@ export const applyAction = (state, action, playerId = null, randomValues = {}) =
 };
 
 // Phase transition logic
-export const nextPhase = (state, debugMode = false) => {
+export const nextPhase = (state) => {
   const currentPhaseIndex = PHASES.indexOf(state.phase);
   const isLastPhase = currentPhaseIndex === PHASES.length - 1;
   const nextPhaseName = isLastPhase ? PHASES[0] : PHASES[currentPhaseIndex + 1];
@@ -234,13 +234,13 @@ export const nextPhase = (state, debugMode = false) => {
 
   // Draw event when moving TO events phase
   if (nextPhaseName === 'events') {
-    newState.currentEvent = drawEvent(debugMode, state.debugEventIndex);
+    const drawn = drawEvent(state.shuffledEventOrder, state.eventDrawIndex);
+    newState.currentEvent = drawn.event;
+    newState.shuffledEventOrder = drawn.shuffledEventOrder;
+    newState.eventDrawIndex = drawn.eventDrawIndex;
     newState.eventVotes = [null, null, null];
     newState.eventResolved = false;
     newState.eventImageRevealed = false;
-    if (debugMode) {
-      newState.debugEventIndex = (state.debugEventIndex + 1) % 17; // eventDeck.length
-    }
   }
 
   // Reset construction state when leaving construction phase

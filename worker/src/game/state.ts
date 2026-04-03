@@ -127,7 +127,8 @@ export interface GameState {
   eventResolved: boolean;
   lastEventResult: string | null;
   eventImageRevealed: boolean;
-  debugEventIndex: number;
+  shuffledEventOrder: number[];
+  eventDrawIndex: number;
 
   // Active effects
   activeEffects: ActiveEffect[];
@@ -246,7 +247,8 @@ export function createInitialGameState(): GameState {
     eventResolved: false,
     lastEventResult: null,
     eventImageRevealed: false,
-    debugEventIndex: 0,
+    shuffledEventOrder: [],
+    eventDrawIndex: 0,
     activeEffects: [],
     battleState: null,
     militaryAction: null,

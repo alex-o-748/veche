@@ -46,7 +46,6 @@ import {
   // Events
   eventDeck,
   eventTypes as eventTypesPure,
-  drawEvent as drawEventPure,
 
   // State
   createInitialGameState,
@@ -67,7 +66,6 @@ const PskovGame = () => {
   const gameState = useGameStore((state) => state.gameState);
   const setGameState = useGameStore((state) => state.setGameState);
   const initLocalGame = useGameStore((state) => state.initLocalGame);
-  const debugMode = useGameStore((state) => state.debugMode);
   const mode = useGameStore((state) => state.mode);
   const playerId = useGameStore((state) => state.playerId);
   const sendAction = useGameStore((state) => state.sendAction);
@@ -134,8 +132,6 @@ const PskovGame = () => {
     return translated !== key ? translated : null;
   };
 
-  // Debug mode - set to true for predictable event order
-  const DEBUG_MODE = debugMode;
 
   // Initialize game on mount (only once)
   useEffect(() => {
@@ -1728,13 +1724,29 @@ const PskovGame = () => {
     }
   ];
 
-  // Draw event (debug mode vs random)
-  const drawEvent = (currentDebugIndex = 0) => {
-    if (DEBUG_MODE) {
-      return eventDeck[currentDebugIndex % eventDeck.length];
-    } else {
-      return eventDeck[Math.floor(Math.random() * eventDeck.length)];
+  // Fisher-Yates shuffle for event deck indices
+  const shuffleEventIndices = () => {
+    const indices = Array.from({ length: eventDeck.length }, (_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
     }
+    return indices;
+  };
+
+  // Draw event using shuffle-without-replacement
+  const drawEvent = (shuffledOrder = [], drawIndex = 0) => {
+    let order = shuffledOrder;
+    let index = drawIndex;
+    if (order.length === 0 || index >= order.length) {
+      order = shuffleEventIndices();
+      index = 0;
+    }
+    return {
+      event: eventDeck[order[index]],
+      shuffledEventOrder: order,
+      eventDrawIndex: index + 1,
+    };
   };
 
   // Vote on current event
@@ -2014,13 +2026,13 @@ const PskovGame = () => {
 
       // Draw event when moving TO events phase
       if (nextPhase === 'events') {
-        newState.currentEvent = drawEvent(DEBUG_MODE, prev.debugEventIndex);
+        const drawn = drawEvent(prev.shuffledEventOrder, prev.eventDrawIndex);
+        newState.currentEvent = drawn.event;
+        newState.shuffledEventOrder = drawn.shuffledEventOrder;
+        newState.eventDrawIndex = drawn.eventDrawIndex;
         newState.eventVotes = [null, null, null];
         newState.eventResolved = false;
         newState.eventImageRevealed = false; // Start with hidden image
-        if (DEBUG_MODE) {
-          newState.debugEventIndex = (prev.debugEventIndex + 1) % eventDeck.length;
-        }
       }
 
       // Reset current player and construction actions when leaving construction
@@ -2331,13 +2343,6 @@ const PskovGame = () => {
           </div>
         </div>
       </header>
-
-      {/* Debug Mode Indicator */}
-      {DEBUG_MODE && (
-        <div className="fixed bottom-4 left-4 bg-yellow-400 text-yellow-900 px-2 py-1 rounded text-xs font-medium shadow z-40">
-          Debug mode
-        </div>
-      )}
 
       {/* ===== 2-COLUMN BODY ===== */}
       <div className="flex gap-4 max-w-screen-2xl mx-auto px-4 pt-3 pb-6">
