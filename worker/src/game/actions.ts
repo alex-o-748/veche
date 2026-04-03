@@ -458,7 +458,7 @@ function executeAttack(state: GameState, randomValues: RandomValues): ActionResu
     };
   }
 
-  const costPerParticipant = 6 / participants;
+  const costPerParticipant = 2;
 
   // Check if all participants can afford
   let allCanAfford = true;

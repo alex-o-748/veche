@@ -234,7 +234,7 @@ const decideAuctionBid = (state, playerIndex, event) => {
  */
 export const decideAttackVote = (state, playerIndex) => {
   const player = state.players[playerIndex];
-  const costPerParticipant = 6 / 3; // Assume 3 participants initially
+  const costPerParticipant = 2;
 
   // Don't attack if we can't afford it
   if (player.money < costPerParticipant) {

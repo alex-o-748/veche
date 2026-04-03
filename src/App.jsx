@@ -661,7 +661,7 @@ const PskovGame = () => {
   const executeAttack = () => {
     const { attackTarget, attackVotes } = gameState;
     const participants = attackVotes.filter(v => v === true).length;
-    const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+    const costPerParticipant = 2;
 
     // Deduct money from participants
     const newPlayers = gameState.players.map((player, index) => {
@@ -852,7 +852,7 @@ const PskovGame = () => {
         console.log("Selected target region:", targetRegion);
 
         const participants = votes.filter(v => v === true).length;
-        const costPerParticipant = participants > 0 ? 3 / participants : 0;
+        const costPerParticipant = 1;
 
         console.log("Participants:", participants, "Cost per participant:", costPerParticipant);
         console.log("Votes:", votes);
@@ -3168,7 +3168,7 @@ const PskovGame = () => {
                           });
                           let stable = false;
                           while (!stable && candidates.length > 0) {
-                            const cost = 3 / candidates.length;
+                            const cost = 1;
                             const affordable = candidates.filter(
                               (i) => gameState.players[i].money >= cost
                             );
@@ -3303,7 +3303,7 @@ const PskovGame = () => {
                 <div className="text-center">
                   {(() => {
                     const participants = gameState.attackVotes.filter(v => v === true).length;
-                    const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+                    const costPerParticipant = 2;
                     let allCanAfford = true;
                     let insufficientFunds = [];
                     gameState.players.forEach((player, index) => {
