@@ -178,6 +178,20 @@ const decideVotingEvent = (state, playerIndex, event) => {
     return 'ignore'; // Nobles don't want to investigate themselves
   }
 
+  // Merchants prefer demanding compensation when their trade is threatened
+  if (event.id === 'merchants_robbed' && player.faction === 'Merchants') {
+    if (player.money >= 1) {
+      return 'demand_compensation';
+    }
+  }
+
+  // Commoners prefer buying food to protect their people from famine
+  if (event.id === 'drought' && player.faction === 'Commoners') {
+    if (player.money >= 2) {
+      return 'buy_food';
+    }
+  }
+
   // If low on money, pick among free/cheap options
   if (player.money < 2) {
     const freeOptions = options.filter(o => !o.costText && !o.requiresMinMoney);
