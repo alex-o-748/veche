@@ -241,9 +241,16 @@ const PskovGame = () => {
                   ...state.regions,
                   [decision.regionName]: { ...region, buildings: newBuildings },
                 },
-                players: state.players.map((p, i) =>
-                  i === aiIndex ? { ...p, money: p.money - 2, improvements: p.improvements + 1 } : p
-                ),
+                players: state.players.map((p, i) => {
+                  if (i !== aiIndex) return p;
+                  const isReligious = buildingType === 'commoner_church' || buildingType === 'noble_monastery' || buildingType === 'merchant_church';
+                  return {
+                    ...p,
+                    money: p.money - 2,
+                    improvements: p.improvements + 1,
+                    religiousBuildings: (p.religiousBuildings || 0) + (isReligious ? 1 : 0),
+                  };
+                }),
                 constructionActions: state.constructionActions.map((ca, i) =>
                   i === aiIndex ? { ...ca, improvement: true } : ca
                 ),
@@ -1975,9 +1982,15 @@ const PskovGame = () => {
         return prev;
       }
 
+      const isReligious = buildingType === 'commoner_church' || buildingType === 'noble_monastery' || buildingType === 'merchant_church';
       const newPlayers = prev.players.map((p, i) =>
         i === prev.currentPlayer
-          ? { ...p, money: p.money - 2, improvements: p.improvements + 1 }
+          ? {
+              ...p,
+              money: p.money - 2,
+              improvements: p.improvements + 1,
+              religiousBuildings: (p.religiousBuildings || 0) + (isReligious ? 1 : 0),
+            }
           : p
       );
 
