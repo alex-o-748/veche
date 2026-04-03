@@ -94,7 +94,7 @@
     "loading": "Loading game...",
     "title": "Medieval Pskov",
     "subtitle": "Defend your city from the Teutonic Order",
-    "turn": "Turn {{turn}} / 20",
+    "turn": "Turns {{turn}}/20",
     "currentPhase": "Current Phase:",
     "phaseProgress": "Phase Progress",
     "activeEffects": "Active Effects",
