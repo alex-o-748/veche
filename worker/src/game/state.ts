@@ -50,6 +50,9 @@ export const BUILDING_TYPES: Record<string, BuildingType> = {
   merchant_church: { name: 'Church', cost: 2, faction: 'Merchants', maxPerRegion: 7, pskovOnly: true },
 };
 
+// Religious building types (give more VP but no income)
+export const RELIGIOUS_BUILDING_TYPES = new Set(['commoner_church', 'noble_monastery', 'merchant_church']);
+
 // Building names mapping (for display)
 export const BUILDING_NAMES: Record<string, string> = {
   commoner_huts: 'Huts',
@@ -86,6 +89,7 @@ export interface Player {
   armor: number;
   improvements: number;
   bonusPoints: number;
+  religiousBuildings: number;
 }
 
 // Construction action tracking
@@ -221,9 +225,9 @@ export function createInitialRegions(): Record<string, Region> {
 // Create initial player state
 export function createInitialPlayers(): Player[] {
   return [
-    { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
-    { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
-    { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0 },
+    { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0, religiousBuildings: 0 },
+    { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0, religiousBuildings: 0 },
+    { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0, religiousBuildings: 0 },
   ];
 }
 

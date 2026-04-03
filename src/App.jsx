@@ -155,7 +155,7 @@ const PskovGame = () => {
     // Calculate income preview for the notification banner
     const republicRegions = Object.values(gameState.regions).filter(r => r.controller === 'republic').length;
     const incomeData = gameState.players.map((player) => {
-      const baseIncome = 0.5 + (republicRegions * 0.25) + (player.improvements * 0.25);
+      const baseIncome = 0.5 + (republicRegions * 0.25) + ((player.improvements - (player.religiousBuildings || 0)) * 0.25);
       const modifier = getIncomeModifier(player.faction);
       const finalIncome = baseIncome * modifier;
       return { faction: player.faction, income: finalIncome };
@@ -243,9 +243,16 @@ const PskovGame = () => {
                   ...state.regions,
                   [decision.regionName]: { ...region, buildings: newBuildings },
                 },
-                players: state.players.map((p, i) =>
-                  i === aiIndex ? { ...p, money: p.money - 2, improvements: p.improvements + 1 } : p
-                ),
+                players: state.players.map((p, i) => {
+                  if (i !== aiIndex) return p;
+                  const isReligious = buildingType === 'commoner_church' || buildingType === 'noble_monastery' || buildingType === 'merchant_church';
+                  return {
+                    ...p,
+                    money: p.money - 2,
+                    improvements: p.improvements + 1,
+                    religiousBuildings: (p.religiousBuildings || 0) + (isReligious ? 1 : 0),
+                  };
+                }),
                 constructionActions: state.constructionActions.map((ca, i) =>
                   i === aiIndex ? { ...ca, improvement: true } : ca
                 ),
@@ -602,7 +609,7 @@ const PskovGame = () => {
   const executeAttack = () => {
     const { attackTarget, attackVotes } = gameState;
     const participants = attackVotes.filter(v => v === true).length;
-    const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+    const costPerParticipant = 2;
 
     // Deduct money from participants
     const newPlayers = gameState.players.map((player, index) => {
@@ -1689,19 +1696,30 @@ const PskovGame = () => {
   };
 
   // Calculate victory points for each player
+  // Religious buildings: +2 VP each (counted in both improvements and religiousBuildings)
+  // Secular buildings: +1 VP each (counted only in improvements)
   const calculateVictoryPoints = (player) => {
-    return player.improvements + (player.bonusPoints || 0);
+    return player.improvements + (player.religiousBuildings || 0) + (player.bonusPoints || 0);
   };
 
   // Check if game is over and determine winner
   const getGameResult = () => {
     if (gameState.turn > 20) {
-      const playerScores = gameState.players.map((player, index) => ({
-        faction: player.faction,
-        victoryPoints: calculateVictoryPoints(player),
-        money: player.money,
-        index
-      }));
+      const playerScores = gameState.players.map((player, index) => {
+        const religious = player.religiousBuildings || 0;
+        const secular = player.improvements - religious;
+        return {
+          faction: player.faction,
+          victoryPoints: calculateVictoryPoints(player),
+          money: player.money,
+          index,
+          breakdown: {
+            secular,
+            religious,
+            bonus: player.bonusPoints || 0,
+          },
+        };
+      });
 
       playerScores.sort((a, b) => {
         if (b.victoryPoints !== a.victoryPoints) {
@@ -1726,54 +1744,60 @@ const PskovGame = () => {
 
     if (player.faction === 'Commoners') {
       buildings.push(
-        { 
-          type: 'commoner_huts', 
-          name: 'Huts', 
-          cost: 2, 
+        {
+          type: 'commoner_huts',
+          name: 'Huts',
+          cost: 2,
           built: region.buildings.commoner_huts > 0,
-          canBuild: region.buildings.commoner_huts === 0
+          canBuild: region.buildings.commoner_huts === 0,
+          isReligious: false,
         },
-        { 
-          type: 'commoner_church', 
-          name: 'Village Church', 
-          cost: 2, 
+        {
+          type: 'commoner_church',
+          name: 'Village Church',
+          cost: 2,
           built: region.buildings.commoner_church > 0,
-          canBuild: region.buildings.commoner_church === 0
+          canBuild: region.buildings.commoner_church === 0,
+          isReligious: true,
         }
       );
     } else if (player.faction === 'Nobles') {
       buildings.push(
-        { 
-          type: 'noble_manor', 
-          name: 'Manor', 
-          cost: 2, 
+        {
+          type: 'noble_manor',
+          name: 'Manor',
+          cost: 2,
           built: region.buildings.noble_manor > 0,
-          canBuild: region.buildings.noble_manor === 0
+          canBuild: region.buildings.noble_manor === 0,
+          isReligious: false,
         },
-        { 
-          type: 'noble_monastery', 
-          name: 'Monastery', 
-          cost: 2, 
+        {
+          type: 'noble_monastery',
+          name: 'Monastery',
+          cost: 2,
           built: region.buildings.noble_monastery > 0,
-          canBuild: region.buildings.noble_monastery === 0
+          canBuild: region.buildings.noble_monastery === 0,
+          isReligious: true,
         }
       );
     } else if (player.faction === 'Merchants') {
       if (gameState.selectedRegion === 'pskov') {
         buildings.push(
-          { 
-            type: 'merchant_mansion', 
-            name: 'Mansion', 
-            cost: 2, 
+          {
+            type: 'merchant_mansion',
+            name: 'Mansion',
+            cost: 2,
             built: region.buildings.merchant_mansion,
-            canBuild: region.buildings.merchant_mansion < 7
+            canBuild: region.buildings.merchant_mansion < 7,
+            isReligious: false,
           },
-          { 
-            type: 'merchant_church', 
-            name: 'Church', 
-            cost: 2, 
+          {
+            type: 'merchant_church',
+            name: 'Church',
+            cost: 2,
             built: region.buildings.merchant_church,
-            canBuild: region.buildings.merchant_church < 7
+            canBuild: region.buildings.merchant_church < 7,
+            isReligious: true,
           }
         );
       }
@@ -1797,9 +1821,15 @@ const PskovGame = () => {
         return prev;
       }
 
+      const isReligious = buildingType === 'commoner_church' || buildingType === 'noble_monastery' || buildingType === 'merchant_church';
       const newPlayers = prev.players.map((p, i) =>
         i === prev.currentPlayer
-          ? { ...p, money: p.money - 2, improvements: p.improvements + 1 }
+          ? {
+              ...p,
+              money: p.money - 2,
+              improvements: p.improvements + 1,
+              religiousBuildings: (p.religiousBuildings || 0) + (isReligious ? 1 : 0),
+            }
           : p
       );
 
@@ -1853,7 +1883,7 @@ const PskovGame = () => {
       if (isResourcesPhase) {
         const republicRegions = Object.values(prev.regions).filter(r => r.controller === 'republic').length;
         newState.players = prev.players.map((player, index) => {
-          const baseIncome = 0.5 + (republicRegions * 0.25) + (player.improvements * 0.25);
+          const baseIncome = 0.5 + (republicRegions * 0.25) + ((player.improvements - (player.religiousBuildings || 0)) * 0.25);
           const incomeModifier = getIncomeModifier(player.faction);
           const finalIncome = baseIncome * incomeModifier;
           return {
@@ -2077,7 +2107,7 @@ const PskovGame = () => {
 
   const getPhaseDescription = (phase) => {
     const descriptions = {
-      resources: 'Players receive income from controlled regions and improvements',
+      resources: 'Players receive income from controlled regions and secular buildings',
       construction: 'Players can build improvements, fortresses, and buy equipment',
       events: 'Draw and resolve an event card',
       veche: 'Assembly of citizens making collective decisions',
@@ -2093,14 +2123,14 @@ const PskovGame = () => {
       <header className="game-header px-4 py-2.5">
         <div className="max-w-screen-2xl mx-auto flex items-center gap-4">
           {/* Title */}
-          <h1 className="heading-serif text-parchment-50 text-xl font-bold tracking-wide flex-shrink-0">
+          <h1 className="heading-serif text-xl font-bold tracking-wide flex-shrink-0" style={{ color: '#d4c4a8' }}>
             {t('game.title')}
           </h1>
 
           {/* Turn + Progress */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-parchment-300 text-sm font-medium">
-              {t('game.turn', { turn: gameState.turn })}/20
+              {t('game.turn', { turn: gameState.turn })}
             </span>
             <div className="progress-bar-track w-16">
               <div className="progress-bar-fill" style={{ width: `${(gameState.turn / 20) * 100}%` }} />
@@ -2393,6 +2423,7 @@ const PskovGame = () => {
                           : building.built ? t('game.alreadyBuilt') : t('game.notBuilt')
                         }
                         {' '}&middot; {t('game.cost', { cost: building.cost })}
+                        {' '}&middot; {building.isReligious ? '+2 VP, no income' : '+1 VP, +income'}
                       </div>
                     </div>
                   </button>
@@ -3007,7 +3038,7 @@ const PskovGame = () => {
                           });
                           let stable = false;
                           while (!stable && candidates.length > 0) {
-                            const cost = 3 / candidates.length;
+                            const cost = 1;
                             const affordable = candidates.filter(
                               (i) => gameState.players[i].money >= cost
                             );
@@ -3142,7 +3173,7 @@ const PskovGame = () => {
                 <div className="text-center">
                   {(() => {
                     const participants = gameState.attackVotes.filter(v => v === true).length;
-                    const costPerParticipant = participants > 0 ? (6 / participants) : 0;
+                    const costPerParticipant = 2;
                     let allCanAfford = true;
                     let insufficientFunds = [];
                     gameState.players.forEach((player, index) => {
@@ -3336,7 +3367,12 @@ const PskovGame = () => {
                     <div key={player.index} className={`p-3 rounded ${rank === 0 ? 'bg-parchment-50 border border-accent' : 'border border-parchment-400'}`}>
                       <div className="flex justify-between items-center text-sm">
                         <span className="font-medium text-ink">#{rank + 1} {player.faction}</span>
-                        <span className="text-ink-light">{player.victoryPoints} VP &middot; {player.money}○</span>
+                        <span className="text-ink-light">{player.victoryPoints} VP &middot; {player.money.toFixed(1)}○</span>
+                      </div>
+                      <div className="text-xs text-ink-muted mt-1 flex flex-wrap gap-x-3">
+                        {player.breakdown.secular > 0 && <span>{player.breakdown.secular} secular ({player.breakdown.secular} VP)</span>}
+                        {player.breakdown.religious > 0 && <span>{player.breakdown.religious} religious ({player.breakdown.religious * 2} VP)</span>}
+                        {player.breakdown.bonus > 0 && <span>+{player.breakdown.bonus} bonus</span>}
                       </div>
                     </div>
                   ))}
@@ -3499,7 +3535,7 @@ const App = () => {
       return (
         <div className="relative">
           {/* Floating back button (positioned to not overlap header) */}
-          <div className="fixed top-1 right-2 z-50">
+          <div className="fixed top-0 right-2 z-50 flex items-center" style={{ height: '40px' }}>
             <button
               onClick={mode === 'online' ? handleLeave : handleBackToMenu}
               className="px-2 py-1 text-xs text-parchment-400 hover:text-red-400 transition-colors"

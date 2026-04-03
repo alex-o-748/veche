@@ -16,6 +16,7 @@ import {
   ORDER_TURN_SCALING,
   ORDER_SCALING_INTERVAL,
   BUILDING_TYPES,
+  RELIGIOUS_BUILDING_TYPES,
   Player,
   ActiveEffect,
 } from './state';
@@ -245,7 +246,8 @@ export function nextPhase(state: GameState): GameState {
   if (state.phase === 'resources' || nextPhaseName === 'resources') {
     const republicRegions = countRepublicRegions(state.regions);
     newState.players = (state.phase === 'resources' ? state : newState).players.map((player) => {
-      const baseIncome = 0.5 + republicRegions * 0.25 + player.improvements * 0.25;
+      const secularBuildings = player.improvements - (player.religiousBuildings || 0);
+      const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25;
       const incomeModifier = getIncomeModifier(state.activeEffects, player.faction);
       const finalIncome = baseIncome * incomeModifier;
       return {
@@ -348,8 +350,14 @@ function buildBuilding(state: GameState, buildingType: string, playerId: number 
     return state;
   }
 
+  const isReligious = RELIGIOUS_BUILDING_TYPES.has(buildingType);
   const newPlayers = state.players.map((p, i) =>
-    i === playerIndex ? { ...p, money: p.money - 2, improvements: p.improvements + 1 } : p
+    i === playerIndex ? {
+      ...p,
+      money: p.money - 2,
+      improvements: p.improvements + 1,
+      religiousBuildings: (p.religiousBuildings || 0) + (isReligious ? 1 : 0),
+    } : p
   );
 
   const newConstructionActions = state.constructionActions.map((ca, i) =>
@@ -465,7 +473,7 @@ function executeAttack(state: GameState, randomValues: RandomValues): ActionResu
     };
   }
 
-  const costPerParticipant = 6 / participants;
+  const costPerParticipant = 2;
 
   // Check if all participants can afford
   let allCanAfford = true;

@@ -77,7 +77,7 @@ export const eventTypes = {
 
       let stable = false;
       while (!stable && candidates.length > 0) {
-        const cost = 3 / candidates.length;
+        const cost = 1;
         const affordable = candidates.filter(
           (index) => state.players[index].money >= cost
         );
@@ -94,7 +94,7 @@ export const eventTypes = {
         return surrenderRegion(state, targetRegion);
       }
 
-      const costPerParticipant = 3 / defendingPlayers.length;
+      const costPerParticipant = 1;
 
       // Deduct money only from actual defenders
       const newPlayers = state.players.map((player, index) => {

@@ -4,6 +4,7 @@
 import {
   PHASES,
   BUILDING_TYPES,
+  RELIGIOUS_BUILDING_TYPES,
   EQUIPMENT_COSTS,
   EXPEDITION_COST,
   EXPEDITION_MAX_PER_GAME,
@@ -222,7 +223,8 @@ export const nextPhase = (state) => {
   if (state.phase === 'resources') {
     const republicRegions = countRepublicRegions(state.regions);
     newState.players = state.players.map((player) => {
-      const baseIncome = 0.5 + republicRegions * 0.25 + player.improvements * 0.25;
+      const secularBuildings = player.improvements - (player.religiousBuildings || 0);
+      const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25;
       const incomeModifier = getIncomeModifier(state.activeEffects, player.faction);
       const finalIncome = baseIncome * incomeModifier;
       return {
@@ -305,9 +307,15 @@ export const buildBuilding = (state, buildingType) => {
     return state;
   }
 
+  const isReligious = RELIGIOUS_BUILDING_TYPES.has(buildingType);
   const newPlayers = state.players.map((p, i) =>
     i === state.currentPlayer
-      ? { ...p, money: p.money - 2, improvements: p.improvements + 1 }
+      ? {
+          ...p,
+          money: p.money - 2,
+          improvements: p.improvements + 1,
+          religiousBuildings: (p.religiousBuildings || 0) + (isReligious ? 1 : 0),
+        }
       : p
   );
 
@@ -462,7 +470,7 @@ export const executeAttackAction = (state, randomValues = {}) => {
     };
   }
 
-  const costPerParticipant = 6 / participants;
+  const costPerParticipant = 2;
 
   // Check if all participants can afford
   let allCanAfford = true;
@@ -679,19 +687,30 @@ export const getAvailableBuildings = (state) => {
 };
 
 // Calculate victory points
+// Religious buildings are worth 2 VP each (counted once in improvements, once in religiousBuildings)
+// Secular buildings are worth 1 VP each (counted only in improvements)
 export const calculateVictoryPoints = (player) => {
-  return player.improvements + (player.bonusPoints || 0);
+  return player.improvements + (player.religiousBuildings || 0) + (player.bonusPoints || 0);
 };
 
 // Check game result
 export const getGameResult = (state) => {
   if (state.turn > 20 || state.gameOver) {
-    const playerScores = state.players.map((player, index) => ({
-      faction: player.faction,
-      victoryPoints: calculateVictoryPoints(player),
-      money: player.money,
-      index,
-    }));
+    const playerScores = state.players.map((player, index) => {
+      const religious = player.religiousBuildings || 0;
+      const secular = player.improvements - religious;
+      return {
+        faction: player.faction,
+        victoryPoints: calculateVictoryPoints(player),
+        money: player.money,
+        index,
+        breakdown: {
+          secular,
+          religious,
+          bonus: player.bonusPoints || 0,
+        },
+      };
+    });
 
     playerScores.sort((a, b) => {
       if (b.victoryPoints !== a.victoryPoints) {
