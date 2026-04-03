@@ -2254,7 +2254,7 @@ const PskovGame = () => {
       <header className="game-header px-4 py-2.5">
         <div className="max-w-screen-2xl mx-auto flex items-center gap-4">
           {/* Title */}
-          <h1 className="heading-serif text-parchment-50 text-xl font-bold tracking-wide flex-shrink-0">
+          <h1 className="heading-serif text-xl font-bold tracking-wide flex-shrink-0" style={{ color: '#d4c4a8' }}>
             {t('game.title')}
           </h1>
 
