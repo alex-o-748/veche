@@ -37,6 +37,7 @@ import {
 
   // Combat
   getOrderTurnBonus,
+  getAttackStrengthLabel,
   calculatePlayerStrength as calculatePlayerStrengthPure,
   calculateTotalStrength as calculateTotalStrengthPure,
   getVictoryChance as getVictoryChancePure,
@@ -803,11 +804,11 @@ const PskovGame = () => {
           const roll = Math.floor(Math.random() * 6) + 1;
 
           if (roll <= 3) {
-            // Trigger immediate Order attack with strength 100
+            // Trigger immediate Order attack
             const orderAttackEvent = {
               id: 'order_attack_rob_foreign',
-              name: 'Order Attack (100)',
-              description: 'The Teutonic Order retaliates for the robbed merchants! They attack with strength 100.',
+              name: 'Order Attack',
+              description: 'The Teutonic Order retaliates for the robbed merchants! They launch an attack.',
               type: 'order_attack',
               orderStrength: 100,
               question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -880,8 +881,8 @@ const PskovGame = () => {
     },
     {
       id: 'order_attack_95',
-      name: 'Order Attack (95)',
-      description: 'The Teutonic Order attacks with strength 95. Who will contribute to the defense?',
+      name: 'Order Attack (Weak)',
+      description: 'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 95,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -889,8 +890,8 @@ const PskovGame = () => {
     },
     {
       id: 'order_attack_110',
-      name: 'Order Attack (110)',
-      description: 'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
+      name: 'Order Attack (Strong)',
+      description: 'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
       type: 'order_attack',  // CHANGE FROM 'participation' TO 'order_attack'
       orderStrength: 110,    // ADD THIS
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -1463,8 +1464,8 @@ const PskovGame = () => {
     },
     {
       id: 'order_attack_90',
-      name: 'Order Attack (90)',
-      description: 'The Teutonic Order attacks with strength 90. Who will contribute to the defense?',
+      name: 'Order Attack (Weak)',
+      description: 'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 90,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -1472,8 +1473,8 @@ const PskovGame = () => {
     },
     {
       id: 'order_attack_100',
-      name: 'Order Attack (100)',
-      description: 'The Teutonic Order attacks with strength 100. Who will contribute to the defense?',
+      name: 'Order Attack',
+      description: 'The Teutonic Order launches an attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 100,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -1481,8 +1482,8 @@ const PskovGame = () => {
     },
     {
       id: 'order_attack_105',
-      name: 'Order Attack (105)',
-      description: 'The Teutonic Order attacks with strength 105. Who will contribute to the defense?',
+      name: 'Order Attack (Strong)',
+      description: 'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 105,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -1490,8 +1491,8 @@ const PskovGame = () => {
     },
     {
       id: 'order_attack_110',
-      name: 'Order Attack (110)',
-      description: 'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
+      name: 'Order Attack (Strong)',
+      description: 'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 110,
       question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -2958,7 +2959,10 @@ const PskovGame = () => {
               {gameState.currentEvent.type === 'order_attack' && !gameState.eventResolved && (
                 <div>
                   <h4 className="text-sm font-bold text-red-800 mb-2">{t('game.orderAttack')}</h4>
-                  <p className="text-sm text-ink-light mb-3">{t('game.orderAttackDesc', { strength: gameState.currentEvent.orderStrength + getOrderTurnBonus(gameState.turn) })}</p>
+                  <p className="text-sm text-ink-light mb-3">{(() => {
+                    const labelKey = { weak: 'weakAttack', normal: 'normalAttack', strong: 'strongAttack' }[getAttackStrengthLabel(gameState.currentEvent.orderStrength + getOrderTurnBonus(gameState.turn))];
+                    return t('game.orderAttackDesc', { label: t(`game.${labelKey}`) });
+                  })()}</p>
 
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {gameState.players.map((player, index) => {
