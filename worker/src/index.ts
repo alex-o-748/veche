@@ -258,6 +258,16 @@ Generate council statements for each AI voter explaining their reasoning.`;
           const jsonMatch = text.match(/\{[\s\S]*\}/);
           const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { messages: [] };
 
+          // Filter to only include messages from actual AI players
+          if (parsed.messages && Array.isArray(parsed.messages)) {
+            parsed.messages = parsed.messages.filter((m: any) =>
+              typeof m.playerIndex === 'number' &&
+              m.playerIndex >= 0 &&
+              m.playerIndex < aiPlayers.length &&
+              aiPlayers[m.playerIndex] === true
+            );
+          }
+
           return new Response(
             JSON.stringify(parsed),
             { headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) } }
