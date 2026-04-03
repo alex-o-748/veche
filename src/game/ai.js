@@ -179,7 +179,7 @@ const decideVotingEvent = (state, playerIndex, event) => {
   }
 
   // If low on money, pick among free/cheap options
-  if (player.money < 2) {
+  if (player.money < 1) {
     const freeOptions = options.filter(o => !o.costText && !o.requiresMinMoney);
     if (freeOptions.length > 0) return pickRandom(freeOptions).id;
   }
