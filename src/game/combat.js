@@ -68,6 +68,7 @@ export const surrenderRegion = (state, regionName) => {
       gameOver: true,
       gameEnded: true,
       lastEventResult: 'GAME OVER: Pskov has fallen to the Teutonic Order!',
+      battleResult: { type: 'game_over', region: regionName },
     };
   }
 
@@ -108,6 +109,7 @@ export const surrenderRegion = (state, regionName) => {
     regions: newRegions,
     players: newPlayers,
     lastEventResult: `${regionDisplayName} surrendered to the Order! All buildings destroyed.`,
+    battleResult: { type: 'surrendered', region: regionName },
   };
 };
 
@@ -135,11 +137,19 @@ export const executeBattle = (
   const result = rollForVictory(strengthDiff, randomValue);
   const regionDisplayName = formatRegionName(targetRegion);
 
+  const battleResult = {
+    region: targetRegion,
+    chancePercent: result.chancePercent,
+    pskovStrength: finalPskovStrength,
+    orderStrength,
+  };
+
   if (result.success) {
     // Successful defense
     return {
       ...state,
       lastEventResult: `VICTORY! ${regionDisplayName} successfully defended! (${result.chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength})`,
+      battleResult: { ...battleResult, type: 'defense_victory' },
     };
   } else {
     // Failed defense - lose region
@@ -147,6 +157,7 @@ export const executeBattle = (
     return {
       ...surrenderResult,
       lastEventResult: `DEFEAT! ${regionDisplayName} lost to the Order! (${result.chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength}) ${surrenderResult.lastEventResult}`,
+      battleResult: { ...battleResult, type: 'defense_defeat' },
     };
   }
 };
@@ -166,6 +177,13 @@ export const executeAttack = (state, targetRegion, attackingPlayers, randomValue
   const result = rollForVictory(strengthDiff, randomValue);
   const regionDisplayName = formatRegionName(targetRegion);
 
+  const battleResult = {
+    region: targetRegion,
+    chancePercent: result.chancePercent,
+    pskovStrength,
+    orderStrength,
+  };
+
   if (result.success) {
     // Successful attack - recapture region
     const newRegions = { ...regions };
@@ -179,6 +197,7 @@ export const executeAttack = (state, targetRegion, attackingPlayers, randomValue
         ...state,
         regions: newRegions,
         lastEventResult: `VICTORY! ${regionDisplayName} recaptured from the Order! (${result.chancePercent}% chance, Strength: ${pskovStrength} vs ${orderStrength})`,
+        battleResult: { ...battleResult, type: 'attack_victory' },
       },
       success: true,
       result,
@@ -189,6 +208,7 @@ export const executeAttack = (state, targetRegion, attackingPlayers, randomValue
       newState: {
         ...state,
         lastEventResult: `DEFEAT! Attack on ${regionDisplayName} failed! (${result.chancePercent}% chance, Strength: ${pskovStrength} vs ${orderStrength})`,
+        battleResult: { ...battleResult, type: 'attack_defeat' },
       },
       success: false,
       result,

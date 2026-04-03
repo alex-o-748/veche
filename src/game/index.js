@@ -58,6 +58,7 @@ export {
 
 // Combat calculations
 export {
+  getOrderTurnBonus,
   calculatePlayerStrength,
   calculateTotalStrength,
   getVictoryChance,
