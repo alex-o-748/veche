@@ -36,11 +36,13 @@ import {
   getIncomeModifier as getIncomeModifierPure,
 
   // Combat
+  getOrderTurnBonus,
   calculatePlayerStrength as calculatePlayerStrengthPure,
-  getVictoryChance,
-  rollForVictory as rollForVictoryPure,
+  calculateTotalStrength as calculateTotalStrengthPure,
+  getVictoryChance as getVictoryChancePure,
   surrenderRegion as surrenderRegionPure,
   executeBattle as executeBattlePure,
+  executeAttack as executeAttackPure,
   destroyRandomBuildings,
 
   // Events
@@ -510,143 +512,82 @@ const PskovGame = () => {
     return modifier;
   };
 
-  // Military calculation functions
-  const calculatePlayerStrength = (playerIndex, isDefending = false, regionName = null) => {
-    const player = gameState.players[playerIndex];
-
-    // Base strength by faction
-    let strength = 0;
-    if (player.faction === 'Nobles') strength = 40;
-    else if (player.faction === 'Merchants') strength = 15;
-    else if (player.faction === 'Commoners') strength = 25;
-
-    // Equipment bonuses
-    strength += player.weapons * 5;
-    strength += player.armor * 5;
-
-    // Note: Fortress bonus is applied once to total strength in executeBattle, not per-player
-
-    // Active effects
-    strength += getStrengthModifier(player.faction);
-
-    return Math.max(0, strength);
+  // Military calculation functions — delegate to pure game modules
+  const calculatePlayerStrength = (playerIndex) => {
+    return calculatePlayerStrengthPure(gameState.players[playerIndex], gameState.activeEffects);
   };
 
-  const calculateTotalPskovStrength = (participants, isDefending = false, regionName = null) => {
-    return participants.reduce((total, playerIndex) => {
-      return total + calculatePlayerStrength(playerIndex, isDefending, regionName);
-    }, 0);
+  const calculateTotalPskovStrength = (participants) => {
+    return calculateTotalStrengthPure(gameState.players, participants, gameState.activeEffects);
   };
 
   const getVictoryChance = (strengthDiff) => {
-    if (strengthDiff >= 20) return 95;      // almost certain
-    if (strengthDiff >= 15) return 85;      // very high chance
-    if (strengthDiff >= 10) return 70;      // high chance
-    if (strengthDiff >= 5) return 60;       // good chance
-    if (strengthDiff >= 0) return 50;       // even
-    if (strengthDiff >= -5) return 40;      // slightly unfavorable
-    if (strengthDiff >= -10) return 30;     // low chance
-    if (strengthDiff >= -15) return 15;     // very low chance
-    return 5;                               // almost no chance
+    return getVictoryChancePure(strengthDiff);
   };
 
-  const rollForVictory = (strengthDiff) => {
-    const chancePercent = getVictoryChance(strengthDiff);
-    const roll = Math.random() * 100;
-    return roll < chancePercent;
-  };
+  // Translate battleResult from pure module output into localized lastEventResult
+  const translateBattleResult = (state) => {
+    const br = state.battleResult;
+    if (!br) return state;
 
-  // Battle outcome functions
-  const surrenderRegion = (gameState, regionName) => {
+    const regionDisplayName = t(`regions.${br.region}`);
+    let lastEventResult;
 
-    console.log("=== SURRENDER REGION START ===");
-    console.log("Surrendering region:", regionName);
-    console.log("Regions before surrender:", Object.entries(gameState.regions).map(([name, region]) => `${name}: ${region.controller}`));
-
-    if (regionName === 'pskov') {
-      // Game over - Pskov captured
-      return {
-        ...gameState,
-        gameOver: true,
-        lastEventResult: t('battle.gameOver')
-      };
+    switch (br.type) {
+      case 'game_over':
+        lastEventResult = t('battle.gameOver');
+        break;
+      case 'surrendered':
+        lastEventResult = t('battle.surrendered', { region: regionDisplayName });
+        break;
+      case 'defense_victory':
+        lastEventResult = t('battle.defenseVictory', {
+          region: regionDisplayName,
+          chance: br.chancePercent,
+          pskovStrength: br.pskovStrength,
+          orderStrength: br.orderStrength,
+        });
+        break;
+      case 'defense_defeat': {
+        const surrenderMsg = t('battle.surrendered', { region: regionDisplayName });
+        lastEventResult = `${t('battle.defenseFailed', {
+          region: regionDisplayName,
+          chance: br.chancePercent,
+          pskovStrength: br.pskovStrength,
+          orderStrength: br.orderStrength,
+        })} ${surrenderMsg}`;
+        break;
+      }
+      case 'attack_victory':
+        lastEventResult = t('battle.attackVictory', {
+          region: regionDisplayName,
+          chance: br.chancePercent,
+          pskovStrength: br.pskovStrength,
+          orderStrength: br.orderStrength,
+        });
+        break;
+      case 'attack_defeat':
+        lastEventResult = t('battle.attackDefeat', {
+          region: regionDisplayName,
+          chance: br.chancePercent,
+          pskovStrength: br.pskovStrength,
+          orderStrength: br.orderStrength,
+        });
+        break;
+      default:
+        return state;
     }
 
-    // Lose the region and destroy all buildings except fortresses
-    const newRegions = { ...gameState.regions };
-    newRegions[regionName].controller = 'order';
+    return { ...state, lastEventResult };
+  };
 
-    // Destroy buildings and update player improvement counts
-    const newPlayers = [...gameState.players];
-    Object.entries(newRegions[regionName].buildings).forEach(([buildingType, count]) => {
-      if (count > 0) {
-        newRegions[regionName].buildings[buildingType] = 0;
-
-        // Update player improvement count
-        newPlayers.forEach((player, index) => {
-          if ((buildingType.includes('commoner') && player.faction === 'Commoners') ||
-              (buildingType.includes('noble') && player.faction === 'Nobles') ||
-              (buildingType.includes('merchant') && player.faction === 'Merchants')) {
-            newPlayers[index] = { ...player, improvements: Math.max(0, player.improvements - count) };
-          }
-        });
-      }
-    });
-
-    const regionDisplayName = t(`regions.${regionName}`);
-
-    console.log("Regions after surrender:", Object.entries(newRegions).map(([name, region]) => `${name}: ${region.controller}`));
-    console.log("=== SURRENDER REGION END ===");
-
-    return {
-      ...gameState,
-      regions: newRegions,
-      players: newPlayers,
-      lastEventResult: t('battle.surrendered', { region: regionDisplayName })
-    };
+  // Battle outcome functions — delegate to pure modules and translate
+  const surrenderRegion = (gameState, regionName) => {
+    return translateBattleResult(surrenderRegionPure(gameState, regionName));
   };
 
   const executeBattle = (gameState, orderStrength, targetRegion, defendingPlayers) => {
-    // Calculate Pskov strength
-    const pskovStrength = calculateTotalPskovStrength(defendingPlayers, true, targetRegion);
-
-    // Add fortress bonus if defending
-    let finalPskovStrength = pskovStrength;
-    if (gameState.regions[targetRegion]?.fortress) {
-      finalPskovStrength += 10;
-    }
-
-    // Calculate strength difference and roll for victory
-    const strengthDiff = finalPskovStrength - orderStrength;
-    const pskovWins = rollForVictory(strengthDiff);
-    const chancePercent = getVictoryChance(strengthDiff);
-
-    const regionDisplayName = t(`regions.${targetRegion}`);
-
-    if (pskovWins) {
-      // Successful defense
-      return {
-        ...gameState,
-        lastEventResult: t('battle.defenseVictory', {
-          region: regionDisplayName,
-          chance: chancePercent,
-          pskovStrength: finalPskovStrength,
-          orderStrength: orderStrength
-        })
-      };
-    } else {
-      // Failed defense - lose region
-      const result = surrenderRegion(gameState, targetRegion);
-      return {
-        ...result,
-        lastEventResult: `${t('battle.defenseFailed', {
-          region: regionDisplayName,
-          chance: chancePercent,
-          pskovStrength: finalPskovStrength,
-          orderStrength: orderStrength
-        })} ${result.lastEventResult}`
-      };
-    }
+    return translateBattleResult(executeBattlePure(gameState, orderStrength, targetRegion, defendingPlayers));
   };
 
   const initiateAttack = (targetRegion) => {
@@ -677,55 +618,21 @@ const PskovGame = () => {
       if (vote === true) attackingPlayers.push(index);
     });
 
-    // Calculate Order strength (base 100 + fortress bonus)
-    const orderStrength = 100 + (gameState.regions[attackTarget]?.fortress ? 10 : 0);
+    // Delegate to pure combat module (includes turn-based Order scaling)
+    const combatResult = executeAttackPure(
+      { ...gameState, players: newPlayers },
+      attackTarget,
+      attackingPlayers
+    );
 
-    // Calculate Pskov strength (attacking, so no fortress bonus for defenders)
-    const pskovStrength = calculateTotalPskovStrength(attackingPlayers, false, null);
+    const translatedState = translateBattleResult(combatResult.newState);
 
-    // Execute battle
-    const strengthDiff = pskovStrength - orderStrength;
-    const pskovWins = rollForVictory(strengthDiff);
-    const chancePercent = getVictoryChance(strengthDiff);
-    const regionDisplayName = t(`regions.${attackTarget}`);
-
-    setGameState(prev => {
-      if (pskovWins) {
-        // Successful attack - recapture region
-        const newRegions = { ...prev.regions };
-        newRegions[attackTarget].controller = 'republic';
-
-        return {
-          ...prev,
-          players: newPlayers,
-          regions: newRegions,
-          attackPlanning: null,
-          attackTarget: null,
-          attackVotes: [null, null, null],
-          lastEventResult: t('battle.attackVictory', {
-            region: regionDisplayName,
-            chance: chancePercent,
-            pskovStrength: pskovStrength,
-            orderStrength: orderStrength
-          })
-        };
-      } else {
-        // Failed attack
-        return {
-          ...prev,
-          players: newPlayers,
-          attackPlanning: null,
-          attackTarget: null,
-          attackVotes: [null, null, null],
-          lastEventResult: t('battle.attackDefeat', {
-            region: regionDisplayName,
-            chance: chancePercent,
-            pskovStrength: pskovStrength,
-            orderStrength: orderStrength
-          })
-        };
-      }
-    });
+    setGameState(prev => ({
+      ...translatedState,
+      attackPlanning: null,
+      attackTarget: null,
+      attackVotes: [null, null, null],
+    }));
   };
 
   // Fortress building functions
@@ -823,78 +730,10 @@ const PskovGame = () => {
     },
     order_attack: {
       resolve: (event, gameState, votes) => {
-        console.log("=== ORDER ATTACK START ===");
-        console.log("Initial regions:", Object.entries(gameState.regions).map(([name, region]) => `${name}: ${region.controller}`));
-
-        // Get valid attack targets using map adjacency (only regions adjacent to Order territory)
-        const validTargets = getValidOrderAttackTargets(gameState.regions);
-
-        // Filter out Pskov initially (only attack Pskov if it's the only valid target)
-        const nonPskovTargets = validTargets.filter(name => name !== 'pskov');
-
-        console.log("Valid attack targets (adjacent to Order):", validTargets);
-        console.log("Non-Pskov targets:", nonPskovTargets);
-
-        let targetRegion;
-        if (nonPskovTargets.length > 0) {
-          // Random target from valid adjacent regions (excluding Pskov)
-          const randomIndex = Math.floor(Math.random() * nonPskovTargets.length);
-          targetRegion = nonPskovTargets[randomIndex];
-        } else if (validTargets.includes('pskov')) {
-          // Only Pskov is a valid target - attack Pskov
-          targetRegion = 'pskov';
-        } else {
-          // No valid targets (shouldn't happen in normal gameplay)
-          console.log("No valid attack targets - Order cannot attack");
-          return { ...gameState, lastEventResult: t('battle.noValidTarget') };
-        }
-
-        console.log("Selected target region:", targetRegion);
-
-        const participants = votes.filter(v => v === true).length;
-        const costPerParticipant = participants > 0 ? 3 / participants : 0;
-
-        console.log("Participants:", participants, "Cost per participant:", costPerParticipant);
-        console.log("Votes:", votes);
-
-        // Check if defense is funded
-        let allCanAfford = true;
-        let defendingPlayers = [];
-
-        gameState.players.forEach((player, index) => {
-          if (votes[index] === true) {
-            if (player.money < costPerParticipant) {
-              allCanAfford = false;
-            } else {
-              defendingPlayers.push(index);
-            }
-          }
-        });
-
-        const defenseFunded = participants > 0 && allCanAfford;
-
-        console.log("Defense funded:", defenseFunded);
-
-        if (!defenseFunded) {
-          // Surrender - lose the region immediately
-          return surrenderRegion(gameState, targetRegion);
-        }
-
-        // Deduct money from participants
-        const newPlayers = gameState.players.map((player, index) => {
-          if (votes[index] === true) {
-            return { ...player, money: player.money - costPerParticipant };
-          }
-          return player;
-        });
-
-        // Execute the battle
-        const gameStateWithPayment = {
-          ...gameState,
-          players: newPlayers
-        };
-
-        return executeBattle(gameStateWithPayment, event.orderStrength, targetRegion, defendingPlayers);
+        // Delegate to pure game module (handles target selection, iterative
+        // defender affordability, cost deduction, and battle with turn scaling)
+        const result = eventTypesPure.order_attack.resolve(event, gameState, votes);
+        return translateBattleResult(result);
       }
     },
     voting: {
@@ -3088,7 +2927,7 @@ const PskovGame = () => {
               {gameState.currentEvent.type === 'order_attack' && !gameState.eventResolved && (
                 <div>
                   <h4 className="text-sm font-bold text-red-800 mb-2">Order Attack!</h4>
-                  <p className="text-sm text-ink-light mb-3">The Teutonic Order attacks with strength {gameState.currentEvent.orderStrength}. Fund defense or surrender the region?</p>
+                  <p className="text-sm text-ink-light mb-3">The Teutonic Order attacks with strength {gameState.currentEvent.orderStrength + getOrderTurnBonus(gameState.turn)}. Fund defense or surrender the region?</p>
 
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {gameState.players.map((player, index) => {
