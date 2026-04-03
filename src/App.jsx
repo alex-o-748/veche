@@ -2261,7 +2261,7 @@ const PskovGame = () => {
           {/* Turn + Progress */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-parchment-300 text-sm font-medium">
-              {t('game.turn', { turn: gameState.turn })}/20
+              {t('game.turn', { turn: gameState.turn })}
             </span>
             <div className="progress-bar-track w-16">
               <div className="progress-bar-fill" style={{ width: `${(gameState.turn / 20) * 100}%` }} />
@@ -3660,7 +3660,7 @@ const App = () => {
       return (
         <div className="relative">
           {/* Floating back button (positioned to not overlap header) */}
-          <div className="fixed top-1 right-2 z-50">
+          <div className="fixed top-0 right-2 z-50 flex items-center" style={{ height: '40px' }}>
             <button
               onClick={mode === 'online' ? handleLeave : handleBackToMenu}
               className="px-2 py-1 text-xs text-parchment-400 hover:text-red-400 transition-colors"
