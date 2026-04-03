@@ -204,7 +204,7 @@
     "requiresFunding": "Requires 6○ funding",
     "notAdjacent": "Not adjacent to Republic territory",
     "planningAttack": "Planning Attack: {{region}}",
-    "attackRequiresFunding": "Attacking requires 6○ total funding. Who will contribute to this military campaign?",
+    "attackRequiresFunding": "Attacking costs 2○ per participant. Who will contribute to this military campaign?",
     "joiningAttack": "Joining Attack",
     "joinAttack": "Join Attack",
     "decline": "Decline",
