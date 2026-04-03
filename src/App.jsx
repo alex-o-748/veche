@@ -2269,7 +2269,7 @@ const PskovGame = () => {
           {/* Active Effects (compact) */}
           {gameState.activeEffects.length > 0 && (
             <div className="card-parchment p-3">
-              <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Active Effects</h4>
+              <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">{t('game.activeEffects')}</h4>
               <div className="space-y-1.5">
                 {gameState.activeEffects.map((effect) => (
                   <div key={effect.id} className="flex justify-between items-center text-xs">
@@ -2290,7 +2290,7 @@ const PskovGame = () => {
           {/* Victory Points (compact) */}
           {gameState.turn <= 20 && (
             <div className="card-parchment p-3">
-              <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Victory Points</h4>
+              <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">{t('game.victoryPoints')}</h4>
               <div className="space-y-1">
                 {gameState.players.map((player, index) => (
                   <div key={index} className="flex justify-between text-xs">
@@ -2957,8 +2957,8 @@ const PskovGame = () => {
               {/* Order Attack Event */}
               {gameState.currentEvent.type === 'order_attack' && !gameState.eventResolved && (
                 <div>
-                  <h4 className="text-sm font-bold text-red-800 mb-2">Order Attack!</h4>
-                  <p className="text-sm text-ink-light mb-3">The Teutonic Order attacks with strength {gameState.currentEvent.orderStrength + getOrderTurnBonus(gameState.turn)}. Fund defense or surrender the region?</p>
+                  <h4 className="text-sm font-bold text-red-800 mb-2">{t('game.orderAttack')}</h4>
+                  <p className="text-sm text-ink-light mb-3">{t('game.orderAttackDesc', { strength: gameState.currentEvent.orderStrength + getOrderTurnBonus(gameState.turn) })}</p>
 
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {gameState.players.map((player, index) => {
@@ -2989,9 +2989,9 @@ const PskovGame = () => {
                                     : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                                 }`}
                               >
-                                {gameState.eventVotes[index] === true ? 'Defending' :
-                                 !canAfford ? `Need ${gameState.currentEvent.minCostPerPlayer}○` :
-                                 'Fund Defense'}
+                                {gameState.eventVotes[index] === true ? t('game.defending') :
+                                 !canAfford ? t('events.needMoney', { amount: gameState.currentEvent.minCostPerPlayer }) :
+                                 t('game.fundDefense')}
                               </button>
                               <button
                                 onClick={() => voteOnEvent(index, false)}
@@ -3004,19 +3004,19 @@ const PskovGame = () => {
                                     : 'btn-secondary'
                                 }`}
                               >
-                                {gameState.eventVotes[index] === false ? 'No Defense' : 'Surrender'}
+                                {gameState.eventVotes[index] === false ? t('game.noDefense') : t('game.surrender')}
                               </button>
                             </div>
                           ) : (
                             <div className="text-xs text-ink-muted italic py-1">
                               {hasDecided ? (
                                 gameState.eventVotes[index] === true ? (
-                                  <span className="text-emerald-700 font-medium">Defending</span>
+                                  <span className="text-emerald-700 font-medium">{t('game.defending')}</span>
                                 ) : (
-                                  <span className="text-red-700 font-medium">Surrendering</span>
+                                  <span className="text-red-700 font-medium">{t('game.surrendering')}</span>
                                 )
                               ) : (
-                                <span>Waiting to decide...</span>
+                                <span>{t('events.waitingToDecide')}</span>
                               )}
                             </div>
                           )}
@@ -3052,9 +3052,9 @@ const PskovGame = () => {
                         })()}
                       </p>
                       {mode === 'online' ? (
-                        <p className="text-sm text-ink-muted italic">Auto-resolving attack...</p>
+                        <p className="text-sm text-ink-muted italic">{t('game.autoApplyingResult')}</p>
                       ) : (
-                        <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">Resolve Attack</button>
+                        <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">{t('game.resolveAttack')}</button>
                       )}
                     </div>
                   )}
@@ -3064,11 +3064,11 @@ const PskovGame = () => {
               {/* Event Resolved */}
               {gameState.eventResolved && (
                 <div className="text-center py-2">
-                  <p className="text-emerald-700 font-semibold mb-2">Event Resolved</p>
+                  <p className="text-emerald-700 font-semibold mb-2">{t('game.eventResolved')}</p>
                   {gameState.lastEventResult && (
                     <p className="text-sm text-ink-light mb-2 font-medium">{gameState.lastEventResult}</p>
                   )}
-                  <p className="text-xs text-ink-muted">Click "Next Phase" in the header to continue</p>
+                  <p className="text-xs text-ink-muted">{t('game.clickNextPhase')}</p>
                 </div>
               )}
 
