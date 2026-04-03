@@ -11,6 +11,7 @@ import {
   ORDER_TURN_SCALING,
   ORDER_SCALING_INTERVAL,
   BUILDING_NAMES,
+  RELIGIOUS_BUILDING_TYPES,
   formatRegionName,
 } from './state';
 import { getStrengthModifier } from './effects';
@@ -111,9 +112,11 @@ export function surrenderRegion(state: GameState, regionName: string): GameState
           (buildingType.includes('noble') && player.faction === 'Nobles') ||
           (buildingType.includes('merchant') && player.faction === 'Merchants')
         ) {
+          const religiousDelta = RELIGIOUS_BUILDING_TYPES.has(buildingType) ? count : 0;
           newPlayers[index] = {
             ...player,
             improvements: Math.max(0, player.improvements - count),
+            religiousBuildings: Math.max(0, (player.religiousBuildings || 0) - religiousDelta),
           };
         }
       });
@@ -223,7 +226,12 @@ export function destroyRandomBuildings(
         (buildingType.includes('noble') && player.faction === 'Nobles') ||
         (buildingType.includes('merchant') && player.faction === 'Merchants')
       ) {
-        return { ...player, improvements: Math.max(0, player.improvements - 1) };
+        const isReligious = RELIGIOUS_BUILDING_TYPES.has(buildingType);
+        return {
+          ...player,
+          improvements: Math.max(0, player.improvements - 1),
+          religiousBuildings: isReligious ? Math.max(0, (player.religiousBuildings || 0) - 1) : (player.religiousBuildings || 0),
+        };
       }
       return player;
     });

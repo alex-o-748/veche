@@ -69,30 +69,27 @@ const findBestBuilding = (state, playerIndex) => {
     ([name, region]) => canSelectRegion(name, region, faction)
   );
 
+  // Late game (turn 15+): prefer religious buildings for more VP since income has less time to compound
+  const preferReligious = state.turn >= 15;
+
   for (const [regionName, region] of regions) {
     if (faction === 'Commoners') {
-      if (region.buildings.commoner_huts === 0) {
-        return { regionName, buildingType: 'commoner_huts' };
-      }
-      if (region.buildings.commoner_church === 0) {
-        return { regionName, buildingType: 'commoner_church' };
-      }
+      const secular = region.buildings.commoner_huts === 0 ? 'commoner_huts' : null;
+      const religious = region.buildings.commoner_church === 0 ? 'commoner_church' : null;
+      const pick = preferReligious ? (religious || secular) : (secular || religious);
+      if (pick) return { regionName, buildingType: pick };
     } else if (faction === 'Nobles') {
-      if (region.buildings.noble_manor === 0) {
-        return { regionName, buildingType: 'noble_manor' };
-      }
-      if (region.buildings.noble_monastery === 0) {
-        return { regionName, buildingType: 'noble_monastery' };
-      }
+      const secular = region.buildings.noble_manor === 0 ? 'noble_manor' : null;
+      const religious = region.buildings.noble_monastery === 0 ? 'noble_monastery' : null;
+      const pick = preferReligious ? (religious || secular) : (secular || religious);
+      if (pick) return { regionName, buildingType: pick };
     } else if (faction === 'Merchants') {
       // Merchants can only build in Pskov
       if (regionName === 'pskov') {
-        if (region.buildings.merchant_mansion < 7) {
-          return { regionName, buildingType: 'merchant_mansion' };
-        }
-        if (region.buildings.merchant_church < 7) {
-          return { regionName, buildingType: 'merchant_church' };
-        }
+        const secular = region.buildings.merchant_mansion < 7 ? 'merchant_mansion' : null;
+        const religious = region.buildings.merchant_church < 7 ? 'merchant_church' : null;
+        const pick = preferReligious ? (religious || secular) : (secular || religious);
+        if (pick) return { regionName, buildingType: pick };
       }
     }
   }
