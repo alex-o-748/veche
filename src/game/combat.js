@@ -19,6 +19,13 @@ export const getOrderTurnBonus = (turn) => {
   return Math.floor(turn / ORDER_SCALING_INTERVAL) * ORDER_TURN_SCALING;
 };
 
+// Get a descriptive label key for attack strength
+export const getAttackStrengthLabel = (strength) => {
+  if (strength <= 95) return 'weak';
+  if (strength >= 105) return 'strong';
+  return 'normal';
+};
+
 // Calculate strength for a single player
 export const calculatePlayerStrength = (player, activeEffects) => {
   // Base strength by faction
@@ -148,7 +155,7 @@ export const executeBattle = (
     // Successful defense
     return {
       ...state,
-      lastEventResult: `VICTORY! ${regionDisplayName} successfully defended! (${result.chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength})`,
+      lastEventResult: `VICTORY! ${regionDisplayName} successfully defended! (${result.chancePercent}% chance)`,
       battleResult: { ...battleResult, type: 'defense_victory' },
     };
   } else {
@@ -156,7 +163,7 @@ export const executeBattle = (
     const surrenderResult = surrenderRegion(state, targetRegion);
     return {
       ...surrenderResult,
-      lastEventResult: `DEFEAT! ${regionDisplayName} lost to the Order! (${result.chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength}) ${surrenderResult.lastEventResult}`,
+      lastEventResult: `DEFEAT! ${regionDisplayName} lost to the Order! (${result.chancePercent}% chance) ${surrenderResult.lastEventResult}`,
       battleResult: { ...battleResult, type: 'defense_defeat' },
     };
   }
@@ -196,7 +203,7 @@ export const executeAttack = (state, targetRegion, attackingPlayers, randomValue
       newState: {
         ...state,
         regions: newRegions,
-        lastEventResult: `VICTORY! ${regionDisplayName} recaptured from the Order! (${result.chancePercent}% chance, Strength: ${pskovStrength} vs ${orderStrength})`,
+        lastEventResult: `VICTORY! ${regionDisplayName} recaptured from the Order! (${result.chancePercent}% chance)`,
         battleResult: { ...battleResult, type: 'attack_victory' },
       },
       success: true,
@@ -207,7 +214,7 @@ export const executeAttack = (state, targetRegion, attackingPlayers, randomValue
     return {
       newState: {
         ...state,
-        lastEventResult: `DEFEAT! Attack on ${regionDisplayName} failed! (${result.chancePercent}% chance, Strength: ${pskovStrength} vs ${orderStrength})`,
+        lastEventResult: `DEFEAT! Attack on ${regionDisplayName} failed! (${result.chancePercent}% chance)`,
         battleResult: { ...battleResult, type: 'attack_defeat' },
       },
       success: false,
