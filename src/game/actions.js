@@ -462,7 +462,7 @@ export const executeAttackAction = (state, randomValues = {}) => {
     };
   }
 
-  const costPerParticipant = 6 / participants;
+  const costPerParticipant = 2;
 
   // Check if all participants can afford
   let allCanAfford = true;
