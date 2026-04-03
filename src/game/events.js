@@ -230,7 +230,7 @@ export const eventDeck = [
       {
         id: 'rob_foreign',
         name: 'Rob foreign merchants',
-        effectText: '50% chance: Order attacks (100)',
+        effectText: '50% chance: Order attacks',
       },
       {
         id: 'demand_compensation',
@@ -247,9 +247,9 @@ export const eventDeck = [
         if (roll <= 3) {
           const orderAttackEvent = {
             id: 'order_attack_rob_foreign',
-            name: 'Order Attack (100)',
+            name: 'Order Attack',
             description:
-              'The Teutonic Order retaliates for the robbed merchants! They attack with strength 100.',
+              'The Teutonic Order retaliates for the robbed merchants! They launch an attack.',
             type: 'order_attack',
             orderStrength: 100,
             question:
@@ -321,9 +321,9 @@ export const eventDeck = [
   },
   {
     id: 'order_attack_95',
-    name: 'Order Attack (95)',
+    name: 'Order Attack (Weak)',
     description:
-      'The Teutonic Order attacks with strength 95. Who will contribute to the defense?',
+      'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 95,
     question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -331,9 +331,9 @@ export const eventDeck = [
   },
   {
     id: 'order_attack_110',
-    name: 'Order Attack (110)',
+    name: 'Order Attack (Strong)',
     description:
-      'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
+      'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 110,
     question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -831,9 +831,9 @@ export const eventDeck = [
   },
   {
     id: 'order_attack_90',
-    name: 'Order Attack (90)',
+    name: 'Order Attack (Weak)',
     description:
-      'The Teutonic Order attacks with strength 90. Who will contribute to the defense?',
+      'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 90,
     question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -841,9 +841,9 @@ export const eventDeck = [
   },
   {
     id: 'order_attack_100',
-    name: 'Order Attack (100)',
+    name: 'Order Attack',
     description:
-      'The Teutonic Order attacks with strength 100. Who will contribute to the defense?',
+      'The Teutonic Order launches an attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 100,
     question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -851,9 +851,9 @@ export const eventDeck = [
   },
   {
     id: 'order_attack_105',
-    name: 'Order Attack (105)',
+    name: 'Order Attack (Strong)',
     description:
-      'The Teutonic Order attacks with strength 105. Who will contribute to the defense?',
+      'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 105,
     question: 'Who will help fund the defense? Cost will be split evenly among participants.',
@@ -861,9 +861,9 @@ export const eventDeck = [
   },
   {
     id: 'order_attack_110_2',
-    name: 'Order Attack (110)',
+    name: 'Order Attack (Strong)',
     description:
-      'The Teutonic Order attacks with strength 110. Who will contribute to the defense?',
+      'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 110,
     question: 'Who will help fund the defense? Cost will be split evenly among participants.',

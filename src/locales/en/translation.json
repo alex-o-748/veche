@@ -125,7 +125,10 @@
     "autoApplying": "Auto-applying decision...",
     "autoApplyingResult": "Auto-resolving attack...",
     "orderAttack": "Order Attack!",
-    "orderAttackDesc": "The Teutonic Order attacks with strength {{strength}}. Fund defense or surrender the region?",
+    "orderAttackDesc": "The Teutonic Order launches a {{label}}. Fund defense or surrender the region?",
+    "weakAttack": "weak attack",
+    "normalAttack": "attack",
+    "strongAttack": "strong attack",
     "fundDefense": "Fund Defense ({{cost}}○)",
     "surrender": "Surrender",
     "defending": "Defending",
@@ -243,11 +246,11 @@
   },
   "battle": {
     "gameOver": "💀 GAME OVER: Pskov has fallen to the Teutonic Order!",
-    "defenseVictory": "🛡️ VICTORY! {{region}} successfully defended! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
-    "attackVictory": "⚔️ VICTORY! {{region}} recaptured from the Order! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
-    "attackDefeat": "💀 DEFEAT! Attack on {{region}} failed! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "defenseVictory": "🛡️ VICTORY! {{region}} successfully defended! ({{chance}}% chance)",
+    "attackVictory": "⚔️ VICTORY! {{region}} recaptured from the Order! ({{chance}}% chance)",
+    "attackDefeat": "💀 DEFEAT! Attack on {{region}} failed! ({{chance}}% chance)",
     "fortressBuilt": "🏰 Fortress built in {{region}}! (+10 defense bonus)",
-    "defenseFailed": "💀 DEFEAT! {{region}} lost to the Order! ({{chance}}% chance, Strength: {{pskovStrength}} vs {{orderStrength}})",
+    "defenseFailed": "💀 DEFEAT! {{region}} lost to the Order! ({{chance}}% chance)",
     "fortressCancelledInsufficient": "❌ Fortress construction cancelled - insufficient funding!",
     "surrendered": "{{region}} surrendered to the Order! All buildings destroyed.",
     "noValidTarget": "The Teutonic Order could not find a valid target to attack.",
@@ -283,7 +286,7 @@
       "name": "Merchants Robbed",
       "description": "Our merchants have been robbed in the Order lands. How will you respond?",
       "rob_foreign": "Get even by robbing foreign merchants",
-      "rob_foreign_effect": "50% chance: Order attacks (100)",
+      "rob_foreign_effect": "50% chance: Order attacks",
       "demand_compensation": "Demand compensation",
       "demand_compensation_cost": "Merchants: -1○",
       "demand_compensation_effect": "50% chance: Merchants -10 str/3 turns",
@@ -291,13 +294,13 @@
       "trade_risk_effect": "Merchants: -10 str/3 turns"
     },
     "order_attack_95": {
-      "name": "Order Attack (95)",
-      "description": "The Teutonic Order attacks with strength 95. Who will contribute to the defense?",
+      "name": "Order Attack (Weak)",
+      "description": "The Teutonic Order launches a weak attack. Who will contribute to the defense?",
       "question": "Who will help fund the defense? Cost will be split evenly among participants."
     },
     "order_attack_110": {
-      "name": "Order Attack (110)",
-      "description": "The Teutonic Order attacks with strength 110. Who will contribute to the defense?",
+      "name": "Order Attack (Strong)",
+      "description": "The Teutonic Order launches a strong attack. Who will contribute to the defense?",
       "question": "Who will help fund the defense? Cost will be split evenly among participants."
     },
     "boyars_take_bribes": {
@@ -367,23 +370,23 @@
       "description": "Heretical ideas spread among the people, weakening military resolve."
     },
     "order_attack_90": {
-      "name": "Order Attack (90)",
-      "description": "The Teutonic Order attacks with strength 90. Who will contribute to the defense?",
+      "name": "Order Attack (Weak)",
+      "description": "The Teutonic Order launches a weak attack. Who will contribute to the defense?",
       "question": "Who will help fund the defense? Cost will be split evenly among participants."
     },
     "order_attack_100": {
-      "name": "Order Attack (100)",
-      "description": "The Teutonic Order attacks with strength 100. Who will contribute to the defense?",
+      "name": "Order Attack",
+      "description": "The Teutonic Order launches an attack. Who will contribute to the defense?",
       "question": "Who will help fund the defense? Cost will be split evenly among participants."
     },
     "order_attack_105": {
-      "name": "Order Attack (105)",
-      "description": "The Teutonic Order attacks with strength 105. Who will contribute to the defense?",
+      "name": "Order Attack (Strong)",
+      "description": "The Teutonic Order launches a strong attack. Who will contribute to the defense?",
       "question": "Who will help fund the defense? Cost will be split evenly among participants."
     },
     "order_attack_110_2": {
-      "name": "Order Attack (110)",
-      "description": "The Teutonic Order attacks with strength 110. Who will contribute to the defense?",
+      "name": "Order Attack (Strong)",
+      "description": "The Teutonic Order launches a strong attack. Who will contribute to the defense?",
       "question": "Who will help fund the defense? Cost will be split evenly among participants."
     },
     "plague": {

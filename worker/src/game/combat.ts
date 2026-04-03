@@ -26,6 +26,15 @@ export function getOrderTurnBonus(turn: number): number {
 }
 
 /**
+ * Get a descriptive label key for attack strength
+ */
+export function getAttackStrengthLabel(strength: number): 'weak' | 'normal' | 'strong' {
+  if (strength <= 95) return 'weak';
+  if (strength >= 105) return 'strong';
+  return 'normal';
+}
+
+/**
  * Calculate strength for a single player
  */
 export function calculatePlayerStrength(player: Player, activeEffects: any[]): number {
@@ -164,14 +173,14 @@ export function executeBattle(
     // Successful defense
     return {
       ...state,
-      lastEventResult: `VICTORY! ${regionDisplayName} successfully defended! (${result.chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength})`,
+      lastEventResult: `VICTORY! ${regionDisplayName} successfully defended! (${result.chancePercent}% chance)`,
     };
   } else {
     // Failed defense - lose region
     const surrenderResult = surrenderRegion(state, targetRegion);
     return {
       ...surrenderResult,
-      lastEventResult: `DEFEAT! ${regionDisplayName} lost to the Order! (${result.chancePercent}% chance, Strength: ${finalPskovStrength} vs ${orderStrength}) ${surrenderResult.lastEventResult}`,
+      lastEventResult: `DEFEAT! ${regionDisplayName} lost to the Order! (${result.chancePercent}% chance) ${surrenderResult.lastEventResult}`,
     };
   }
 }
