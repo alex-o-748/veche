@@ -22,6 +22,7 @@ import {
   FORTRESS_DEFENSE_BONUS,
   EXPEDITION_COST,
   EXPEDITION_MAX_PER_GAME,
+  TOTAL_STARTING_REGIONS,
 
   // Region logic
   MAP_ADJACENCY,
@@ -156,7 +157,9 @@ const PskovGame = () => {
     // Calculate income preview for the notification banner
     const republicRegions = Object.values(gameState.regions).filter(r => r.controller === 'republic').length;
     const incomeData = gameState.players.map((player) => {
-      const baseIncome = 0.5 + (republicRegions * 0.25) + ((player.improvements - (player.religiousBuildings || 0)) * 0.25);
+      const secularBuildings = player.improvements - (player.religiousBuildings || 0);
+      const tradeRouteFactor = player.faction === 'Merchants' ? republicRegions / TOTAL_STARTING_REGIONS : 1;
+      const baseIncome = 0.5 + (republicRegions * 0.25) + (secularBuildings * 0.25 * tradeRouteFactor);
       const modifier = getIncomeModifier(player.faction);
       const finalIncome = baseIncome * modifier;
       return { faction: player.faction, income: finalIncome };
@@ -1884,7 +1887,9 @@ const PskovGame = () => {
       if (isResourcesPhase) {
         const republicRegions = Object.values(prev.regions).filter(r => r.controller === 'republic').length;
         newState.players = prev.players.map((player, index) => {
-          const baseIncome = 0.5 + (republicRegions * 0.25) + ((player.improvements - (player.religiousBuildings || 0)) * 0.25);
+          const secularBuildings = player.improvements - (player.religiousBuildings || 0);
+          const tradeRouteFactor = player.faction === 'Merchants' ? republicRegions / TOTAL_STARTING_REGIONS : 1;
+          const baseIncome = 0.5 + (republicRegions * 0.25) + (secularBuildings * 0.25 * tradeRouteFactor);
           const incomeModifier = getIncomeModifier(player.faction);
           const finalIncome = baseIncome * incomeModifier;
           return {
