@@ -18,6 +18,7 @@
     "roomCode": "Код комнаты",
     "roomCodePlaceholder": "напр., PSKOV-A3X7",
     "gameInfo": "3 игрока • Бояре, Купцы, Простолюдины",
+    "discordFeedback": "Расскажите, что понравилось, а что нет →",
     "playWithAI": "Игра с ИИ",
     "setupGame": "Настройка игры",
     "selectPlayers": "Выберите, кто управляет каждой фракцией:",

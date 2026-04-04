@@ -316,6 +316,13 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
           <p className="text-sm text-ink-muted text-center">
             {t('menu.gameInfo')}
           </p>
+          <p className="text-sm text-center mt-2">
+            <a href="https://discord.com/channels/1489944142799700103/1489944143542222972"
+               target="_blank" rel="noopener noreferrer"
+               className="text-ink-muted hover:text-ink transition-colors underline">
+              {t('menu.discordFeedback')}
+            </a>
+          </p>
         </div>
       </div>
     </div>
