@@ -3547,15 +3547,6 @@ const App = () => {
     case 'game':
       return (
         <div className="relative">
-          {/* Floating back button (positioned to not overlap header) */}
-          <div className="fixed top-0 right-2 z-50 flex items-center" style={{ height: '40px' }}>
-            <button
-              onClick={mode === 'online' ? handleLeave : handleBackToMenu}
-              className="px-2 py-1 text-xs text-parchment-400 hover:text-red-400 transition-colors"
-            >
-              {mode === 'online' ? 'Leave Game' : 'Menu'}
-            </button>
-          </div>
           <PskovGame />
         </div>
       );
