@@ -308,13 +308,10 @@ export function nextPhase(state: GameState): GameState {
 // Player turn transition
 function nextPlayer(state: GameState): GameState {
   const nextPlayerIndex = (state.currentPlayer + 1) % 3;
-  // Auto-select Pskov for Merchants since they can only build there
-  const nextFaction = state.players[nextPlayerIndex].faction;
-  const nextRegion = nextFaction === 'Merchants' ? 'pskov' : state.selectedRegion;
   return {
     ...state,
     currentPlayer: nextPlayerIndex,
-    selectedRegion: nextRegion,
+    selectedRegion: state.selectedRegion,
   };
 }
 
@@ -336,11 +333,7 @@ function buildBuilding(state: GameState, buildingType: string, playerId: number 
     return state;
   }
 
-  // Enforce pskovOnly restriction for merchant buildings
   const buildingDef = BUILDING_TYPES[buildingType];
-  if (buildingDef?.pskovOnly && state.selectedRegion !== 'pskov') {
-    return state;
-  }
 
   const currentRegion = state.regions[state.selectedRegion];
   const currentBuildings = currentRegion.buildings;
