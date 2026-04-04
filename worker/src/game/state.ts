@@ -32,6 +32,7 @@ export interface BuildingType {
   cost: number;
   faction: Faction;
   maxPerRegion: number;
+  pskovOnly?: boolean;
 }
 
 export const BUILDING_TYPES: Record<string, BuildingType> = {
@@ -39,8 +40,14 @@ export const BUILDING_TYPES: Record<string, BuildingType> = {
   commoner_church: { name: 'Village Church', cost: 2, faction: 'Commoners', maxPerRegion: 1 },
   noble_manor: { name: 'Manor', cost: 2, faction: 'Nobles', maxPerRegion: 1 },
   noble_monastery: { name: 'Monastery', cost: 2, faction: 'Nobles', maxPerRegion: 1 },
-  merchant_mansion: { name: 'Mansion', cost: 2, faction: 'Merchants', maxPerRegion: 1 },
-  merchant_church: { name: 'Church', cost: 2, faction: 'Merchants', maxPerRegion: 1 },
+  merchant_mansion: {
+    name: 'Mansion',
+    cost: 2,
+    faction: 'Merchants',
+    maxPerRegion: 7,
+    pskovOnly: true,
+  },
+  merchant_church: { name: 'Church', cost: 2, faction: 'Merchants', maxPerRegion: 7, pskovOnly: true },
 };
 
 // Religious building types (give more VP but no income)

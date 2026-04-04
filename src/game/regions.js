@@ -86,6 +86,9 @@ export const getRegionsForFortress = (regions) => {
 export const canSelectRegion = (regionName, region, faction) => {
   if (region.controller !== 'republic') return false;
 
+  // Merchants can only build in Pskov
+  if (faction === 'Merchants' && regionName !== 'pskov') return false;
+
   return true;
 };
 

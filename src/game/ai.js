@@ -84,10 +84,13 @@ const findBestBuilding = (state, playerIndex) => {
       const pick = preferReligious ? (religious || secular) : (secular || religious);
       if (pick) return { regionName, buildingType: pick };
     } else if (faction === 'Merchants') {
-      const secular = region.buildings.merchant_mansion === 0 ? 'merchant_mansion' : null;
-      const religious = region.buildings.merchant_church === 0 ? 'merchant_church' : null;
-      const pick = preferReligious ? (religious || secular) : (secular || religious);
-      if (pick) return { regionName, buildingType: pick };
+      // Merchants can only build in Pskov
+      if (regionName === 'pskov') {
+        const secular = region.buildings.merchant_mansion < 7 ? 'merchant_mansion' : null;
+        const religious = region.buildings.merchant_church < 7 ? 'merchant_church' : null;
+        const pick = preferReligious ? (religious || secular) : (secular || religious);
+        if (pick) return { regionName, buildingType: pick };
+      }
     }
   }
 

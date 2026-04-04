@@ -50,7 +50,7 @@
     "Merchants": "Merchants",
     "Commoners": "Commoners",
     "noblesDesc": "Strongest military force, build manors and monasteries",
-    "merchantsDesc": "Wealthy traders, build mansions and churches, send expeditions",
+    "merchantsDesc": "Wealthy traders, build mansions and churches in Pskov",
     "commonersDesc": "The people, build huts and village churches"
   },
   "phases": {
@@ -429,7 +429,7 @@
     "action4": "Coordinate attacks and fortress-building with the other factions in the Veche",
     "factionsTitle": "The Three Factions",
     "faction1": "Nobles — strongest military (40 str), build manors and monasteries across all regions",
-    "faction2": "Merchants — wealthiest (15 str), build mansions and churches across all regions, send overseas expeditions",
+    "faction2": "Merchants — wealthiest (15 str), build mansions and churches in Pskov only (up to 7 each), send overseas expeditions",
     "faction3": "Commoners — the people (25 str), build huts and village churches across all regions",
     "startPlaying": "Start Playing",
     "close": "Got It",
