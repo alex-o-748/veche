@@ -2202,6 +2202,16 @@ const PskovGame = () => {
               {i18n.language === 'en' ? 'RU' : 'EN'}
             </button>
 
+            {/* Discord */}
+            <a
+              href="https://discord.com/channels/1489944142799700103/1489944143542222972"
+              target="_blank" rel="noopener noreferrer"
+              className="px-2 py-1 text-parchment-400 hover:text-parchment-50 text-xs font-medium transition-colors"
+              title={t('menu.discordFeedback')}
+            >
+              Discord
+            </a>
+
             {/* Reset */}
             <button
               onClick={resetGame}
