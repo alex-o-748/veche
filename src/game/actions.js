@@ -689,8 +689,11 @@ export const getAvailableBuildings = (state) => {
 // Calculate victory points
 // Religious buildings are worth 2 VP each (counted once in improvements, once in religiousBuildings)
 // Secular buildings are worth 1 VP each (counted only in improvements)
+// Merchants earn half VP per building (their buildings are safe in Pskov)
 export const calculateVictoryPoints = (player) => {
-  return player.improvements + (player.religiousBuildings || 0) + (player.bonusPoints || 0);
+  const buildingVP = player.improvements + (player.religiousBuildings || 0);
+  const vpMultiplier = player.faction === 'Merchants' ? 0.5 : 1;
+  return buildingVP * vpMultiplier + (player.bonusPoints || 0);
 };
 
 // Check game result
