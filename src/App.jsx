@@ -61,7 +61,7 @@ import {
   decideFortressVote,
 } from './game';
 
-const PskovGame = () => {
+const PskovGame = ({ onMenu }) => {
   // Translation hook
   const { t, i18n } = useTranslation();
 
@@ -2166,9 +2166,8 @@ const PskovGame = () => {
             })()}
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Next Phase / Ready Button */}
+          {/* Next Phase / Ready Button */}
+          <div className="flex-shrink-0">
             <button
               onClick={gameState.phase === 'construction' && mode === 'online' ? setConstructionReady : nextPhase}
               disabled={
@@ -2184,7 +2183,10 @@ const PskovGame = () => {
                  (gameState.constructionReady[playerId] ? t('game.readyCheck') : t('game.imDone')) :
                t('game.nextPhase')}
             </button>
+          </div>
 
+          {/* Right-pinned controls */}
+          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
             {/* Help Button */}
             <button
               onClick={() => setShowHelp(true)}
@@ -2214,7 +2216,7 @@ const PskovGame = () => {
 
             {/* Menu */}
             <button
-              onClick={resetGame}
+              onClick={onMenu}
               className="px-3 py-1.5 text-parchment-300 hover:text-parchment-50 text-sm font-medium transition-colors"
             >
               {t('game.menu')}
@@ -3547,7 +3549,7 @@ const App = () => {
     case 'game':
       return (
         <div className="relative">
-          <PskovGame />
+          <PskovGame onMenu={handleBackToMenu} />
         </div>
       );
 
