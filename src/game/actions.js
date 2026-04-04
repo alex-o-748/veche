@@ -10,6 +10,7 @@ import {
   EXPEDITION_MAX_PER_GAME,
   EXPEDITION_PROFIT,
   EXPEDITION_WINDFALL,
+  TOTAL_STARTING_REGIONS,
   createInitialGameState,
   createInitialConstructionActions,
   formatRegionName,
@@ -224,7 +225,8 @@ export const nextPhase = (state) => {
     const republicRegions = countRepublicRegions(state.regions);
     newState.players = state.players.map((player) => {
       const secularBuildings = player.improvements - (player.religiousBuildings || 0);
-      const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25;
+      const tradeRouteFactor = player.faction === 'Merchants' ? republicRegions / TOTAL_STARTING_REGIONS : 1;
+      const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25 * tradeRouteFactor;
       const incomeModifier = getIncomeModifier(state.activeEffects, player.faction);
       const finalIncome = baseIncome * incomeModifier;
       return {

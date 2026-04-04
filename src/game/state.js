@@ -25,6 +25,9 @@ export const FACTION_BASE_STRENGTH = {
   Commoners: 25,
 };
 
+// Total starting republic regions (for trade route scaling)
+export const TOTAL_STARTING_REGIONS = 6;
+
 // Building definitions
 export const BUILDING_TYPES = {
   commoner_huts: { name: 'Huts', cost: 2, faction: 'Commoners', maxPerRegion: 1 },
