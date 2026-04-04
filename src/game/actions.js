@@ -10,7 +10,6 @@ import {
   EXPEDITION_MAX_PER_GAME,
   EXPEDITION_PROFIT,
   EXPEDITION_WINDFALL,
-  TOTAL_STARTING_REGIONS,
   createInitialGameState,
   createInitialConstructionActions,
   formatRegionName,
@@ -225,8 +224,7 @@ export const nextPhase = (state) => {
     const republicRegions = countRepublicRegions(state.regions);
     newState.players = state.players.map((player) => {
       const secularBuildings = player.improvements - (player.religiousBuildings || 0);
-      const tradeRouteFactor = player.faction === 'Merchants' ? republicRegions / TOTAL_STARTING_REGIONS : 1;
-      const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25 * tradeRouteFactor;
+      const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25;
       const incomeModifier = getIncomeModifier(state.activeEffects, player.faction);
       const finalIncome = baseIncome * incomeModifier;
       return {
@@ -691,8 +689,11 @@ export const getAvailableBuildings = (state) => {
 // Calculate victory points
 // Religious buildings are worth 2 VP each (counted once in improvements, once in religiousBuildings)
 // Secular buildings are worth 1 VP each (counted only in improvements)
+// Merchants earn half VP per building (their buildings are safe in Pskov)
 export const calculateVictoryPoints = (player) => {
-  return player.improvements + (player.religiousBuildings || 0) + (player.bonusPoints || 0);
+  const buildingVP = player.improvements + (player.religiousBuildings || 0);
+  const vpMultiplier = player.faction === 'Merchants' ? 0.5 : 1;
+  return buildingVP * vpMultiplier + (player.bonusPoints || 0);
 };
 
 // Check game result

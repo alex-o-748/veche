@@ -26,9 +26,6 @@ export const ORDER_BASE_STRENGTH = 100;
 export const ORDER_TURN_SCALING = 5;
 export const ORDER_SCALING_INTERVAL = 4;
 
-// Total starting republic regions (for trade route scaling)
-export const TOTAL_STARTING_REGIONS = 6;
-
 // Building type definition
 export interface BuildingType {
   name: string;

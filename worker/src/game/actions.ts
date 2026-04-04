@@ -17,7 +17,6 @@ import {
   ORDER_SCALING_INTERVAL,
   BUILDING_TYPES,
   RELIGIOUS_BUILDING_TYPES,
-  TOTAL_STARTING_REGIONS,
   Player,
   ActiveEffect,
 } from './state';
@@ -248,8 +247,7 @@ export function nextPhase(state: GameState): GameState {
     const republicRegions = countRepublicRegions(state.regions);
     newState.players = (state.phase === 'resources' ? state : newState).players.map((player) => {
       const secularBuildings = player.improvements - (player.religiousBuildings || 0);
-      const tradeRouteFactor = player.faction === 'Merchants' ? republicRegions / TOTAL_STARTING_REGIONS : 1;
-      const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25 * tradeRouteFactor;
+      const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25;
       const incomeModifier = getIncomeModifier(state.activeEffects, player.faction);
       const finalIncome = baseIncome * incomeModifier;
       return {
