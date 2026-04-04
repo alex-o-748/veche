@@ -165,6 +165,7 @@
     "strength": "Strength",
     "constructionTurn": "{{faction}} - Construction Turn",
     "resetGame": "Reset Game",
+    "menu": "Menu",
     "built": "Built: {{count}}/7",
     "alreadyBuilt": "Already built",
     "notBuilt": "Not built",

@@ -2212,13 +2212,12 @@ const PskovGame = () => {
               Discord
             </a>
 
-            {/* Reset */}
+            {/* Menu */}
             <button
               onClick={resetGame}
-              className="px-2 py-1 text-parchment-500 hover:text-red-400 text-xs transition-colors"
-              title={t('game.resetGame')}
+              className="px-3 py-1.5 text-parchment-300 hover:text-parchment-50 text-sm font-medium transition-colors"
             >
-              {t('game.resetGame')}
+              {t('game.menu')}
             </button>
           </div>
         </div>

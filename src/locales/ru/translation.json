@@ -165,6 +165,7 @@
     "strength": "Сила",
     "constructionTurn": "{{faction}} - Ход строительства",
     "resetGame": "Сбросить игру",
+    "menu": "Меню",
     "built": "Построено: {{count}}/7",
     "alreadyBuilt": "Уже построено",
     "notBuilt": "Не построено",
