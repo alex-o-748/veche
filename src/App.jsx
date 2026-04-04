@@ -1951,10 +1951,13 @@ const PskovGame = () => {
       const newReady = [...prev.constructionReady];
       newReady[prev.currentPlayer] = true;
       const nextPlayerIndex = (prev.currentPlayer + 1) % 3;
+      // Auto-select Pskov for Merchants since they can only build there
+      const nextFaction = prev.players[nextPlayerIndex].faction;
+      const nextRegion = nextFaction === 'Merchants' ? 'pskov' : prev.selectedRegion;
       return {
         ...prev,
         currentPlayer: nextPlayerIndex,
-        selectedRegion: prev.selectedRegion,
+        selectedRegion: nextRegion,
         constructionReady: newReady,
       };
     });
@@ -2354,8 +2357,9 @@ const PskovGame = () => {
             <h4 className="text-sm font-medium text-ink-light mb-2">{t('game.selectRegion')}</h4>
             <div className="flex flex-wrap gap-1.5">
               {Object.entries(gameState.regions).map(([regionName, region]) => {
+                const isMerchantRestricted = activePlayer.faction === 'Merchants' && regionName !== 'pskov';
                 const isOrderControlled = region.controller === 'order';
-                const isAvailable = !isOrderControlled;
+                const isAvailable = !isMerchantRestricted && !isOrderControlled;
 
                 return (
                   <button
@@ -2381,6 +2385,9 @@ const PskovGame = () => {
                 );
               })}
             </div>
+            {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov' && (
+              <p className="text-sm text-accent mt-2">{t('game.merchantsPskovOnly')}</p>
+            )}
           </div>
 
           <div className="section-divider" />
@@ -2412,7 +2419,10 @@ const PskovGame = () => {
                     <div>
                       <div className="font-medium">{t(`buildings.${building.type}`)}</div>
                       <div className="text-xs opacity-80">
-                        {building.built ? t('game.alreadyBuilt') : t('game.notBuilt')}
+                        {building.type.startsWith('merchant_')
+                          ? t('game.built', { count: building.built })
+                          : building.built ? t('game.alreadyBuilt') : t('game.notBuilt')
+                        }
                         {' '}&middot; {t('game.cost', { cost: building.cost })}
                         {' '}&middot; {building.isReligious ? '+2 VP, no income' : '+1 VP, +income'}
                       </div>
@@ -2421,7 +2431,10 @@ const PskovGame = () => {
                 ))}
                 {getAvailableBuildings(activePlayerIndex).length === 0 && (
                   <p className="text-ink-muted text-center py-4 text-sm">
-                    {t('game.noBuildingsRegion')}
+                    {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov'
+                      ? t('game.merchantsPskovOnly')
+                      : t('game.noBuildingsRegion')
+                    }
                   </p>
                 )}
               </div>

@@ -294,7 +294,11 @@ export const buildBuilding = (state, buildingType) => {
     return state;
   }
 
+  // Enforce pskovOnly restriction for merchant buildings
   const buildingDef = BUILDING_TYPES[buildingType];
+  if (buildingDef?.pskovOnly && state.selectedRegion !== 'pskov') {
+    return state;
+  }
 
   const currentRegion = state.regions[state.selectedRegion];
   const currentCount = currentRegion.buildings[buildingType] || 0;
