@@ -27,7 +27,7 @@ const FACTION_ACCENTS = {
  * FactionScreen - shown after faction selection in online mode.
  * Displays the faction portrait, name, and lore with a smooth fade-in.
  */
-export const FactionScreen = ({ faction, onContinue }) => {
+export const FactionScreen = ({ faction, onContinue, onBack }) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
@@ -43,19 +43,29 @@ export const FactionScreen = ({ faction, onContinue }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950"
+      className="fixed inset-0 z-50 bg-stone-950 overflow-y-auto"
       style={{
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.6s ease-in',
       }}
     >
       {/* Subtle radial vignette */}
-      <div className="absolute inset-0 pointer-events-none"
+      <div className="fixed inset-0 pointer-events-none"
         style={{
           background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)',
         }}
       />
 
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 z-10 px-2 py-1 text-sm text-parchment-400 hover:text-parchment-100 transition-colors cursor-pointer"
+        >
+          {t('factionScreen.back')}
+        </button>
+      )}
+
+      <div className="min-h-full flex items-center justify-center py-12">
       <div className="relative flex flex-col items-center gap-6 px-6 max-w-md w-full">
         {/* Faction portrait */}
         <div
@@ -123,6 +133,7 @@ export const FactionScreen = ({ faction, onContinue }) => {
         >
           {t('factionScreen.continue')}
         </button>
+      </div>
       </div>
     </div>
   );

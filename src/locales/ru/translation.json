@@ -164,7 +164,7 @@
     "weapons": "Оружие",
     "armor": "Доспехи",
     "strength": "Сила",
-    "constructionTurn": "{{faction}} - Ход строительства",
+    "constructionTurn": "{{faction}} — Ход строительства",
     "resetGame": "Сбросить игру",
     "menu": "Меню",
     "built": "Построено: {{count}}/7",
@@ -471,7 +471,8 @@
     "helpButton": "?"
   },
   "factionScreen": {
-    "continue": "Начать"
+    "continue": "Начать",
+    "back": "← Выбрать другую фракцию"
   },
   "discussion": {
     "title": "Обсуждение на вече",
@@ -541,5 +542,8 @@
     "gdov": "Гдов",
     "pechory": "Печоры",
     "bearhill": "Медвежью голову"
+  },
+  "meta": {
+    "title": "Вече: средневековый Псков"
   }
 }

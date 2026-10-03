@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toggleLanguage } from './i18n';
 import { fmtCoins } from './format';
-import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, EXPEDITION_IMAGE, getEventImage, getEquipmentImage } from './imageAssets';
+import { DISCORD_URL } from './config';
+import { FACTION_THUMBS, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, EXPEDITION_IMAGE, getEventImage, getEquipmentImage } from './imageAssets';
 
 // Import Zustand store
 import { useGameStore } from './store/gameStore';
@@ -230,20 +231,35 @@ const PskovGame = ({ onMenu }) => {
     return () => clearTimeout(timer);
   }, [incomeNotification]);
 
-  // Animate event image reveal after 2 seconds
+  // Reveal the event art after a short suspense beat, but never before the image
+  // has downloaded and decoded, so it does not pop in mid-animation
   useEffect(() => {
-    if (gameState?.currentEvent && !gameState?.eventImageRevealed) {
-      const timer = setTimeout(() => {
-        // Use functional update to avoid stale closure
-        setGameState(prev => ({
-          ...prev,
-          eventImageRevealed: true
-        }));
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
+    if (!gameState?.currentEvent || gameState?.eventImageRevealed) return;
+    let cancelled = false;
+    const src = getEventImage(gameState.currentEvent.id);
+    const imageReady = src
+      ? (() => { const img = new Image(); img.src = src; return img.decode().catch(() => {}); })()
+      : Promise.resolve();
+    const suspense = new Promise((resolve) => setTimeout(resolve, 1500));
+    Promise.all([imageReady, suspense]).then(() => {
+      if (cancelled) return;
+      // Use functional update to avoid stale closure
+      setGameState(prev => (prev ? { ...prev, eventImageRevealed: true } : prev));
+    });
+    return () => { cancelled = true; };
   }, [gameState?.currentEvent, gameState?.eventImageRevealed, setGameState]);
+
+  // During the Veche, fetch the next event card's art so it is cached when drawn
+  useEffect(() => {
+    // Local games only: the draw order indexes this file's deck (online uses the server's)
+    if (!gameState || mode !== 'local' || gameState.phase !== 'veche') return;
+    const order = gameState.shuffledEventOrder || [];
+    const next = order[gameState.eventDrawIndex];
+    if (next === undefined) return; // the deck reshuffles: next card unknown
+    const src = getEventImage(eventDeck[next]?.id);
+    if (src) new Image().src = src;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase, gameState?.eventDrawIndex]);
 
   // AI player automation
   useEffect(() => {
@@ -456,7 +472,6 @@ const PskovGame = ({ onMenu }) => {
 
     // Check if all AI players have voted
     const allAiVoted = aiPlayers.every((isAi, i) => !isAi || gameState.eventVotes[i] !== null);
-    console.log('[Discussion] Phase check: events, allAiVoted:', allAiVoted, 'votes:', gameState.eventVotes, 'aiPlayers:', aiPlayers);
     if (!allAiVoted) return;
 
     // Check if any AI players exist (no discussion needed if all human)
@@ -2253,7 +2268,7 @@ const PskovGame = ({ onMenu }) => {
 
             {/* Discord */}
             <a
-              href="https://discord.com/channels/1489944142799700103/1489944143542222972"
+              href={DISCORD_URL}
               target="_blank" rel="noopener noreferrer"
               className="px-2 py-1 text-parchment-400 hover:text-parchment-50 text-xs font-medium transition-colors"
               title={t('menu.discordFeedback')}
@@ -2292,9 +2307,9 @@ const PskovGame = ({ onMenu }) => {
 
                 return (
                   <div key={index} className={`player-row ${isActivePlayer ? 'active' : ''} ${!isActivePlayer ? factionBorder : ''}`}>
-                    {FACTION_IMAGES[player.faction] && (
+                    {FACTION_THUMBS[player.faction] && (
                       <img
-                        src={FACTION_IMAGES[player.faction]}
+                        src={FACTION_THUMBS[player.faction]}
                         alt={player.faction}
                         className="w-7 h-7 rounded object-cover flex-shrink-0"
                       />
@@ -2903,6 +2918,7 @@ const PskovGame = ({ onMenu }) => {
                     {gameState.players.map((player, index) => {
                       const hasDecided = gameState.eventVotes[index] !== null;
                       const canAfford = player.money >= gameState.currentEvent.minCostPerPlayer;
+                      const canControl = mode === 'online' ? index === playerId : !aiPlayers[index];
 
                       return (
                         <div key={index} className="text-center">
@@ -2911,7 +2927,7 @@ const PskovGame = ({ onMenu }) => {
                           <div className="space-y-1.5">
                             <button
                               onClick={() => voteOnEvent(index, true)}
-                              disabled={hasDecided || !canAfford}
+                              disabled={!canControl || hasDecided || !canAfford}
                               className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                                 gameState.eventVotes[index] === true
                                   ? 'bg-emerald-700 text-white'
@@ -2926,7 +2942,7 @@ const PskovGame = ({ onMenu }) => {
                             </button>
                             <button
                               onClick={() => voteOnEvent(index, false)}
-                              disabled={hasDecided}
+                              disabled={!canControl || hasDecided}
                               className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                                 gameState.eventVotes[index] === false
                                   ? 'bg-red-700 text-white'
@@ -3200,6 +3216,8 @@ const PskovGame = ({ onMenu }) => {
                 {gameState.players.map((player, index) => {
                   const hasDecided = gameState.attackVotes[index] !== null;
                   const canAfford = player.money >= 2;
+                  // AI factions vote on their own; only your own faction's buttons are clickable
+                  const canControl = mode === 'online' ? index === playerId : !aiPlayers[index];
 
                   return (
                     <div key={index} className="text-center">
@@ -3208,7 +3226,7 @@ const PskovGame = ({ onMenu }) => {
                       <div className="space-y-1.5">
                         <button
                           onClick={() => { setGameState(prev => { const nv = [...prev.attackVotes]; nv[index] = true; return { ...prev, attackVotes: nv }; }); }}
-                          disabled={hasDecided || !canAfford}
+                          disabled={!canControl || hasDecided || !canAfford}
                           className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                             gameState.attackVotes[index] === true ? 'bg-red-700 text-white'
                             : canAfford ? 'bg-red-600 hover:bg-red-700 text-white'
@@ -3220,7 +3238,7 @@ const PskovGame = ({ onMenu }) => {
                         </button>
                         <button
                           onClick={() => { setGameState(prev => { const nv = [...prev.attackVotes]; nv[index] = false; return { ...prev, attackVotes: nv }; }); }}
-                          disabled={hasDecided}
+                          disabled={!canControl || hasDecided}
                           className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                             gameState.attackVotes[index] === false ? 'bg-parchment-600 text-white' : 'btn-secondary'
                           }`}
@@ -3325,6 +3343,7 @@ const PskovGame = ({ onMenu }) => {
                   {gameState.players.map((player, index) => {
                     const hasDecided = gameState.fortressVotes[index] !== null;
                     const canAfford = player.money >= 2;
+                    const canControl = mode === 'online' ? index === playerId : !aiPlayers[index];
 
                     return (
                       <div key={index} className="text-center">
@@ -3333,7 +3352,7 @@ const PskovGame = ({ onMenu }) => {
                         <div className="space-y-1.5">
                           <button
                             onClick={() => { setGameState(prev => { const nv = [...prev.fortressVotes]; nv[index] = true; return { ...prev, fortressVotes: nv }; }); }}
-                            disabled={hasDecided || !canAfford}
+                            disabled={!canControl || hasDecided || !canAfford}
                             className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                               gameState.fortressVotes[index] === true ? 'bg-accent text-white'
                               : canAfford ? 'bg-accent-light hover:bg-accent text-white'
@@ -3345,7 +3364,7 @@ const PskovGame = ({ onMenu }) => {
                           </button>
                           <button
                             onClick={() => { setGameState(prev => { const nv = [...prev.fortressVotes]; nv[index] = false; return { ...prev, fortressVotes: nv }; }); }}
-                            disabled={hasDecided}
+                            disabled={!canControl || hasDecided}
                             className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                               gameState.fortressVotes[index] === false ? 'bg-parchment-600 text-white' : 'btn-secondary'
                             }`}
@@ -3419,11 +3438,9 @@ const PskovGame = ({ onMenu }) => {
         <div className="card-parchment-raised p-6 phase-enter">
           {gameState.gameOver ? (
             <div className="text-center mb-5">
-              <h3 className="heading-serif text-2xl text-red-800 mb-2">{t('game.gameOver')}</h3>
+              {/* font-serif, not heading-serif: heading-serif fixes the colour to ink */}
+              <h3 className="font-serif text-2xl font-bold tracking-wide text-red-800 mb-2">{t('game.gameOver')}</h3>
               <p className="text-ink-light">{t('game.pskovFallen')}</p>
-              {gameState.lastEventResult && (
-                <p className="text-sm text-ink-muted mt-2">{gameState.lastEventResult}</p>
-              )}
             </div>
           ) : (() => {
             const result = getGameResult();
@@ -3524,6 +3541,16 @@ const PskovGame = ({ onMenu }) => {
  */
 const FACTIONS_LIST = ['Nobles', 'Merchants', 'Commoners'];
 
+// The full-screen rules are shown before a player's first game only;
+// afterwards they stay one click away behind the header "?" button.
+const RULES_SEEN_KEY = 'veche.rulesSeen';
+const hasSeenRules = () => {
+  try { return localStorage.getItem(RULES_SEEN_KEY) === '1'; } catch { return false; }
+};
+const markRulesSeen = () => {
+  try { localStorage.setItem(RULES_SEEN_KEY, '1'); } catch { /* storage unavailable */ }
+};
+
 const App = () => {
   const [screen, setScreen] = useState('menu'); // 'menu' | 'lobby' | 'faction' | 'howtoplay' | 'game'
   const [soloFaction, setSoloFaction] = useState(null); // faction name for solo intro screen
@@ -3566,7 +3593,7 @@ const App = () => {
   // Start local hotseat game (with optional AI config)
   const handleStartLocal = (aiConfig) => {
     initLocalGame(aiConfig);
-    setScreen('howtoplay');
+    setScreen(hasSeenRules() ? 'game' : 'howtoplay');
   };
 
   // Create online room
@@ -3641,7 +3668,9 @@ const App = () => {
       return (
         <FactionScreen
           faction={faction}
-          onContinue={() => setScreen('howtoplay')}
+          // Solo players can pick again; online players have already taken a seat
+          onBack={mode === 'local' ? handleBackToMenu : undefined}
+          onContinue={() => setScreen(hasSeenRules() ? 'game' : 'howtoplay')}
         />
       );
     }
@@ -3649,7 +3678,7 @@ const App = () => {
     case 'howtoplay':
       return (
         <HowToPlay
-          onContinue={() => setScreen('game')}
+          onContinue={() => { markRulesSeen(); setScreen('game'); }}
         />
       );
 

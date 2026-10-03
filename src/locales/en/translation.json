@@ -469,7 +469,8 @@
     "helpButton": "?"
   },
   "factionScreen": {
-    "continue": "Begin"
+    "continue": "Begin",
+    "back": "← Choose another faction"
   },
   "discussion": {
     "title": "Council Discussion",
@@ -539,5 +540,8 @@
     "gdov": "Gdov",
     "pechory": "Pechory",
     "bearhill": "Bear's Head"
+  },
+  "meta": {
+    "title": "The Veche: Medieval Pskov"
   }
 }
