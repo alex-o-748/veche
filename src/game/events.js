@@ -223,7 +223,7 @@ export const eventDeck = [
     id: 'merchants_robbed',
     name: 'Merchants Robbed',
     description:
-      'Foreign merchants have been robbed near your borders. How will you respond?',
+      'Our merchants have been robbed in the Order lands. How will you respond?',
     type: 'voting',
     defaultOption: 'trade_risk',
     options: [
@@ -253,7 +253,7 @@ export const eventDeck = [
             type: 'order_attack',
             orderStrength: 100,
             question:
-              'Who will help fund the defense? Cost will be split evenly among participants.',
+              'Who will help fund the defense? Each faction that funds the defense pays 1○.',
             minCostPerPlayer: 1,
           };
 
@@ -326,7 +326,7 @@ export const eventDeck = [
       'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 95,
-    question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+    question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
     minCostPerPlayer: 1,
   },
   {
@@ -336,7 +336,7 @@ export const eventDeck = [
       'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 110,
-    question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+    question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
     minCostPerPlayer: 1,
   },
   {
@@ -836,7 +836,7 @@ export const eventDeck = [
       'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 90,
-    question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+    question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
     minCostPerPlayer: 1,
   },
   {
@@ -846,7 +846,7 @@ export const eventDeck = [
       'The Teutonic Order launches an attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 100,
-    question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+    question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
     minCostPerPlayer: 1,
   },
   {
@@ -856,7 +856,7 @@ export const eventDeck = [
       'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 105,
-    question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+    question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
     minCostPerPlayer: 1,
   },
   {
@@ -866,7 +866,7 @@ export const eventDeck = [
       'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
     type: 'order_attack',
     orderStrength: 110,
-    question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+    question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
     minCostPerPlayer: 1,
   },
   {

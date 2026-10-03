@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toggleLanguage } from './i18n';
+import { fmtCoins } from './format';
 import { FACTION_IMAGES, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, EXPEDITION_IMAGE, getEventImage, getEquipmentImage } from './imageAssets';
 
 // Import Zustand store
 import { useGameStore } from './store/gameStore';
+import { loadSave, restoreSave } from './store/save';
 
 // Import UI components
 import { MainMenu, Lobby, FactionScreen, GameMap, DiscussionPanel, HowToPlay } from './components';
@@ -79,6 +81,7 @@ const PskovGame = ({ onMenu }) => {
 
   // Help modal state
   const [showHelp, setShowHelp] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   // Income notification state (shown briefly at top of construction phase)
   const [incomeNotification, setIncomeNotification] = useState(null);
@@ -97,8 +100,50 @@ const PskovGame = ({ onMenu }) => {
   }, []);
 
 
+  // Region name in the grammatical forms the Russian strings need
+  // (nominative, prepositional "в Пскове", accusative "атаковать Медвежью голову").
+  // English uses the same name for all three.
+  const regionArgs = (name) => ({
+    region: t(`regions.${name}`),
+    regionIn: t(`regionsIn.${name}`),
+    regionAcc: t(`regionsAcc.${name}`),
+  });
+
+  // Active-effect descriptions are English strings set by the event cards; map them to keys
+  const EFFECT_KEYS = {
+    'Merchant trading weakness': 'merchantWeakness',
+    'Trade route disruption': 'tradeDisruption',
+    'Noble corruption investigation penalty': 'nobleCorruption',
+    'Uprising strength penalty': 'uprising',
+    'Embassy refusal strength penalty': 'embassyRefusalStrength',
+    'Embassy refusal income penalty': 'embassyRefusalIncome',
+    'Embassy reception boost': 'embassyBoost',
+    'Holy relics morale boost': 'relicsMorale',
+    'Religious cynicism penalty': 'religiousCynicism',
+    'Izhora allied forces': 'izhoraAllies',
+    'Izhora hostility': 'izhoraHostility',
+    'Famine weakens commoners': 'famine',
+    'Heretical discord': 'heresy',
+    'Mild plague effects despite isolation': 'mildPlague',
+    'Severe plague weakens population': 'severePlague',
+  };
+  const getEffectDescription = (effect) => {
+    const key = EFFECT_KEYS[effect.description];
+    return key ? t(`effects.${key}`) : effect.description;
+  };
+
+  // Order attacks scale with the turn, so the card's printed strength is not the real one
+  const getOrderAttackInfo = (event) => {
+    const strength = event.orderStrength + getOrderTurnBonus(gameState.turn);
+    const level = getAttackStrengthLabel(strength); // 'weak' | 'normal' | 'strong'
+    return { strength, level };
+  };
+
   // Helper functions to get translated event content
   const getEventName = (event) => {
+    if (event.type === 'order_attack') {
+      return t(`game.orderAttackTitle.${getOrderAttackInfo(event).level}`);
+    }
     const key = `eventCards.${event.id}.name`;
     const translated = t(key);
     return translated !== key ? translated : event.name;
@@ -538,7 +583,7 @@ const PskovGame = ({ onMenu }) => {
     const br = state.battleResult;
     if (!br) return state;
 
-    const regionDisplayName = t(`regions.${br.region}`);
+    const regionNames = regionArgs(br.region);
     let lastEventResult;
 
     switch (br.type) {
@@ -546,20 +591,20 @@ const PskovGame = ({ onMenu }) => {
         lastEventResult = t('battle.gameOver');
         break;
       case 'surrendered':
-        lastEventResult = t('battle.surrendered', { region: regionDisplayName });
+        lastEventResult = t('battle.surrendered', regionNames);
         break;
       case 'defense_victory':
         lastEventResult = t('battle.defenseVictory', {
-          region: regionDisplayName,
+          ...regionNames,
           chance: br.chancePercent,
           pskovStrength: br.pskovStrength,
           orderStrength: br.orderStrength,
         });
         break;
       case 'defense_defeat': {
-        const surrenderMsg = t('battle.surrendered', { region: regionDisplayName });
+        const surrenderMsg = t('battle.surrendered', regionNames);
         lastEventResult = `${t('battle.defenseFailed', {
-          region: regionDisplayName,
+          ...regionNames,
           chance: br.chancePercent,
           pskovStrength: br.pskovStrength,
           orderStrength: br.orderStrength,
@@ -568,7 +613,7 @@ const PskovGame = ({ onMenu }) => {
       }
       case 'attack_victory':
         lastEventResult = t('battle.attackVictory', {
-          region: regionDisplayName,
+          ...regionNames,
           chance: br.chancePercent,
           pskovStrength: br.pskovStrength,
           orderStrength: br.orderStrength,
@@ -576,7 +621,7 @@ const PskovGame = ({ onMenu }) => {
         break;
       case 'attack_defeat':
         lastEventResult = t('battle.attackDefeat', {
-          region: regionDisplayName,
+          ...regionNames,
           chance: br.chancePercent,
           pskovStrength: br.pskovStrength,
           orderStrength: br.orderStrength,
@@ -673,6 +718,7 @@ const PskovGame = ({ onMenu }) => {
         fortressPlanning: null,
         fortressTarget: null,
         fortressVotes: [null, null, null],
+        battleResult: null,
         lastEventResult: t('battle.fortressCancelledInsufficient')
       }));
       return;
@@ -690,8 +736,6 @@ const PskovGame = ({ onMenu }) => {
     const newRegions = { ...gameState.regions };
     newRegions[fortressTarget].fortress = true;
 
-    const regionDisplayName = t(`regions.${fortressTarget}`);
-
     setGameState(prev => ({
       ...prev,
       players: newPlayers,
@@ -699,7 +743,8 @@ const PskovGame = ({ onMenu }) => {
       fortressPlanning: null,
       fortressTarget: null,
       fortressVotes: [null, null, null],
-      lastEventResult: t('battle.fortressBuilt', { region: regionDisplayName })
+      battleResult: null,
+      lastEventResult: t('battle.fortressBuilt', regionArgs(fortressTarget))
     }));
   };
 
@@ -790,7 +835,7 @@ const PskovGame = ({ onMenu }) => {
     {
       id: 'merchants_robbed',
       name: 'Merchants Robbed',
-      description: 'Foreign merchants have been robbed near your borders. How will you respond?',
+      description: 'Our merchants have been robbed in the Order lands. How will you respond?',
       type: 'voting',
       defaultOption: 'trade_risk',
       options: [
@@ -811,7 +856,7 @@ const PskovGame = ({ onMenu }) => {
               description: 'The Teutonic Order retaliates for the robbed merchants! They launch an attack.',
               type: 'order_attack',
               orderStrength: 100,
-              question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+              question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
               minCostPerPlayer: 1,
               successText: 'DEFENSE FUNDED',
               failureText: 'NO DEFENSE - SURRENDER'
@@ -885,7 +930,7 @@ const PskovGame = ({ onMenu }) => {
       description: 'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 95,
-      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
       minCostPerPlayer: 1
     },
     {
@@ -894,7 +939,7 @@ const PskovGame = ({ onMenu }) => {
       description: 'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
       type: 'order_attack',  // CHANGE FROM 'participation' TO 'order_attack'
       orderStrength: 110,    // ADD THIS
-      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
       minCostPerPlayer: 1
     },
     {
@@ -1354,7 +1399,7 @@ const PskovGame = ({ onMenu }) => {
           // No buildings to burn
           return { 
             ...gameState, 
-            lastEventResult: t('battle.fireNoBuildings', { region: t(`regions.${regionName}`) })
+            lastEventResult: t('battle.fireNoBuildings', regionArgs(regionName))
           };
         }
 
@@ -1381,13 +1426,11 @@ const PskovGame = ({ onMenu }) => {
         });
 
         const buildingName = t(`buildings.${buildingType}`) || buildingType;
-        const regionDisplayName = t(`regions.${regionName}`);
-
         return {
           ...gameState,
           regions: newRegions,
           players: newPlayers,
-          lastEventResult: t('battle.fireDestroysBuilding', { building: buildingName, region: regionDisplayName })
+          lastEventResult: t('battle.fireDestroysBuilding', { building: buildingName, ...regionArgs(regionName) })
         };
       }
     },
@@ -1468,7 +1511,7 @@ const PskovGame = ({ onMenu }) => {
       description: 'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 90,
-      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
       minCostPerPlayer: 1
     },
     {
@@ -1477,7 +1520,7 @@ const PskovGame = ({ onMenu }) => {
       description: 'The Teutonic Order launches an attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 100,
-      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
       minCostPerPlayer: 1
     },
     {
@@ -1486,7 +1529,7 @@ const PskovGame = ({ onMenu }) => {
       description: 'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 105,
-      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
       minCostPerPlayer: 1
     },
     {
@@ -1495,7 +1538,7 @@ const PskovGame = ({ onMenu }) => {
       description: 'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
       type: 'order_attack',
       orderStrength: 110,
-      question: 'Who will help fund the defense? Cost will be split evenly among participants.',
+      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
       minCostPerPlayer: 1
     },
     {
@@ -1863,6 +1906,9 @@ const PskovGame = ({ onMenu }) => {
   };
 
   const nextPhase = () => {
+    // The game is over: no more phases
+    if (gameState.gameOver || gameState.turn > 20) return;
+
     // In online mode, send action to server
     if (mode === 'online') {
       sendAction({ type: 'NEXT_PHASE' });
@@ -2071,16 +2117,15 @@ const PskovGame = ({ onMenu }) => {
 
   // Resolve current event using abstracted system
   const resolveEvent = () => {
-    console.trace("resolveEvent called from:");
-
     // In online mode, send resolve action to server
     if (mode === 'online') {
       sendAction({ type: 'RESOLVE_EVENT' });
       return;
     }
 
-    // Local mode: resolve using client-side logic
-    const event = gameState.currentEvent;
+    // Local mode: resolve using client-side logic.
+    // A restored save loses the deck's effect functions, so look the card up by id.
+    const event = eventDeck.find(e => e.id === gameState.currentEvent.id) || gameState.currentEvent;
     const eventType = eventTypes[event.type];
 
     if (!eventType) {
@@ -2089,7 +2134,8 @@ const PskovGame = ({ onMenu }) => {
     }
 
     // Execute the resolution ONCE, outside of setGameState
-    const newState = eventType.resolve(event, gameState, gameState.eventVotes);
+    const liveState = { ...gameState, currentEvent: event };
+    const newState = eventType.resolve(event, liveState, gameState.eventVotes);
 
     // Check if a new event was triggered (nested event scenario)
     const newEventTriggered = newState.currentEvent && newState.currentEvent.id !== event.id;
@@ -2106,16 +2152,25 @@ const PskovGame = ({ onMenu }) => {
     initLocalGame();
   };
 
-  const getPhaseDescription = (phase) => {
-    const descriptions = {
-      resources: 'Players receive income from controlled regions and secular buildings',
-      construction: 'Players can build improvements, fortresses, and buy equipment',
-      events: 'Draw and resolve an event card',
-      veche: 'Assembly of citizens making collective decisions',
-      military: 'Resolve any military conflicts with the Teutonic Order'
-    };
-    return descriptions[phase];
-  };
+  const isGameOver = Boolean(gameState.gameOver) || gameState.turn > 20;
+  const isSolo = mode === 'local' && aiPlayers.some(Boolean);
+  const isPlanningVote = gameState.attackPlanning === 'planning' || gameState.fortressPlanning === 'planning';
+
+  // Header primary button: when it is clickable and what it says
+  const headerButtonDisabled =
+    isGameOver ||
+    (gameState.phase === 'events' && !gameState.eventResolved) ||
+    (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId]) ||
+    // Solo construction advances by itself once every faction has ended its turn
+    (gameState.phase === 'construction' && isSolo) ||
+    (gameState.phase === 'veche' && isPlanningVote);
+  const headerButtonLabel =
+    gameState.gameOver ? t('game.gameOver') :
+    gameState.turn > 20 ? t('game.gameComplete') :
+    gameState.phase === 'events' && !gameState.eventResolved ? t('game.resolveEventFirst') :
+    gameState.phase === 'construction' && mode === 'online'
+      ? (gameState.constructionReady[playerId] ? t('game.readyCheck') : t('game.imDone'))
+      : t('game.nextPhase');
 
   return (
     <div className="parchment-bg min-h-screen">
@@ -2131,16 +2186,16 @@ const PskovGame = ({ onMenu }) => {
           {/* Turn + Progress */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-parchment-300 text-sm font-medium">
-              {t('game.turn', { turn: gameState.turn })}
+              {t('game.turn', { turn: Math.min(gameState.turn, 20) })}
             </span>
             <div className="progress-bar-track w-16">
-              <div className="progress-bar-fill" style={{ width: `${(gameState.turn / 20) * 100}%` }} />
+              <div className="progress-bar-fill" style={{ width: `${(Math.min(gameState.turn, 20) / 20) * 100}%` }} />
             </div>
           </div>
 
           {/* Phase Pills (resources phase is auto-skipped, so hide it) */}
           <div className="flex items-center gap-1.5 flex-1 justify-center">
-            {(() => {
+            {!isGameOver && (() => {
               const visiblePhases = phases.filter(p => p !== 'resources');
               const displayPhase = gameState.phase === 'resources' ? 'construction' : gameState.phase;
               return visiblePhases.map((phase, index) => {
@@ -2170,18 +2225,10 @@ const PskovGame = ({ onMenu }) => {
           <div className="flex-shrink-0">
             <button
               onClick={gameState.phase === 'construction' && mode === 'online' ? setConstructionReady : nextPhase}
-              disabled={
-                gameState.turn > 20 ||
-                (gameState.phase === 'events' && !gameState.eventResolved) ||
-                (gameState.phase === 'construction' && mode === 'online' && gameState.constructionReady[playerId])
-              }
+              disabled={headerButtonDisabled}
               className="btn-accent px-4 py-1.5 text-sm"
             >
-              {gameState.turn > 20 ? t('game.gameComplete') :
-               gameState.phase === 'events' && !gameState.eventResolved ? t('game.resolveEventFirst') :
-               gameState.phase === 'construction' && mode === 'online' ?
-                 (gameState.constructionReady[playerId] ? t('game.readyCheck') : t('game.imDone')) :
-               t('game.nextPhase')}
+              {headerButtonLabel}
             </button>
           </div>
 
@@ -2216,7 +2263,7 @@ const PskovGame = ({ onMenu }) => {
 
             {/* Menu */}
             <button
-              onClick={onMenu}
+              onClick={() => (mode === 'online' && !isGameOver ? setShowLeaveConfirm(true) : onMenu())}
               className="px-3 py-1.5 text-parchment-300 hover:text-parchment-50 text-sm font-medium transition-colors"
             >
               {t('game.menu')}
@@ -2261,7 +2308,7 @@ const PskovGame = ({ onMenu }) => {
                         <span className="text-blue-500 ml-0.5 text-xs">{t('game.aiLabel')}</span>
                       )}
                     </span>
-                    <span className="text-xs text-ink-light">{player.money.toFixed(1)}○</span>
+                    <span className="text-xs text-ink-light">{fmtCoins(player.money, i18n.language)}○</span>
                     <span className="text-xs text-ink-muted">{t('game.strength')}: {calculatePlayerStrength(index)}</span>
                     <span className="text-xs text-ink-muted">{t('game.buildings')}: {player.improvements}</span>
                     <div className="flex items-center gap-0.5 ml-auto">
@@ -2285,9 +2332,9 @@ const PskovGame = ({ onMenu }) => {
               <div className="space-y-1.5">
                 {gameState.activeEffects.map((effect) => (
                   <div key={effect.id} className="flex justify-between items-center text-xs">
-                    <span className="text-ink-light">{effect.description}</span>
+                    <span className="text-ink-light">{getEffectDescription(effect)}</span>
                     <span className="text-ink-muted ml-2 flex-shrink-0">
-                      {effect.turnsRemaining}t
+                      {t('game.turnsLeft', { count: effect.turnsRemaining })}
                       {' '}
                       {effect.type === 'strength_bonus' && `+${effect.value}`}
                       {effect.type === 'strength_penalty' && `${effect.value}`}
@@ -2323,12 +2370,12 @@ const PskovGame = ({ onMenu }) => {
             <div className="bg-parchment-100 border border-parchment-400 rounded-lg px-4 py-2.5 flex items-center justify-between phase-enter">
               <div className="flex items-center gap-4 flex-1 justify-center">
                 <span className="text-xs font-medium text-ink-muted">
-                  {t('game.turn', { turn: incomeNotification.turn })}/20 &mdash; {t('phases.resources')}:
+                  {t('game.turn', { turn: incomeNotification.turn })} &mdash; {t('phases.resources')}:
                 </span>
                 {incomeNotification.incomes.map(({ faction, income }) => (
                   <span key={faction} className="text-sm text-ink">
                     <span className="text-ink-light">{t(`factions.${faction}`)}</span>{' '}
-                    <span className="font-semibold text-emerald-700">+{income.toFixed(2)}○</span>
+                    <span className="font-semibold text-emerald-700">+{fmtCoins(income, i18n.language)}○</span>
                   </span>
                 ))}
               </div>
@@ -2342,7 +2389,7 @@ const PskovGame = ({ onMenu }) => {
           )}
 
           {/* Construction phase hint for active player */}
-          {gameState.phase === 'construction' && (
+          {gameState.phase === 'construction' && !isGameOver && (
             <div className="text-xs text-ink-muted text-center">
               {mode === 'local' && aiPlayers[gameState.currentPlayer]
                 ? t('game.aiThinking')
@@ -2353,7 +2400,7 @@ const PskovGame = ({ onMenu }) => {
           )}
 
       {/* ===== CONSTRUCTION PHASE ===== */}
-      {gameState.phase === 'construction' && !(mode === 'local' && aiPlayers[gameState.currentPlayer]) && (() => {
+      {gameState.phase === 'construction' && !isGameOver && !(mode === 'local' && aiPlayers[gameState.currentPlayer]) && (() => {
         const activePlayerIndex = mode === 'online' ? playerId : gameState.currentPlayer;
         const activePlayer = gameState.players[activePlayerIndex];
 
@@ -2391,7 +2438,7 @@ const PskovGame = ({ onMenu }) => {
                     }`}
                   >
                     {t(`regions.${regionName}`)}
-                    {isOrderControlled && <span className="text-xs ml-1">({t('game.orderControlled')})</span>}
+                    {isOrderControlled && <span className="text-xs ml-1">{t('game.orderControlled')}</span>}
                   </button>
                 );
               })}
@@ -2407,7 +2454,7 @@ const PskovGame = ({ onMenu }) => {
           <div className="grid grid-cols-2 gap-4">
             {/* Available Buildings */}
             <div>
-              <h4 className="text-sm font-medium text-ink-light mb-2">{t('game.availableBuildings', { region: t(`regions.${gameState.selectedRegion}`) })}</h4>
+              <h4 className="text-sm font-medium text-ink-light mb-2">{t('game.availableBuildings', regionArgs(gameState.selectedRegion))}</h4>
               <div className="space-y-2">
                 {getAvailableBuildings(activePlayerIndex).map(building => (
                   <button
@@ -2435,7 +2482,7 @@ const PskovGame = ({ onMenu }) => {
                           : building.built ? t('game.alreadyBuilt') : t('game.notBuilt')
                         }
                         {' '}&middot; {t('game.cost', { cost: building.cost })}
-                        {' '}&middot; {building.isReligious ? '+2 VP, no income' : '+1 VP, +income'}
+                        {' '}&middot; {building.isReligious ? t('game.religiousBuildingInfo') : t('game.secularBuildingInfo')}
                       </div>
                     </div>
                   </button>
@@ -2580,7 +2627,7 @@ const PskovGame = ({ onMenu }) => {
               </button>
             )}
             {mode === 'online' && (
-              <span className="text-sm text-ink-muted">Click "I'm Done" in the header when finished</span>
+              <span className="text-sm text-ink-muted">{t('game.clickImDone')}</span>
             )}
           </div>
         </div>
@@ -2588,7 +2635,7 @@ const PskovGame = ({ onMenu }) => {
       })()}
 
       {/* ===== EVENTS PHASE ===== */}
-      {gameState.phase === 'events' && gameState.currentEvent && (
+      {gameState.phase === 'events' && gameState.currentEvent && !isGameOver && (
         <div className="phase-enter">
           {/* Event Card with Dramatic Reveal */}
           {!gameState.eventImageRevealed && getEventImage(gameState.currentEvent.id) && (
@@ -2616,7 +2663,11 @@ const PskovGame = ({ onMenu }) => {
 
               <div className="card-parchment-raised p-5 flex-1 min-w-0" style={sidebarHeight ? { minHeight: sidebarHeight } : undefined}>
               <h3 className="heading-serif text-xl text-center mb-3">{t('game.event', { name: getEventName(gameState.currentEvent) })}</h3>
-              <p className="text-ink-light text-center mb-4">{getEventDescription(gameState.currentEvent)}</p>
+              {/* Order attacks describe themselves below with the real, turn-scaled strength;
+                  only the retaliation card has extra story to tell */}
+              {(gameState.currentEvent.type !== 'order_attack' || gameState.currentEvent.id === 'order_attack_rob_foreign') && (
+                <p className="text-ink-light text-center mb-4">{getEventDescription(gameState.currentEvent)}</p>
+              )}
 
               <div className="section-divider" />
 
@@ -2660,7 +2711,7 @@ const PskovGame = ({ onMenu }) => {
                             {t(`factions.${player.faction}`)}
                             {mode === 'online' && index === playerId && <span className="text-accent ml-1 text-xs">{t('game.you')}</span>}
                           </h5>
-                          <div className="text-xs text-ink-muted mb-2">{player.money.toFixed(1)}○</div>
+                          <div className="text-xs text-ink-muted mb-2">{fmtCoins(player.money, i18n.language)}○</div>
 
                           {isCurrentPlayer ? (
                             <div className="space-y-1.5">
@@ -2703,10 +2754,11 @@ const PskovGame = ({ onMenu }) => {
                     <div className="text-center">
                       {(() => {
                         const winningOption = getVotingResult();
-                        const optionName = gameState.currentEvent.options.find(opt => opt.id === winningOption)?.name;
+                        const optionName = getOptionName(gameState.currentEvent.id, winningOption)
+                          || gameState.currentEvent.options.find(opt => opt.id === winningOption)?.name;
                         const acceptVoters = gameState.eventVotes.filter(v => v === 'accept').length;
 
-                        let resultText = `Decision: ${optionName}`;
+                        let resultText = t('events.decision', { option: optionName });
                         if (winningOption === 'accept' && gameState.currentEvent.acceptCost) {
                           let allCanAfford = true;
                           const costPerVoter = acceptVoters > 0 ? gameState.currentEvent.acceptCost / acceptVoters : 0;
@@ -2717,9 +2769,9 @@ const PskovGame = ({ onMenu }) => {
                           });
 
                           if (!allCanAfford || acceptVoters === 0) {
-                            resultText = "Decision: Accept into service -- FAILED (insufficient funds) -- Send them away";
+                            resultText = t('events.decisionAcceptFailed');
                           } else {
-                            resultText = `Decision: Accept into service (${acceptVoters} participants, ${costPerVoter.toFixed(1)}○ each)`;
+                            resultText = t('events.decisionAcceptFunded', { count: acceptVoters, cost: fmtCoins(costPerVoter, i18n.language) });
                           }
                         }
 
@@ -2730,10 +2782,10 @@ const PskovGame = ({ onMenu }) => {
                         );
                       })()}
                       {mode === 'online' ? (
-                        <p className="text-sm text-ink-muted italic">Auto-applying decision...</p>
+                        <p className="text-sm text-ink-muted italic">{t('game.autoApplying')}</p>
                       ) : (
                         <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">
-                          Apply Decision
+                          {t('events.applyDecision')}
                         </button>
                       )}
                     </div>
@@ -2744,8 +2796,8 @@ const PskovGame = ({ onMenu }) => {
               {/* Auction Event */}
               {gameState.currentEvent.type === 'auction' && !gameState.eventResolved && (
                 <div>
-                  <h4 className="text-sm font-semibold text-ink-light mb-2">Fur Auction</h4>
-                  <p className="text-sm text-ink-muted mb-3">Place your bid! Highest unique bidder wins the furs and earns +1 Victory Point. Tied bids void the auction.</p>
+                  <h4 className="text-sm font-semibold text-ink-light mb-2">{t('auction.title')}</h4>
+                  <p className="text-sm text-ink-muted mb-3">{t('auction.rules')}</p>
 
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {gameState.players.map((player, index) => {
@@ -2762,12 +2814,12 @@ const PskovGame = ({ onMenu }) => {
                             {t(`factions.${player.faction}`)}
                             {mode === 'online' && index === playerId && <span className="text-accent ml-1 text-xs">{t('game.you')}</span>}
                           </h5>
-                          <div className="text-xs text-ink-muted mb-2">{player.money.toFixed(1)}○</div>
+                          <div className="text-xs text-ink-muted mb-2">{fmtCoins(player.money, i18n.language)}○</div>
 
                           {isCurrentPlayer ? (
                             hasBid ? (
                               <div className="text-xs text-accent font-medium italic py-1">
-                                Bid placed (sealed)
+                                {t('auction.bidPlaced')}
                               </div>
                             ) : (
                               <div className="space-y-1.5">
@@ -2775,7 +2827,7 @@ const PskovGame = ({ onMenu }) => {
                                   onClick={() => voteOnEvent(index, '0')}
                                   className="w-full px-3 py-1.5 rounded text-xs font-medium btn-secondary"
                                 >
-                                  Pass (bid 0)
+                                  {t('auction.pass')}
                                 </button>
                                 {[1, 2, 3, 4, 5, 6].filter(amt => amt <= maxAffordable).map(amt => (
                                   <button
@@ -2783,7 +2835,7 @@ const PskovGame = ({ onMenu }) => {
                                     onClick={() => voteOnEvent(index, String(amt))}
                                     className="w-full px-3 py-1.5 rounded text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white transition-colors"
                                   >
-                                    Bid {amt}○
+                                    {t('auction.bid', { amount: amt })}
                                   </button>
                                 ))}
                               </div>
@@ -2791,9 +2843,9 @@ const PskovGame = ({ onMenu }) => {
                           ) : (
                             <div className="text-xs text-ink-muted italic py-1">
                               {hasBid ? (
-                                <span className="text-accent font-medium">Bid placed (sealed)</span>
+                                <span className="text-accent font-medium">{t('auction.bidPlaced')}</span>
                               ) : (
-                                <span>Considering...</span>
+                                <span>{t('auction.considering')}</span>
                               )}
                             </div>
                           )}
@@ -2810,31 +2862,31 @@ const PskovGame = ({ onMenu }) => {
                         let resultColor = 'text-ink-light';
 
                         if (auction.result === 'no_bids') {
-                          resultText = 'No worthy bids placed. The furs go unsold.';
+                          resultText = t('auction.noBids');
                         } else if (auction.result === 'tie') {
-                          const tiedFactions = auction.tiedIndices.map(i => gameState.players[i].faction).join(' & ');
+                          const tiedFactions = auction.tiedIndices.map(i => t(`factions.${gameState.players[i].faction}`)).join(' & ');
                           const pointText = auction.tiedIndices.length === 2 ? '½' : `1/${auction.tiedIndices.length}`;
-                          resultText = `${tiedFactions} tied at ${auction.amount}○! Split the furs. (+${pointText} VP each)`;
+                          resultText = t('auction.tie', { factions: tiedFactions, amount: auction.amount, points: pointText });
                           resultColor = 'text-amber-700';
                         } else if (auction.result === 'winner') {
-                          const winnerFaction = gameState.players[auction.winnerIndex].faction;
-                          resultText = `${winnerFaction} wins with ${auction.amount}○! (+1 Victory Point)`;
+                          const winnerFaction = t(`factions.${gameState.players[auction.winnerIndex].faction}`);
+                          resultText = t('auction.winner', { faction: winnerFaction, amount: auction.amount });
                           resultColor = 'text-emerald-700';
                         }
 
                         return (
                           <div className="mb-3">
                             <p className={`text-sm font-semibold ${resultColor} mb-1`}>
-                              Bids: {gameState.players.map((p, i) => `${p.faction}: ${gameState.eventVotes[i]}○`).join(' · ')}
+                              {t('auction.bids', { bids: gameState.players.map((p, i) => `${t(`factions.${p.faction}`)}: ${gameState.eventVotes[i]}○`).join(' · ') })}
                             </p>
                             <p className={`text-sm font-semibold ${resultColor}`}>{resultText}</p>
                           </div>
                         );
                       })()}
                       {mode === 'online' ? (
-                        <p className="text-sm text-ink-muted italic">Auto-applying result...</p>
+                        <p className="text-sm text-ink-muted italic">{t('game.autoApplying')}</p>
                       ) : (
-                        <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">Apply Result</button>
+                        <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">{t('events.applyResult')}</button>
                       )}
                     </div>
                   )}
@@ -2855,7 +2907,7 @@ const PskovGame = ({ onMenu }) => {
                       return (
                         <div key={index} className="text-center">
                           <h5 className="text-sm font-semibold text-ink mb-1">{t(`factions.${player.faction}`)}</h5>
-                          <div className="text-xs text-ink-muted mb-2">{player.money.toFixed(1)}○</div>
+                          <div className="text-xs text-ink-muted mb-2">{fmtCoins(player.money, i18n.language)}○</div>
                           <div className="space-y-1.5">
                             <button
                               onClick={() => voteOnEvent(index, true)}
@@ -2868,9 +2920,9 @@ const PskovGame = ({ onMenu }) => {
                                   : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                               }`}
                             >
-                              {gameState.eventVotes[index] === true ? 'Participating' :
-                               !canAfford ? `Need ${gameState.currentEvent.minCostPerPlayer}○` :
-                               'Participate'}
+                              {gameState.eventVotes[index] === true ? t('events.participating') :
+                               !canAfford ? t('events.needMoney', { amount: gameState.currentEvent.minCostPerPlayer }) :
+                               t('events.participate')}
                             </button>
                             <button
                               onClick={() => voteOnEvent(index, false)}
@@ -2883,7 +2935,7 @@ const PskovGame = ({ onMenu }) => {
                                   : 'btn-secondary'
                               }`}
                             >
-                              {gameState.eventVotes[index] === false ? 'Not Participating' : "Don't Participate"}
+                              {gameState.eventVotes[index] === false ? t('events.notParticipating') : t('events.dontParticipate')}
                             </button>
                           </div>
                         </div>
@@ -2927,28 +2979,26 @@ const PskovGame = ({ onMenu }) => {
                           <div className="mb-3">
                             <p className="text-sm text-ink-light mb-1">
                               {actualParticipants > 0 ? (
-                                <>Participants: {actualParticipants} &middot; Cost: {costPerParticipant.toFixed(1)}○ each</>
+                                <>{t('events.participantsCost', { count: actualParticipants, cost: fmtCoins(costPerParticipant, i18n.language) })}</>
                               ) : (
-                                <>No participants</>
+                                <>{t('events.noParticipants')}</>
                               )}
                             </p>
                             {excludedFactions.length > 0 && (
                               <p className="text-sm text-red-700 mb-1">
-                                {excludedFactions.join(', ')} cannot afford to participate
+                                {t('events.cannotAffordParticipate', { factions: excludedFactions.map(f => t(`factions.${f}`)).join(', ') })}
                               </p>
                             )}
                             <p className={`text-sm font-semibold ${purchaseSucceeds ? 'text-emerald-700' : 'text-red-700'}`}>
-                              Result: {purchaseSucceeds ?
-                                (gameState.currentEvent.successText || 'SUCCESS') :
-                                (gameState.currentEvent.failureText || 'FAILED')}
+                              {purchaseSucceeds ? t('events.resultSuccess') : t('events.resultFailed')}
                             </p>
                           </div>
                         );
                       })()}
                       {mode === 'online' ? (
-                        <p className="text-sm text-ink-muted italic">Auto-applying result...</p>
+                        <p className="text-sm text-ink-muted italic">{t('game.autoApplying')}</p>
                       ) : (
-                        <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">Apply Result</button>
+                        <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">{t('events.applyResult')}</button>
                       )}
                     </div>
                   )}
@@ -2959,9 +3009,9 @@ const PskovGame = ({ onMenu }) => {
               {gameState.currentEvent.type === 'immediate' && !gameState.eventResolved && (
                 <div className="text-center">
                   {mode === 'online' ? (
-                    <p className="text-sm text-ink-muted italic">Auto-applying effect...</p>
+                    <p className="text-sm text-ink-muted italic">{t('game.autoApplying')}</p>
                   ) : (
-                    <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">Apply Effect</button>
+                    <button onClick={resolveEvent} className="btn-accent px-5 py-2 text-sm">{t('events.applyEffect')}</button>
                   )}
                 </div>
               )}
@@ -2969,10 +3019,9 @@ const PskovGame = ({ onMenu }) => {
               {/* Order Attack Event */}
               {gameState.currentEvent.type === 'order_attack' && !gameState.eventResolved && (
                 <div>
-                  <h4 className="text-sm font-bold text-red-800 mb-2">{t('game.orderAttack')}</h4>
                   <p className="text-sm text-ink-light mb-3">{(() => {
-                    const labelKey = { weak: 'weakAttack', normal: 'normalAttack', strong: 'strongAttack' }[getAttackStrengthLabel(gameState.currentEvent.orderStrength + getOrderTurnBonus(gameState.turn))];
-                    return t('game.orderAttackDesc', { label: t(`game.${labelKey}`) });
+                    const { strength, level } = getOrderAttackInfo(gameState.currentEvent);
+                    return t(`game.orderAttackBody.${level}`, { strength, cost: gameState.currentEvent.minCostPerPlayer || 1 });
                   })()}</p>
 
                   <div className="grid grid-cols-3 gap-3 mb-4">
@@ -2989,7 +3038,7 @@ const PskovGame = ({ onMenu }) => {
                             {t(`factions.${player.faction}`)}
                             {mode === 'online' && index === playerId && <span className="text-accent ml-1 text-xs">{t('game.you')}</span>}
                           </h5>
-                          <div className="text-xs text-ink-muted mb-2">{player.money.toFixed(1)}○</div>
+                          <div className="text-xs text-ink-muted mb-2">{fmtCoins(player.money, i18n.language)}○</div>
 
                           {isCurrentPlayer ? (
                             <div className="space-y-1.5">
@@ -3098,7 +3147,7 @@ const PskovGame = ({ onMenu }) => {
       )}
 
       {/* ===== VECHE (ASSEMBLY) PHASE ===== */}
-      {gameState.phase === 'veche' && (
+      {gameState.phase === 'veche' && !isGameOver && (
         <div className="card-parchment-raised p-5 phase-enter">
           <h3 className="heading-serif text-lg mb-2">{t('game.cityAssembly')}</h3>
           <p className="text-sm text-ink-muted mb-4">{t('game.cityAssemblyDesc')}</p>
@@ -3123,7 +3172,7 @@ const PskovGame = ({ onMenu }) => {
                       disabled={gameState.attackPlanning !== null || !isAdjacent}
                       className={`btn-danger px-4 py-2 text-sm ${!isAdjacent ? 'opacity-50' : ''}`}
                     >
-                      <div className="font-medium">{t('veche.attack', { region: t(`regions.${regionName}`) })}</div>
+                      <div className="font-medium">{t('veche.attack', regionArgs(regionName))}</div>
                       <div className="text-xs opacity-80">
                         {region.fortress ? t('veche.hasFortress') : t('veche.noFortress')}
                         {!isAdjacent && ` - ${t('veche.notAdjacent')}`}
@@ -3143,7 +3192,7 @@ const PskovGame = ({ onMenu }) => {
           {gameState.attackPlanning === 'planning' && (
             <div className="border border-red-300 rounded-lg p-4 mb-4 bg-red-50/50">
               <h4 className="text-sm font-bold text-red-800 mb-2">
-                {t('veche.planningAttack', { region: t(`regions.${gameState.attackTarget}`) })}
+                {t('veche.planningAttack', regionArgs(gameState.attackTarget))}
               </h4>
               <p className="text-xs text-red-700 mb-3">{t('veche.attackRequiresFunding')}</p>
 
@@ -3155,7 +3204,7 @@ const PskovGame = ({ onMenu }) => {
                   return (
                     <div key={index} className="text-center">
                       <h5 className="text-sm font-semibold text-ink mb-1">{t(`factions.${player.faction}`)}</h5>
-                      <div className="text-xs text-ink-muted mb-2">{player.money.toFixed(1)}○</div>
+                      <div className="text-xs text-ink-muted mb-2">{fmtCoins(player.money, i18n.language)}○</div>
                       <div className="space-y-1.5">
                         <button
                           onClick={() => { setGameState(prev => { const nv = [...prev.attackVotes]; nv[index] = true; return { ...prev, attackVotes: nv }; }); }}
@@ -3202,10 +3251,10 @@ const PskovGame = ({ onMenu }) => {
                     return (
                       <div className="mb-3">
                         <p className="text-sm text-ink-light mb-1">
-                          {participants > 0 ? t('veche.attackers', { count: participants, cost: costPerParticipant.toFixed(1) }) : t('veche.noParticipants')}
+                          {participants > 0 ? t('veche.attackers', { count: participants, cost: fmtCoins(costPerParticipant, i18n.language) }) : t('veche.noParticipants')}
                         </p>
                         {!allCanAfford && participants > 0 && (
-                          <p className="text-sm text-red-700 mb-1">{t('veche.cannotAffordAttack', { factions: insufficientFunds.join(', '), cost: costPerParticipant.toFixed(1) })}</p>
+                          <p className="text-sm text-red-700 mb-1">{t('veche.cannotAffordAttack', { factions: insufficientFunds.map(f => t(`factions.${f}`)).join(', '), cost: fmtCoins(costPerParticipant, i18n.language) })}</p>
                         )}
                         <p className={`text-sm font-semibold ${attackSucceeds ? 'text-emerald-700' : 'text-red-700'}`}>
                           {t('veche.result', { result: attackSucceeds ? t('veche.attackFunded') : t('veche.attackCancelledCaps') })}
@@ -3227,9 +3276,11 @@ const PskovGame = ({ onMenu }) => {
           )}
 
           {/* Attack Result */}
-          {gameState.lastEventResult && (gameState.lastEventResult.includes('VICTORY!') || gameState.lastEventResult.includes('DEFEAT!')) && (
+          {gameState.lastEventResult && (
             <div className={`p-3 rounded mb-4 text-sm font-medium ${
-              gameState.lastEventResult.includes('VICTORY!') ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
+              gameState.battleResult?.type === 'attack_victory' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              : gameState.battleResult?.type === 'attack_defeat' ? 'bg-red-50 text-red-800 border border-red-200'
+              : 'bg-parchment-50 text-ink border border-parchment-400'
             }`}>
               {gameState.lastEventResult}
             </div>
@@ -3266,7 +3317,7 @@ const PskovGame = ({ onMenu }) => {
             {gameState.fortressPlanning === 'planning' && (
               <div className="border border-parchment-400 rounded-lg p-4 mt-3 bg-parchment-50">
                 <h4 className="text-sm font-semibold text-ink mb-2">
-                  {t('veche.planningFortress', { region: t(`regions.${gameState.fortressTarget}`) })}
+                  {t('veche.planningFortress', regionArgs(gameState.fortressTarget))}
                 </h4>
                 <p className="text-xs text-ink-muted mb-3">{t('veche.fortressRequiresFunding')}</p>
 
@@ -3278,7 +3329,7 @@ const PskovGame = ({ onMenu }) => {
                     return (
                       <div key={index} className="text-center">
                         <h5 className="text-sm font-semibold text-ink mb-1">{t(`factions.${player.faction}`)}</h5>
-                        <div className="text-xs text-ink-muted mb-2">{player.money.toFixed(1)}○</div>
+                        <div className="text-xs text-ink-muted mb-2">{fmtCoins(player.money, i18n.language)}○</div>
                         <div className="space-y-1.5">
                           <button
                             onClick={() => { setGameState(prev => { const nv = [...prev.fortressVotes]; nv[index] = true; return { ...prev, fortressVotes: nv }; }); }}
@@ -3331,14 +3382,14 @@ const PskovGame = ({ onMenu }) => {
                       } else if (!allCanAfford) {
                         return (
                           <div>
-                            <p className="text-red-700 mb-2 text-sm">{t('veche.cannotAffordShare', { factions: insufficientFunds.map(f => t(`factions.${f}`)).join(', '), cost: costPerParticipant.toFixed(2) })}</p>
+                            <p className="text-red-700 mb-2 text-sm">{t('veche.cannotAffordShare', { factions: insufficientFunds.map(f => t(`factions.${f}`)).join(', '), cost: fmtCoins(costPerParticipant, i18n.language) })}</p>
                             <button onClick={() => { setGameState(prev => ({ ...prev, fortressPlanning: null, fortressTarget: null, fortressVotes: [null, null, null] })); }} className="btn-secondary px-4 py-2 text-sm">{t('veche.cancelConstruction')}</button>
                           </div>
                         );
                       } else {
                         return (
                           <div>
-                            <p className="text-emerald-700 mb-2 text-sm">{t('veche.contributors', { count: participants, cost: costPerParticipant.toFixed(2) })}</p>
+                            <p className="text-emerald-700 mb-2 text-sm">{t('veche.contributors', { count: participants, cost: fmtCoins(costPerParticipant, i18n.language) })}</p>
                             <div className="flex gap-2 justify-center">
                               <button onClick={executeFortressBuild} className="btn-accent px-4 py-2 text-sm">{t('veche.buildFortressButton')}</button>
                               <button onClick={() => { setGameState(prev => ({ ...prev, fortressPlanning: null, fortressTarget: null, fortressVotes: [null, null, null] })); }} className="btn-secondary px-4 py-2 text-sm">{t('veche.cancelFortress')}</button>
@@ -3357,37 +3408,52 @@ const PskovGame = ({ onMenu }) => {
 
           <div className="text-center">
             <button onClick={() => nextPhase()} className="btn-accent px-6 py-2 text-sm">
-              End Assembly
+              {t('veche.endAssembly')}
             </button>
           </div>
         </div>
       )}
 
-      {/* ===== GAME END ===== */}
-      {gameState.turn > 20 && (
+      {/* ===== GAME END / DEFEAT ===== */}
+      {isGameOver && (
         <div className="card-parchment-raised p-6 phase-enter">
-          <h3 className="heading-serif text-xl text-center mb-4">Game Complete!</h3>
-          {(() => {
+          {gameState.gameOver ? (
+            <div className="text-center mb-5">
+              <h3 className="heading-serif text-2xl text-red-800 mb-2">{t('game.gameOver')}</h3>
+              <p className="text-ink-light">{t('game.pskovFallen')}</p>
+              {gameState.lastEventResult && (
+                <p className="text-sm text-ink-muted mt-2">{gameState.lastEventResult}</p>
+              )}
+            </div>
+          ) : (() => {
             const result = getGameResult();
             return (
-              <div>
+              <div className="mb-5">
+                <h3 className="heading-serif text-2xl text-center mb-1">{t('game.victory')}</h3>
+                <p className="text-center text-ink-light mb-4">{t('game.republicSurvived')}</p>
                 <div className="border-2 border-accent rounded-lg p-4 mb-4 bg-parchment-50 text-center">
-                  <h4 className="heading-serif text-lg">Winner: {result.winner.faction}</h4>
-                  <p className="text-sm text-ink-light">{result.winner.victoryPoints} Victory Points &middot; {result.winner.money}○</p>
+                  <h4 className="heading-serif text-lg">
+                    {t('end.winner', { faction: t(`factions.${result.winner.faction}`) })}
+                  </h4>
+                  <p className="text-sm text-ink-light">
+                    {t('end.vp', { count: result.winner.victoryPoints })} &middot; {fmtCoins(result.winner.money, i18n.language)}○
+                  </p>
                 </div>
 
-                <h4 className="text-sm font-semibold text-ink-light mb-2">Final Rankings:</h4>
+                <h4 className="text-sm font-semibold text-ink-light mb-2">{t('end.rankings')}</h4>
                 <div className="space-y-2">
                   {result.rankings.map((player, rank) => (
                     <div key={player.index} className={`p-3 rounded ${rank === 0 ? 'bg-parchment-50 border border-accent' : 'border border-parchment-400'}`}>
                       <div className="flex justify-between items-center text-sm">
-                        <span className="font-medium text-ink">#{rank + 1} {player.faction}</span>
-                        <span className="text-ink-light">{player.victoryPoints} VP &middot; {player.money.toFixed(1)}○</span>
+                        <span className="font-medium text-ink">#{rank + 1} {t(`factions.${player.faction}`)}</span>
+                        <span className="text-ink-light">
+                          {t('end.vp', { count: player.victoryPoints })} &middot; {fmtCoins(player.money, i18n.language)}○
+                        </span>
                       </div>
                       <div className="text-xs text-ink-muted mt-1 flex flex-wrap gap-x-3">
-                        {player.breakdown.secular > 0 && <span>{player.breakdown.secular} secular ({player.breakdown.secular} VP)</span>}
-                        {player.breakdown.religious > 0 && <span>{player.breakdown.religious} religious ({player.breakdown.religious * 2} VP)</span>}
-                        {player.breakdown.bonus > 0 && <span>+{player.breakdown.bonus} bonus</span>}
+                        {player.breakdown.secular > 0 && <span>{t('end.secular', { count: player.breakdown.secular })}</span>}
+                        {player.breakdown.religious > 0 && <span>{t('end.religious', { count: player.breakdown.religious, vp: player.breakdown.religious * 2 })}</span>}
+                        {player.breakdown.bonus > 0 && <span>{t('end.bonus', { count: player.breakdown.bonus })}</span>}
                       </div>
                     </div>
                   ))}
@@ -3395,6 +3461,17 @@ const PskovGame = ({ onMenu }) => {
               </div>
             );
           })()}
+
+          <div className="flex gap-2 justify-center">
+            {mode === 'local' && (
+              <button onClick={() => initLocalGame(aiPlayers)} className="btn-accent px-5 py-2 text-sm">
+                {t('end.playAgain')}
+              </button>
+            )}
+            <button onClick={onMenu} className="btn-secondary px-5 py-2 text-sm">
+              {t('end.backToMenu')}
+            </button>
+          </div>
         </div>
       )}
 
@@ -3408,6 +3485,29 @@ const PskovGame = ({ onMenu }) => {
       {/* Help Modal */}
       {showHelp && (
         <HowToPlay isModal onContinue={() => setShowHelp(false)} />
+      )}
+
+      {/* Leave-game confirmation */}
+      {showLeaveConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowLeaveConfirm(false); }}
+        >
+          <div role="dialog" aria-modal="true" aria-labelledby="leave-title" className="card-parchment-raised p-6 max-w-sm w-full">
+            <h3 id="leave-title" className="heading-serif text-lg mb-2">{t('leave.title')}</h3>
+            <p className="text-sm text-ink-light mb-5">
+              {t('leave.bodyOnline')}
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button autoFocus onClick={() => setShowLeaveConfirm(false)} className="btn-secondary px-4 py-2 text-sm">
+                {t('leave.stay')}
+              </button>
+              <button onClick={() => { setShowLeaveConfirm(false); onMenu(); }} className="btn-accent px-4 py-2 text-sm">
+                {t('leave.leave')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
@@ -3502,6 +3602,11 @@ const App = () => {
     setScreen('menu');
   };
 
+  // Resume the autosaved local game
+  const handleContinue = () => {
+    if (restoreSave()) setScreen('game');
+  };
+
   // Go back to menu
   const handleBackToMenu = () => {
     resetStore();
@@ -3514,6 +3619,8 @@ const App = () => {
     case 'menu':
       return (
         <MainMenu
+          savedGame={loadSave()}
+          onContinue={handleContinue}
           onStartSolo={handleStartSolo}
           onStartLocal={handleStartLocal}
           onCreateRoom={handleCreateRoom}

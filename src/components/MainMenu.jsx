@@ -21,7 +21,7 @@ const FACTION_CARD_COLORS = {
  * - Create online room
  * - Join existing online room
  */
-export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }) => {
+export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }) => {
   const { t, i18n } = useTranslation();
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [showGameSetup, setShowGameSetup] = useState(false);
@@ -225,8 +225,15 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Resume an autosaved local game */}
+            {savedGame && (
+              <button onClick={onContinue} className="w-full btn-accent py-3 px-6">
+                {t('menu.continueGame', { turn: Math.min(savedGame.gameState.turn, 20) })}
+              </button>
+            )}
+
             {/* Solo — inline faction picker (one click to play) */}
-            <p className="text-sm text-ink-muted text-center">{t('menu.chooseFaction')}</p>
+            <p className="text-sm text-ink-muted text-center">{savedGame ? t('menu.orNewGame') : t('menu.chooseFaction')}</p>
 
             <div className="space-y-3">
               {FACTIONS.map((faction, index) => (
