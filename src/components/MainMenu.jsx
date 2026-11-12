@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toggleLanguage } from '../i18n';
 import { useGameStore } from '../store/gameStore';
-import { FACTION_IMAGES } from '../imageAssets';
+import { FACTION_THUMBS } from '../imageAssets';
+import { DISCORD_URL } from '../config';
 
 const FACTIONS = ['Nobles', 'Merchants', 'Commoners'];
 
@@ -21,7 +22,7 @@ const FACTION_CARD_COLORS = {
  * - Create online room
  * - Join existing online room
  */
-export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }) => {
+export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }) => {
   const { t, i18n } = useTranslation();
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [showGameSetup, setShowGameSetup] = useState(false);
@@ -225,8 +226,15 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Resume an autosaved local game */}
+            {savedGame && (
+              <button onClick={onContinue} className="w-full btn-accent py-3 px-6">
+                {t('menu.continueGame', { turn: Math.min(savedGame.gameState.turn, 20) })}
+              </button>
+            )}
+
             {/* Solo — inline faction picker (one click to play) */}
-            <p className="text-sm text-ink-muted text-center">{t('menu.chooseFaction')}</p>
+            <p className="text-sm text-ink-muted text-center">{savedGame ? t('menu.orNewGame') : t('menu.chooseFaction')}</p>
 
             <div className="space-y-3">
               {FACTIONS.map((faction, index) => (
@@ -236,10 +244,12 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
                   className={`w-full flex items-center gap-4 p-3 rounded-lg border-2 bg-parchment-50 transition-colors cursor-pointer ${FACTION_CARD_COLORS[faction]}`}
                 >
                   <div className="w-16 h-16 rounded-full overflow-hidden border border-parchment-400 flex-shrink-0">
-                    {FACTION_IMAGES[faction] && (
+                    {FACTION_THUMBS[faction] && (
                       <img
-                        src={FACTION_IMAGES[faction]}
-                        alt={t(`factions.${faction}`)}
+                        src={FACTION_THUMBS[faction]}
+                        alt=""
+                        width={64}
+                        height={64}
                         className="w-full h-full object-cover"
                       />
                     )}
@@ -317,7 +327,7 @@ export const MainMenu = ({ onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }
             {t('menu.gameInfo')}
           </p>
           <p className="text-sm text-center mt-2">
-            <a href="https://discord.com/channels/1489944142799700103/1489944143542222972"
+            <a href={DISCORD_URL}
                target="_blank" rel="noopener noreferrer"
                className="text-ink-muted hover:text-ink transition-colors underline">
               {t('menu.discordFeedback')}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { MAP_IMAGE } from '../imageAssets';
 
 // Settlement icons — color distinguishes faction, battlements distinguish fortress
 // Republic (incl. capital): sky blue (#0284c7), Order: black (#1c1917)
@@ -123,7 +124,9 @@ const GameMap = ({ gameState }) => {
       {/* Map Container */}
       <div className="relative w-full" style={{ backgroundColor: '#d4c4a8' }}>
         <img
-          src="/images/map-background.png"
+          src={MAP_IMAGE}
+          width={1024}
+          height={1536}
           alt={t('map.title')}
           className="w-full h-auto"
           style={{ display: 'block' }}

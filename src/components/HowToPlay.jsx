@@ -16,6 +16,14 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
     return () => cancelAnimationFrame(id);
   }, []);
 
+  // Escape closes the rules modal
+  useEffect(() => {
+    if (!isModal) return;
+    const onKey = (e) => { if (e.key === 'Escape') onContinue(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isModal, onContinue]);
+
   const sections = [
     {
       title: t('howToPlay.goalTitle'),
@@ -62,7 +70,7 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
         transition: 'opacity 0.4s ease-out, transform 0.4s ease-out',
       }}
     >
-      <h2 className={`text-2xl md:text-3xl font-bold text-center mb-6 tracking-wide ${
+      <h2 id="how-to-play-title" className={`font-serif text-2xl md:text-3xl font-bold text-center mb-6 tracking-wide ${
         isModal ? 'text-ink' : 'text-parchment-100'
       }`}>
         {t('howToPlay.title')}
@@ -108,14 +116,19 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
   if (isModal) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
         onClick={(e) => { if (e.target === e.currentTarget) onContinue(); }}
         style={{
           opacity: visible ? 1 : 0,
           transition: 'opacity 0.2s ease-in',
         }}
       >
-        <div className="card-parchment-raised p-6 max-h-[85vh] overflow-y-auto rounded-xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="how-to-play-title"
+          className="card-parchment-raised p-6 max-h-[85vh] overflow-y-auto rounded-xl"
+        >
           {content}
         </div>
       </div>
@@ -124,13 +137,16 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950 overflow-y-auto py-8"
+      className="fixed inset-0 z-50 bg-stone-950 overflow-y-auto"
       style={{
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.4s ease-in',
       }}
     >
-      {content}
+      {/* min-h-full + centring: short content is centred, tall content starts at the top and scrolls */}
+      <div className="min-h-full flex items-center justify-center py-8">
+        {content}
+      </div>
     </div>
   );
 };

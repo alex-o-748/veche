@@ -1,72 +1,83 @@
 // Image asset mappings for game graphics
-// All images are stored in /public/images/ and referenced by path
+//
+// Web images live in /public/img/ and are generated from the originals in
+// art/originals/ by `npm run images` (scripts/optimize-images.mjs).
+// Each image has a full version (<name>.webp, up to 800px wide) and most have a
+// square thumbnail (<name>-thumb.webp, 160px) for icons, avatars and tiles.
 
-// Faction images - displayed in player cards
+const full = (name) => `/img/${name}.webp`;
+const thumb = (name) => `/img/${name}-thumb.webp`;
+
+// Map background (1024x1536, the SVG overlay in GameMap uses the same coordinates)
+export const MAP_IMAGE = full('map');
+
+// Faction portraits - full size for the faction intro screen
 export const FACTION_IMAGES = {
-  Nobles: '/images/factions/alexsyggr_a_medieval_Russian_horseman_with_a_stern_face_weari_7fe783e7-e4ca-4cd5-ab95-c561e16ca7c5_1.png',
-  Merchants: '/images/factions/alexsyggr_A_medieval_rich_Russian_merchant_half-body_portrait_2db14a53-1310-442f-aa46-be695301daf3_0.png',
-  Commoners: '/images/factions/alexsyggr_a_medieval_Russian_peasant_with_a_wooden_shield_lea_eeec1450-419a-4791-b261-e57425db6f3f_2.png',
+  Nobles: full('faction-nobles'),
+  Merchants: full('faction-merchants'),
+  Commoners: full('faction-commoners'),
 };
 
-// Building images - displayed in construction UI
+// Faction portraits - thumbnails for the menu, player cards and other small avatars
+export const FACTION_THUMBS = {
+  Nobles: thumb('faction-nobles'),
+  Merchants: thumb('faction-merchants'),
+  Commoners: thumb('faction-commoners'),
+};
+
+// Building images - shown as small tiles in the construction UI
 export const BUILDING_IMAGES = {
-  noble_manor: '/images/buildings/alexsyggr_A_manor_of_a_medieval_Russian_nobleman_several_wood_7c4b29b2-f640-4577-8296-75faa4c1360a_1.png',
-  noble_monastery: '/images/buildings/alexsyggr_blue_sky_--ar_916_--v_6.1_9d21074b-6af5-4ca4-b440-009e16f8e74b_0.png',
-  merchant_mansion: '/images/buildings/alexsyggr_a_white_two-story_building_with_small_windows_in_th_b1ce883e-0ce1-438d-9afc-a0bc4bd6cf02_1.png',
-  merchant_church: '/images/buildings/alexsyggr_an_austere_white_church_in_Medieval_Russian_style_o_31caee18-bef4-4f2e-ac1c-917f6aefcd77_0.jpeg',
-  commoner_huts: '/images/buildings/alexsyggr_a_board_game_card_with_a_small_Russian_hamlet_with__05df951a-2c96-4a00-9b44-f424939dd294_2.jpeg',
-  commoner_church: '/images/buildings/alexsyggr_A_small_medieval_Russian_log_church_among_the_trees_3237fc53-3b82-4d6e-98bc-f0bb83c07d79_3.jpeg',
-  fortress: '/images/buildings/alexsyggr_a_simple_and_austere_old_Russian_fortress_built_of__066240a6-a9a9-4861-97f7-f45351b398c0_0.png',
+  noble_manor: thumb('building-noble-manor'),
+  noble_monastery: thumb('building-noble-monastery'),
+  merchant_mansion: thumb('building-merchant-mansion'),
+  merchant_church: thumb('building-merchant-church'),
+  commoner_huts: thumb('building-commoner-huts'),
+  commoner_church: thumb('building-commoner-church'),
+  fortress: thumb('building-fortress'),
 };
 
-// Equipment images - displayed in player cards
+// Equipment images - shown as small icons in player cards and the construction UI
 export const EQUIPMENT_IMAGES = {
   weapons: {
-    Nobles: '/images/equipment/alexsyggr_fancy_medieval_Russian_swords_with_golden_accents_l_310414eb-8c83-4204-89d3-a76a2fcf8b65_3.png',
-    Merchants: '/images/equipment/alexsyggr_sturdy_unadorned_medieval_Russian_swords_lying_on_a_e88b3060-7a7f-42be-82ce-b6e65cb0e2e2_3.png',
-    Commoners: '/images/equipment/alexsyggr_sharp_and_shiny_metal_spear_point_--ar_1117_--v_6.1_43177e5f-864a-4b1d-9faf-588fe98a1af2_1.png',
+    Nobles: thumb('weapons-nobles'),
+    Merchants: thumb('weapons-merchants'),
+    Commoners: thumb('weapons-commoners'),
   },
   armor: {
-    Nobles: '/images/equipment/alexsyggr_medieval_Russian_armour_with_golden_accents_hanging_20caea06-4f70-40a1-a4dd-4416406c6780_1.jpeg',
-    Merchants: '/images/equipment/alexsyggr_wooden_wall_--ar_1117_--v_6.1_748c2b2f-ec73-4005-80d7-aa8eee5b7bc2_1.png',
-    Commoners: '/images/equipment/alexsyggr_medieval_peasants_simple_wooden_shield_and_second-h_2f0077a2-222c-4b72-a97e-3bdd7d45bfd7_1.png',
+    Nobles: thumb('armor-nobles'),
+    Merchants: thumb('armor-merchants'),
+    Commoners: thumb('armor-commoners'),
   },
 };
 
-// Event images - displayed in event cards
+// Event images - displayed large in event cards
 export const EVENT_IMAGES = {
   // Voting events
-  merchants_robbed: '/images/events/alexsyggr_medieval_Russian_merchants_in_long_robes_and_fur_ha_64fefaaf-d67c-453e-a2ed-2429f8c556a8_0.png',
-  boyars_take_bribes: '/images/events/alexsyggr_An_angry_crowd_of_people_gathered_on_a_square_in_a__fdc77283-6311-4fbb-9cca-0d5c184325a0_2.png',
-  embassy: '/images/events/alexsyggr_group_of_Russian_nobles_in_the_early_Middle_Ages_dr_699d9660-94d7-434d-88d5-202fe8a7e104_2.png',
-  relics_found: '/images/events/alexsyggr_an_Orthodox_priest_in_ornate_clothing_heading_a_rel_0cba2a95-bdba-46b2-b5a5-c9d56f25a882_2.png',
-  izhorian_delegation: '/images/events/alexsyggr_a_delegation_of_a_remote_tribe_in_austere_fur_cloth_80512fd8-6a3f-4845-9480-a58943925a16_2.png',
-  drought: '/images/events/alexsyggr_a_field_parched_due_to_draught_withered_crops_small_2e14e3e1-b46b-41df-ae6e-38e4ab766037_0.jpeg',
-  plague: '/images/events/alexsyggr_a_street_in_a_medieval_Russian_town_suffering_from__670d54fc-409b-4146-aa5a-f5b70fa990a1_2.png',
+  merchants_robbed: full('event-merchants-robbed'),
+  boyars_take_bribes: full('event-boyars-bribes'),
+  embassy: full('event-embassy'),
+  relics_found: full('event-relics'),
+  izhorian_delegation: full('event-izhorians'),
+  drought: full('event-drought'),
+  plague: full('event-plague'),
 
   // Immediate events
-  good_harvest: '/images/events/alexsyggr_medieval_peasants_celebrating_a_good_harvest_amidst_afa9f5c8-81d3-4dea-b8f2-ce81e945abad_0.png',
-  fire: '/images/events/alexsyggr_a_small_medieval_Russian_hamlet_engulfed_by_fire._S_057c9cff-c024-40ff-b511-344cb3e9c49e_2.jpeg',
-  city_fire: '/images/events/alexsyggr_a_fire_in_a_medieval_Russian_city_with_mostly_woode_9cae393b-8584-432f-8e58-ef7943433a7b_1.jpeg',
-  heresy: '/images/events/alexsyggr_a_street_preacher_in_ragged_clothes_standing_in_fro_be26bd8e-6607-427d-936f-2cf776b4c576_1.png',
+  good_harvest: full('event-harvest'),
+  fire: full('event-fire'),
+  city_fire: full('event-city-fire'),
+  heresy: full('event-heresy'),
 
-  // Order attacks - all use same image
-  order_attack: '/images/events/alexsyggr_knights_with_black_crosses_on_their_white_shields_r_a2c78c6a-9860-4d06-b99c-1c13874b176a_1.png',
-  order_attack_90: '/images/events/alexsyggr_knights_with_black_crosses_on_their_white_shields_r_a2c78c6a-9860-4d06-b99c-1c13874b176a_1.png',
-  order_attack_95: '/images/events/alexsyggr_knights_with_black_crosses_on_their_white_shields_r_a2c78c6a-9860-4d06-b99c-1c13874b176a_1.png',
-  order_attack_100: '/images/events/alexsyggr_knights_with_black_crosses_on_their_white_shields_r_a2c78c6a-9860-4d06-b99c-1c13874b176a_1.png',
-  order_attack_105: '/images/events/alexsyggr_knights_with_black_crosses_on_their_white_shields_r_a2c78c6a-9860-4d06-b99c-1c13874b176a_1.png',
-  order_attack_110: '/images/events/alexsyggr_knights_with_black_crosses_on_their_white_shields_r_a2c78c6a-9860-4d06-b99c-1c13874b176a_1.png',
-  order_attack_rob_foreign: '/images/events/alexsyggr_knights_with_black_crosses_on_their_white_shields_r_a2c78c6a-9860-4d06-b99c-1c13874b176a_1.png',
+  // Order attacks - all share one image (see getEventImage)
+  order_attack: full('event-order-attack'),
 
   // Auction events
-  fur_auction: '/images/events/alexsyggr_a_stall_with_fur_pelts_in_a_marketplace_in_a_mediev_edaaadeb-ea66-48c2-8e25-b190cd24e740_0.png',
-  hunters_brought_furs: '/images/events/alexsyggr_a_stall_with_fur_pelts_in_a_marketplace_in_a_mediev_edaaadeb-ea66-48c2-8e25-b190cd24e740_0.png',
-  giant_squirrels: '/images/events/alexsyggr_giant_squirrels_35940424-a2d1-4488-bb62-57a61b91cde3_1.png',
+  fur_auction: full('event-fur-market'),
+  hunters_brought_furs: full('event-fur-market'),
+  giant_squirrels: full('event-giant-squirrels'),
 };
 
-// Expedition image
-export const EXPEDITION_IMAGE = '/images/alexsyggr_a_small_medieval_merchant_ship_with_one_sail_seen_f_47eb22a5-0516-48ba-a63b-9e37e8cec0c0_1.png';
+// Expedition image - shown as a small tile in the construction UI
+export const EXPEDITION_IMAGE = thumb('expedition');
 
 // Helper function to get event image, with fallback for order attacks
 export const getEventImage = (eventId) => {
