@@ -76,6 +76,20 @@ export const EVENT_IMAGES = {
   giant_squirrels: full('event-giant-squirrels'),
 };
 
+// Where the subject sits vertically in each event image (CSS object-position y).
+// Used when the art is cropped to a wide banner on phones and tablets.
+export const EVENT_IMAGE_FOCUS = {
+  order_attack: '72%',
+  merchants_robbed: '60%',
+  fur_auction: '55%',
+  hunters_brought_furs: '55%',
+};
+
+export const getEventImageFocus = (eventId) => {
+  if (eventId && eventId.startsWith('order_attack')) return EVENT_IMAGE_FOCUS.order_attack;
+  return EVENT_IMAGE_FOCUS[eventId] || '45%';
+};
+
 // Expedition image - shown as a small tile in the construction UI
 export const EXPEDITION_IMAGE = thumb('expedition');
 

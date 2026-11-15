@@ -543,5 +543,26 @@
   },
   "meta": {
     "title": "The Veche: Medieval Pskov"
+  },
+  "action": {
+    "constructionOnline": "Build, buy equipment or send an expedition, then tell the others you are done.",
+    "aiBuilding": "{{faction}}: taking their turn…",
+    "aiBuildingTitle": "{{faction}} are building",
+    "constructionDone": "Every faction has taken its construction turn.",
+    "continueToEvents": "Continue to Events",
+    "construction": "{{faction}}: build, buy equipment, then end the turn.",
+    "eventDone": "The council has decided.",
+    "continueToVeche": "Continue to the Veche",
+    "vote": "Waiting for every faction to decide.",
+    "allVoted": "All factions have decided.",
+    "immediate": "This event takes effect at once.",
+    "finishVote": "Finish the vote above first.",
+    "veche": "Plan a campaign or a fortress, or end the assembly."
+  },
+  "player": {
+    "you": "You",
+    "ai": "AI",
+    "turn": "Turn",
+    "vp": "VP"
   }
 }

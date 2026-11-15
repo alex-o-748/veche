@@ -193,6 +193,28 @@
   padding-left: calc(0.75rem - 3px);
 }
 
+/* ===== Small tag chip (You / AI / Turn) ===== */
+.tag-chip {
+  display: inline-block;
+  padding: 0 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ===== Per-faction voting column ===== */
+/* Declared before the faction borders so their border-left wins */
+.vote-column {
+  background: #faf3e8;
+  border: 1px solid #d4c4a8;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+}
+
 /* ===== Faction Left Border ===== */
 .faction-border-nobles {
   border-left: 3px solid #6b21a8;
