@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toggleLanguage } from '../i18n';
 import { useGameStore } from '../store/gameStore';
-import { FACTION_THUMBS } from '../imageAssets';
+import { FACTION_CARDS, MAP_IMAGE } from '../imageAssets';
 import { DISCORD_URL } from '../config';
 
 const FACTIONS = ['Nobles', 'Merchants', 'Commoners'];
 
+// Faction colour for the card's rule and hover outline
 const FACTION_CARD_COLORS = {
-  Nobles: 'border-purple-400 hover:border-purple-500 hover:bg-purple-50',
-  Merchants: 'border-yellow-500 hover:border-yellow-600 hover:bg-yellow-50',
-  Commoners: 'border-green-500 hover:border-green-600 hover:bg-green-50',
+  Nobles: 'border-faction-nobles/40 hover:border-faction-nobles',
+  Merchants: 'border-faction-merchants/50 hover:border-faction-merchants',
+  Commoners: 'border-faction-commoners/40 hover:border-faction-commoners',
 };
 
 /**
@@ -77,8 +78,22 @@ export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onC
   const humanCount = aiPlayers.filter(ai => !ai).length;
 
   return (
-    <div className="parchment-bg min-h-screen flex items-center justify-center p-4">
-      <div className="card-parchment-raised p-8 max-w-md w-full relative">
+    <div className="parchment-bg min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* The campaign map as a faded, warm backdrop */}
+      <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
+        <img
+          src={MAP_IMAGE}
+          alt=""
+          className="w-full h-full object-cover opacity-30"
+          style={{ filter: 'sepia(0.5) saturate(0.7) blur(1.5px)' }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(244,232,209,0.55) 30%, rgba(110,80,40,0.35) 100%)' }}
+        />
+      </div>
+
+      <div className="card-parchment-raised p-6 sm:p-8 max-w-xl w-full relative">
         {/* Language switcher */}
         <button
           onClick={toggleLanguage}
@@ -88,24 +103,25 @@ export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onC
         </button>
 
         {/* Title */}
-        <div className="text-center mb-8">
-          <h1 className="heading-serif text-4xl font-bold text-ink mb-2">
+        <div className="text-center mb-6">
+          <p className="font-display text-sm tracking-[0.2em] text-accent mb-1">{t('menu.subtitle')}</p>
+          <h1 className="font-display text-4xl sm:text-5xl font-bold text-ink leading-tight">
             {t('menu.title')}
           </h1>
-          <div className="section-divider" />
-          <h2 className="text-lg text-ink-light">{t('menu.subtitle')}</h2>
-          <p className="text-ink-muted mt-2 text-sm">
+          <div className="section-divider mx-auto max-w-xs" />
+          <p className="text-ink-light italic">
             {t('menu.tagline')}
           </p>
         </div>
 
         {/* Error display */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-700 rounded">
+          <div className="mb-4 p-3 bg-war/5 border border-war/30 text-war rounded" role="alert">
             {error}
             <button
               onClick={clearError}
-              className="ml-2 text-red-500 hover:text-red-700"
+              className="ml-2 text-war/70 hover:text-war"
+              aria-label={t('lobby.dismiss')}
             >
               &times;
             </button>
@@ -236,27 +252,26 @@ export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onC
             {/* Solo — inline faction picker (one click to play) */}
             <p className="text-sm text-ink-muted text-center">{savedGame ? t('menu.orNewGame') : t('menu.chooseFaction')}</p>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {FACTIONS.map((faction, index) => (
                 <button
                   key={faction}
                   onClick={() => onStartSolo(index)}
-                  className={`w-full flex items-center gap-4 p-3 rounded-lg border-2 bg-parchment-50 transition-colors cursor-pointer ${FACTION_CARD_COLORS[faction]}`}
+                  className={`group flex flex-col text-center rounded-lg border-2 bg-parchment-50 overflow-hidden shadow-sm transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md ${FACTION_CARD_COLORS[faction]}`}
                 >
-                  <div className="w-16 h-16 rounded-full overflow-hidden border border-parchment-400 flex-shrink-0">
-                    {FACTION_THUMBS[faction] && (
-                      <img
-                        src={FACTION_THUMBS[faction]}
-                        alt=""
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
+                  <div className="relative aspect-[3/4] overflow-hidden bg-parchment-800">
+                    <img
+                      src={FACTION_CARDS[faction]}
+                      alt=""
+                      width={360}
+                      height={480}
+                      className="art w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(30,18,8,0.4) 100%)' }} />
                   </div>
-                  <div className="text-left">
-                    <div className="font-semibold text-ink">{t(`factions.${faction}`)}</div>
-                    <div className="text-sm text-ink-muted">{t(`factions.${faction.toLowerCase()}Desc`)}</div>
+                  <div className="px-1.5 sm:px-2 py-2">
+                    <div className="heading-serif font-bold text-ink text-[13px] leading-tight sm:text-base break-words">{t(`factions.${faction}`)}</div>
+                    <div className="text-[11px] sm:text-xs text-ink-muted leading-snug mt-0.5">{t(`factions.${faction.toLowerCase()}Desc`)}</div>
                   </div>
                 </button>
               ))}

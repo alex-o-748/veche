@@ -46,7 +46,10 @@
     "waitingForPlayers": "Waiting for {{count}} more player(s)...",
     "allReady": "All players ready! Starting game...",
     "waitingAllReady": "Waiting for all players to be ready...",
-    "leaveRoom": "Leave Room"
+    "leaveRoom": "Leave Room",
+    "copyCode": "Copy room code",
+    "copied": "Copied",
+    "dismiss": "Dismiss"
   },
   "factions": {
     "Nobles": "Nobles",
@@ -210,7 +213,8 @@
       "weak": "A weak Order host (strength {{strength}}) marches on our lands. Each faction that funds the defense pays {{cost}}○. If nobody pays, the region is surrendered.",
       "normal": "An Order host (strength {{strength}}) marches on our lands. Each faction that funds the defense pays {{cost}}○. If nobody pays, the region is surrendered.",
       "strong": "A strong Order host (strength {{strength}}) marches on our lands. Each faction that funds the defense pays {{cost}}○. If nobody pays, the region is surrendered."
-    }
+    },
+    "coins": "coins"
   },
   "events": {
     "newEvent": "A new event unfolds…",

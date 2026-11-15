@@ -18,7 +18,14 @@ export const FACTION_IMAGES = {
   Commoners: full('faction-commoners'),
 };
 
-// Faction portraits - thumbnails for the menu, player cards and other small avatars
+// Faction portraits - mid-size cards for the main menu faction picker
+export const FACTION_CARDS = {
+  Nobles: `/img/faction-nobles-card.webp`,
+  Merchants: `/img/faction-merchants-card.webp`,
+  Commoners: `/img/faction-commoners-card.webp`,
+};
+
+// Faction portraits - thumbnails for player cards and other small avatars
 export const FACTION_THUMBS = {
   Nobles: thumb('faction-nobles'),
   Merchants: thumb('faction-merchants'),
