@@ -4,7 +4,9 @@ import { toggleLanguage } from './i18n';
 import { fmtCoins } from './format';
 import { DISCORD_URL } from './config';
 import { CoinIcon, coinify } from './components/Coin';
-import { FACTION_THUMBS, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, EXPEDITION_IMAGE, getEventImage, getEventImageFocus, getEquipmentImage } from './imageAssets';
+import { AnimatedNumber, DeltaChips, PhaseBanner, BattleReport } from './components/Fx';
+import { playBell, playHorn, playClink, isSoundOn, setSoundOn, onSoundChange } from './sound';
+import { FACTION_THUMBS, FACTION_CARDS, BUILDING_IMAGES, EVENT_IMAGES, EQUIPMENT_IMAGES, EXPEDITION_IMAGE, getEventImage, getEventImageFocus, getEquipmentImage } from './imageAssets';
 
 // Import Zustand store
 import { useGameStore } from './store/gameStore';
@@ -86,8 +88,14 @@ const PskovGame = ({ onMenu }) => {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   // Income notification state (shown briefly at top of construction phase)
-  const [incomeNotification, setIncomeNotification] = useState(null);
   const incomeAdvancingRef = useRef(false);
+
+  // Goes up whenever a new game starts (the turn counter goes back), so the
+  // "+n / −n" markers do not show the jump from one game's totals to the next
+  const gameEpochRef = useRef({ epoch: 0, turn: 0 });
+  if (gameState && gameState.turn < gameEpochRef.current.turn) gameEpochRef.current.epoch += 1;
+  if (gameState) gameEpochRef.current.turn = gameState.turn;
+  const gameEpoch = gameEpochRef.current.epoch;
 
 
   // Region name in the grammatical forms the Russian strings need
@@ -188,16 +196,7 @@ const PskovGame = ({ onMenu }) => {
     if (mode === 'online') return;
     if (incomeAdvancingRef.current) return;
 
-    // Calculate income preview for the notification banner
-    const republicRegions = Object.values(gameState.regions).filter(r => r.controller === 'republic').length;
-    const incomeData = gameState.players.map((player) => {
-      const baseIncome = 0.5 + (republicRegions * 0.25) + ((player.improvements - (player.religiousBuildings || 0)) * 0.25);
-      const modifier = getIncomeModifier(player.faction);
-      const finalIncome = baseIncome * modifier;
-      return { faction: player.faction, income: finalIncome };
-    });
-
-    setIncomeNotification({ turn: gameState.turn, incomes: incomeData });
+    // Income shows up as rising "+n" markers on the player cards
     incomeAdvancingRef.current = true;
 
     // Auto-advance after a brief tick so React can process state
@@ -213,12 +212,28 @@ const PskovGame = ({ onMenu }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.phase, gameState?.turn, gameState?.gameOver, mode]);
 
-  // Auto-dismiss income notification after a few seconds
+
+  // ---- Sounds: the veche bell, the Order's horn, and the end of the game ----
+  const [soundOn, setSoundOnState] = useState(isSoundOn());
+  useEffect(() => onSoundChange(setSoundOnState), []);
+  const soundCueRef = useRef({ phase: null, horn: null, ended: false });
   useEffect(() => {
-    if (!incomeNotification) return;
-    const timer = setTimeout(() => setIncomeNotification(null), 6000);
-    return () => clearTimeout(timer);
-  }, [incomeNotification]);
+    if (!gameState) return;
+    const cue = soundCueRef.current;
+    const ended = Boolean(gameState.gameOver) || gameState.turn > 20;
+    if (ended && !cue.ended) {
+      cue.ended = true;
+      if (gameState.gameOver) playHorn(); else playBell();
+      return;
+    }
+    if (!ended) cue.ended = false;
+    if (gameState.phase === 'veche' && cue.phase !== 'veche') playBell();
+    cue.phase = gameState.phase;
+    const ev = gameState.currentEvent;
+    const hornKey = ev?.type === 'order_attack' && gameState.eventImageRevealed ? `${gameState.turn}-${ev.id}` : null;
+    if (hornKey && cue.horn !== hornKey) playHorn();
+    if (hornKey) cue.horn = hornKey;
+  }, [gameState?.phase, gameState?.currentEvent?.id, gameState?.eventImageRevealed, gameState?.gameOver, gameState?.turn]);
 
   // Reveal the event art after a short suspense beat, but never before the image
   // has downloaded and decoded, so it does not pop in mid-animation
@@ -354,74 +369,58 @@ const PskovGame = ({ onMenu }) => {
     }
 
     // --- Events phase: auto-vote for AI players ---
-    if (gameState.phase === 'events' && gameState.currentEvent && !gameState.eventResolved) {
-      // Find AI players that haven't voted yet
-      const aiNeedsVote = aiPlayers.map((isAi, i) =>
-        isAi && gameState.eventVotes[i] === null ? i : -1
-      ).filter(i => i >= 0);
+    // Once the card is face up, the AI factions decide one after another, like
+    // councillors speaking in turn (the effect re-runs after each vote)
+    const eventCardUp = gameState.eventImageRevealed || !getEventImage(gameState.currentEvent?.id);
+    if (gameState.phase === 'events' && gameState.currentEvent && !gameState.eventResolved && eventCardUp) {
+      const nextAi = aiPlayers.findIndex((isAi, i) => isAi && gameState.eventVotes[i] === null);
 
-      if (aiNeedsVote.length > 0) {
+      if (nextAi >= 0) {
         const timer = setTimeout(() => {
           const currentState = useGameStore.getState().gameState;
           if (!currentState || currentState.phase !== 'events' || !currentState.currentEvent || currentState.eventResolved) return;
 
           setGameState(prev => {
-            if (!prev || !prev.currentEvent) return prev;
+            if (!prev || !prev.currentEvent || prev.eventVotes[nextAi] !== null) return prev;
             const newVotes = [...prev.eventVotes];
-            aiNeedsVote.forEach(aiIndex => {
-              if (newVotes[aiIndex] === null) {
-                newVotes[aiIndex] = decideEventVote(prev, aiIndex, prev.currentEvent);
-              }
-            });
+            newVotes[nextAi] = decideEventVote(prev, nextAi, prev.currentEvent);
             return { ...prev, eventVotes: newVotes };
           });
-        }, 1000);
+        }, 900);
         return () => clearTimeout(timer);
       }
     }
 
     // --- Veche phase: auto-vote for attacks ---
     if (gameState.phase === 'veche' && gameState.attackPlanning === 'planning') {
-      const aiNeedsVote = aiPlayers.map((isAi, i) =>
-        isAi && gameState.attackVotes[i] === null ? i : -1
-      ).filter(i => i >= 0);
+      const nextAi = aiPlayers.findIndex((isAi, i) => isAi && gameState.attackVotes[i] === null);
 
-      if (aiNeedsVote.length > 0) {
+      if (nextAi >= 0) {
         const timer = setTimeout(() => {
           setGameState(prev => {
-            if (!prev || prev.attackPlanning !== 'planning') return prev;
+            if (!prev || prev.attackPlanning !== 'planning' || prev.attackVotes[nextAi] !== null) return prev;
             const newVotes = [...prev.attackVotes];
-            aiNeedsVote.forEach(aiIndex => {
-              if (newVotes[aiIndex] === null) {
-                newVotes[aiIndex] = decideAttackVote(prev, aiIndex);
-              }
-            });
+            newVotes[nextAi] = decideAttackVote(prev, nextAi);
             return { ...prev, attackVotes: newVotes };
           });
-        }, 800);
+        }, 700);
         return () => clearTimeout(timer);
       }
     }
 
     // --- Veche phase: auto-vote for fortress ---
     if (gameState.phase === 'veche' && gameState.fortressPlanning === 'planning') {
-      const aiNeedsVote = aiPlayers.map((isAi, i) =>
-        isAi && gameState.fortressVotes[i] === null ? i : -1
-      ).filter(i => i >= 0);
+      const nextAi = aiPlayers.findIndex((isAi, i) => isAi && gameState.fortressVotes[i] === null);
 
-      if (aiNeedsVote.length > 0) {
+      if (nextAi >= 0) {
         const timer = setTimeout(() => {
           setGameState(prev => {
-            if (!prev || prev.fortressPlanning !== 'planning') return prev;
+            if (!prev || prev.fortressPlanning !== 'planning' || prev.fortressVotes[nextAi] !== null) return prev;
             const newVotes = [...prev.fortressVotes];
-            aiNeedsVote.forEach(aiIndex => {
-              if (newVotes[aiIndex] === null) {
-                newVotes[aiIndex] = decideFortressVote(prev, aiIndex);
-              }
-            });
+            newVotes[nextAi] = decideFortressVote(prev, nextAi);
             return { ...prev, fortressVotes: newVotes };
           });
-        }, 800);
+        }, 700);
         return () => clearTimeout(timer);
       }
     }
@@ -431,6 +430,7 @@ const PskovGame = ({ onMenu }) => {
     gameState?.currentEvent,
     gameState?.eventResolved,
     gameState?.eventVotes,
+    gameState?.eventImageRevealed,
     gameState?.attackPlanning,
     gameState?.attackVotes,
     gameState?.fortressPlanning,
@@ -1855,6 +1855,7 @@ const PskovGame = ({ onMenu }) => {
   };
 
   const buildBuilding = (buildingType) => {
+    playClink();
     // In online mode, send action to server
     if (mode === 'online') {
       sendAction({ type: 'BUILD_BUILDING', buildingType });
@@ -2036,6 +2037,7 @@ const PskovGame = ({ onMenu }) => {
   };
 
   const buyItem = (playerIndex, item, cost) => {
+    playClink();
     // In online mode, send action to server
     if (mode === 'online') {
       // Only allow buying for own faction
@@ -2077,6 +2079,7 @@ const PskovGame = ({ onMenu }) => {
 
   // Send a trading expedition (Merchants only)
   const sendExpeditionAction = (playerIndex) => {
+    playClink();
     if (mode === 'online') {
       if (playerIndex !== playerId) return;
       sendAction({ type: 'SEND_EXPEDITION' });
@@ -2227,6 +2230,19 @@ const PskovGame = ({ onMenu }) => {
   };
   const primaryAction = getPrimaryAction();
 
+  // ---- Battle forecasts (same formulas as src/game/combat.js) ----
+  const strengthOf = (indices) => calculateTotalPskovStrength(indices);
+  const chanceFor = (ours, theirs) => getVictoryChance(ours - theirs);
+  const votersFor = (votes) => votes.map((v, i) => (v === true ? i : -1)).filter((i) => i >= 0);
+
+  // The report for the battle just fought, if this screen's result came from one
+  const battleOutcome = (br) => {
+    if (!br || br.pskovStrength === undefined) return null;
+    const won = br.type === 'defense_victory' || br.type === 'attack_victory';
+    const lost = br.type === 'defense_defeat' || br.type === 'attack_defeat';
+    return won ? 'won' : lost ? 'lost' : null;
+  };
+
   // ---- Region selection for construction (region buttons and the map) ----
   const selectRegion = (regionName) => {
     setGameState(prev => ({ ...prev, selectedRegion: regionName }));
@@ -2316,6 +2332,8 @@ const PskovGame = ({ onMenu }) => {
   return (
     <div className="parchment-bg min-h-screen">
 
+      <PhaseBanner turn={gameState.turn} phase={gameState.phase} hidden={isGameOver} />
+
       {/* ===== HEADER BAR ===== */}
       <header className="game-header sticky top-0 z-30 px-3 sm:px-4 py-2">
         <div className="max-w-screen-2xl mx-auto flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -2368,6 +2386,27 @@ const PskovGame = ({ onMenu }) => {
 
           {/* Right-pinned controls */}
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
+            {/* Sound on/off */}
+            <button
+              onClick={() => setSoundOn(!soundOn)}
+              aria-pressed={soundOn}
+              aria-label={soundOn ? t('sound.mute') : t('sound.unmute')}
+              title={soundOn ? t('sound.mute') : t('sound.unmute')}
+              className="w-7 h-7 rounded-full text-parchment-400 hover:text-parchment-50 transition-colors flex items-center justify-center"
+            >
+              <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor" stroke="none" />
+                {soundOn ? (
+                  <>
+                    <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                    <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+                  </>
+                ) : (
+                  <path d="m16 9 6 6m0-6-6 6" />
+                )}
+              </svg>
+            </button>
+
             {/* Help Button */}
             <button
               onClick={() => setShowHelp(true)}
@@ -2447,7 +2486,15 @@ const PskovGame = ({ onMenu }) => {
                       {isTakingTurn && <span className="tag-chip bg-parchment-600 text-white">{t('player.turn')}</span>}
                     </div>
                     <div className="mt-0.5 flex items-center justify-center sm:justify-start gap-x-2 sm:gap-x-3 gap-y-0.5 flex-wrap text-xs text-ink-light lining-nums tabular-nums">
-                      <span title={t('game.money')}>{fmtCoins(player.money, i18n.language)}<CoinIcon /></span>
+                      <span title={t('game.money')} className="relative">
+                        <AnimatedNumber value={player.money} format={(n) => fmtCoins(n, i18n.language)} /><CoinIcon />
+                        <DeltaChips
+                          epoch={gameEpoch}
+                          value={player.money}
+                          className="left-full ml-1 -top-1 flex flex-col items-start gap-0.5 z-10"
+                          render={(d) => <>{d > 0 ? '+' : '−'}{fmtCoins(Math.abs(d), i18n.language)}<CoinIcon /></>}
+                        />
+                      </span>
                       <span title={t('game.strength')}>⚔ {calculatePlayerStrength(index)}</span>
                       <span className="hidden sm:inline" title={t('game.buildings')}>⌂ {player.improvements}</span>
                       {(player.weapons > 0 || player.armor > 0) && (
@@ -2459,7 +2506,15 @@ const PskovGame = ({ onMenu }) => {
                     </div>
                   </div>
                   <div className="flex items-baseline gap-1 sm:block sm:text-right flex-shrink-0" title={t('game.victoryPoints')}>
-                    <div className="text-sm sm:text-lg font-bold text-ink leading-none lining-nums tabular-nums">{calculateVictoryPoints(player)}</div>
+                    <div className="relative text-sm sm:text-lg font-bold text-ink leading-none lining-nums tabular-nums">
+                      <AnimatedNumber value={calculateVictoryPoints(player)} format={(n) => Math.round(n)} />
+                      <DeltaChips
+                        epoch={gameEpoch}
+                        value={calculateVictoryPoints(player)}
+                        className="right-full mr-1 top-0 flex flex-col items-end gap-0.5 z-10"
+                        render={(d) => <>{d > 0 ? '+' : '−'}{Math.abs(d)} {t('player.vp')}</>}
+                      />
+                    </div>
                     <div className="text-[10px] uppercase tracking-wide text-ink-muted">{t('player.vp')}</div>
                   </div>
                 </div>
@@ -2471,29 +2526,6 @@ const PskovGame = ({ onMenu }) => {
 
         {/* Phase content */}
         <main className="min-w-0 space-y-4 lg:col-start-2 lg:row-start-1 lg:row-span-2">
-
-          {/* Income notification banner (auto-dismissed) */}
-          {gameState.phase === 'construction' && incomeNotification && (
-            <div className="bg-parchment-100 border border-parchment-400 rounded-lg px-4 py-2.5 flex items-center justify-between phase-enter">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 flex-1 justify-center">
-                <span className="w-full sm:w-auto text-center text-xs font-medium text-ink-muted">
-                  {t('game.turn', { turn: incomeNotification.turn })} &mdash; {t('phases.resources')}:
-                </span>
-                {incomeNotification.incomes.map(({ faction, income }) => (
-                  <span key={faction} className="text-sm text-ink">
-                    <span className="text-ink-light">{t(`factions.${faction}`)}</span>{' '}
-                    <span className="font-semibold text-good">+{fmtCoins(income, i18n.language)}<CoinIcon /></span>
-                  </span>
-                ))}
-              </div>
-              <button
-                onClick={() => setIncomeNotification(null)}
-                className="text-ink-muted hover:text-ink text-xs ml-2 px-1"
-              >
-                &times;
-              </button>
-            </div>
-          )}
 
           {/* AI construction turn: show who is building instead of an empty column */}
           {gameState.phase === 'construction' && !isGameOver && mode === 'local' && aiPlayers[gameState.currentPlayer] && (() => {
@@ -2726,34 +2758,51 @@ const PskovGame = ({ onMenu }) => {
       {/* ===== EVENTS PHASE ===== */}
       {gameState.phase === 'events' && gameState.currentEvent && !isGameOver && (
         <div className="phase-enter">
-          {/* Event Card with Dramatic Reveal */}
-          {!gameState.eventImageRevealed && getEventImage(gameState.currentEvent.id) && (
-            <div className="text-center py-16">
-              <div className="heading-serif text-2xl text-ink mb-3">{t('events.newEvent')}</div>
-              <div className="text-ink-muted">{t('game.revealingEvent')}</div>
-            </div>
-          )}
-
-          {/* Side-by-side layout: image left, content right */}
-          {(gameState.eventImageRevealed || !getEventImage(gameState.currentEvent.id)) && (
+          {/* Side-by-side layout: event card left, content right */}
+          {true && (
             <div className="flex flex-col xl:flex-row gap-4 xl:items-start">
 
-              {/* Event art: a wide banner above the card until there is room for a
-                  portrait card beside it. Fixed aspect ratios, so it never stretches. */}
-              {getEventImage(gameState.currentEvent.id) && gameState.eventImageRevealed && (
-                <div className="event-card-revealed w-full xl:w-[38%] xl:max-w-[440px] flex-shrink-0 xl:sticky xl:top-20">
-                  <div className="art-frame">
-                    <img
-                      src={getEventImage(gameState.currentEvent.id)}
-                      alt=""
-                      className="art block w-full aspect-[16/9] sm:aspect-[21/9] xl:aspect-[2/3] object-cover"
-                      style={{ objectPosition: `center ${getEventImageFocus(gameState.currentEvent.id)}` }}
-                    />
+              {/* The event card: dealt face down, then flipped once its art has loaded.
+                  A wide banner on small screens, a portrait card on wide ones. */}
+              {getEventImage(gameState.currentEvent.id) && (
+                <div className="w-full xl:w-[38%] xl:max-w-[440px] flex-shrink-0 xl:sticky xl:top-20">
+                  <div className={`flip-card aspect-[16/9] sm:aspect-[21/9] xl:aspect-[2/3] ${gameState.eventImageRevealed ? 'is-flipped' : ''}`}>
+                    <div className="flip-card-inner">
+                      {/* Card back */}
+                      <div className="flip-face card-back" aria-hidden={gameState.eventImageRevealed}>
+                        <svg viewBox="0 0 100 100" className="card-back-emblem" aria-hidden="true">
+                          <circle cx="50" cy="50" r="44" fill="none" stroke="#b08a3e" strokeWidth="1.5" />
+                          <circle cx="50" cy="50" r="38" fill="none" stroke="#b08a3e" strokeWidth="0.75" strokeDasharray="2 3" />
+                          <path d="M50 14 L56 40 L82 34 L62 50 L82 66 L56 60 L50 86 L44 60 L18 66 L38 50 L18 34 L44 40 Z" fill="#d9bf7a" stroke="#8a6a26" strokeWidth="1" />
+                          <circle cx="50" cy="50" r="6" fill="#2f2217" stroke="#d9bf7a" strokeWidth="1.5" />
+                        </svg>
+                        {!gameState.eventImageRevealed && (
+                          <div className="text-center px-4" role="status">
+                            <div className="font-display text-lg sm:text-xl text-[#f3e3b5] tracking-wide">{t('events.newEvent')}</div>
+                            <div className="text-xs sm:text-sm text-[#d9bf7a]/80">{t('game.revealingEvent')}</div>
+                          </div>
+                        )}
+                      </div>
+                      {/* Card face: the event art */}
+                      <div className="flip-face flip-front">
+                        <div className="art-frame h-full">
+                          <img
+                            src={getEventImage(gameState.currentEvent.id)}
+                            alt=""
+                            className="art block w-full h-full object-cover"
+                            style={{ objectPosition: `center ${getEventImageFocus(gameState.currentEvent.id)}` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="card-parchment-raised p-4 sm:p-5 flex-1 min-w-0">
+              {/* The card's text appears once it has been turned over */}
+              <div className={`card-parchment-raised p-4 sm:p-5 flex-1 min-w-0 ${
+                gameState.eventImageRevealed || !getEventImage(gameState.currentEvent.id) ? 'event-content-in' : 'hidden'
+              }`}>
               <h3 className="heading-serif text-xl text-center mb-3">{t('game.event', { name: getEventName(gameState.currentEvent) })}</h3>
               {/* Order attacks describe themselves below with the real, turn-scaled strength;
                   only the retaliation card has extra story to tell */}
@@ -3133,6 +3182,22 @@ const PskovGame = ({ onMenu }) => {
                     })}
                   </div>
 
+                  {(() => {
+                    const { strength: orderStrength } = getOrderAttackInfo(gameState.currentEvent);
+                    const ours = strengthOf(votersFor(gameState.eventVotes));
+                    return (
+                      <div className="mb-4">
+                        <BattleReport
+                          title={t('battle.forecast')}
+                          ours={ours}
+                          theirs={orderStrength}
+                          chance={chanceFor(ours, orderStrength)}
+                          note={t('battle.fortressNote')}
+                        />
+                      </div>
+                    );
+                  })()}
+
                   {getParticipationResult() && (
                     <div className="text-center">
                       <p className="text-sm text-ink-light mb-2">
@@ -3168,6 +3233,18 @@ const PskovGame = ({ onMenu }) => {
               {gameState.eventResolved && (
                 <div className="text-center py-2">
                   <p className="text-good font-semibold mb-2">{t('game.eventResolved')}</p>
+                  {battleOutcome(gameState.battleResult) && (
+                    <div className="mb-3 text-left">
+                      <BattleReport
+                        key={`${gameState.turn}-${gameState.battleResult.region}`}
+                        title={t('battle.reportTitle', regionArgs(gameState.battleResult.region))}
+                        ours={gameState.battleResult.pskovStrength}
+                        theirs={gameState.battleResult.orderStrength}
+                        chance={gameState.battleResult.chancePercent}
+                        outcome={battleOutcome(gameState.battleResult)}
+                      />
+                    </div>
+                  )}
                   {gameState.lastEventResult && (
                     <p className="text-sm text-ink-light mb-2 font-medium">{coinify(gameState.lastEventResult)}</p>
                   )}
@@ -3235,6 +3312,23 @@ const PskovGame = ({ onMenu }) => {
                 {t('veche.planningAttack', regionArgs(gameState.attackTarget))}
               </h4>
               <p className="text-xs text-war mb-3">{coinify(t('veche.attackRequiresFunding'))}</p>
+
+              {(() => {
+                const target = gameState.regions[gameState.attackTarget];
+                const orderStrength = 100 + getOrderTurnBonus(gameState.turn) + (target?.fortress ? FORTRESS_DEFENSE_BONUS : 0);
+                const ours = strengthOf(votersFor(gameState.attackVotes));
+                return (
+                  <div className="mb-3">
+                    <BattleReport
+                      title={t('battle.forecast')}
+                      ours={ours}
+                      theirs={orderStrength}
+                      chance={chanceFor(ours, orderStrength)}
+                      note={target?.fortress ? t('battle.orderFortressNote') : undefined}
+                    />
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                 {gameState.players.map((player, index) => {
@@ -3317,6 +3411,18 @@ const PskovGame = ({ onMenu }) => {
           )}
 
           {/* Attack Result */}
+          {battleOutcome(gameState.battleResult) && gameState.lastEventResult && (
+            <div className="mb-3">
+              <BattleReport
+                key={`${gameState.turn}-${gameState.battleResult.region}`}
+                title={t('battle.reportTitle', regionArgs(gameState.battleResult.region))}
+                ours={gameState.battleResult.pskovStrength}
+                theirs={gameState.battleResult.orderStrength}
+                chance={gameState.battleResult.chancePercent}
+                outcome={battleOutcome(gameState.battleResult)}
+              />
+            </div>
+          )}
           {gameState.lastEventResult && (
             <div className={`p-3 rounded mb-4 text-sm font-medium ${
               gameState.battleResult?.type === 'attack_victory' ? 'bg-good/10 text-good border border-good/30'
@@ -3448,63 +3554,107 @@ const PskovGame = ({ onMenu }) => {
       )}
 
       {/* ===== GAME END / DEFEAT ===== */}
-      {isGameOver && (
-        <div className="card-parchment-raised p-6 phase-enter">
-          {gameState.gameOver ? (
-            <div className="text-center mb-5">
-              {/* font-serif, not heading-serif: heading-serif fixes the colour to ink */}
-              <h3 className="font-serif text-2xl font-bold tracking-wide text-war mb-2">{t('game.gameOver')}</h3>
-              <p className="text-ink-light">{t('game.pskovFallen')}</p>
+      {isGameOver && (gameState.gameOver ? (
+        /* Defeat: Pskov has fallen */
+        <div className="relative overflow-hidden rounded-lg phase-enter end-defeat">
+          <img src={getEventImage('order_attack')} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'grayscale(0.6) sepia(0.3) brightness(0.35) contrast(1.1)' }} />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(20,12,6,0.2) 20%, rgba(20,12,6,0.85) 100%)' }} />
+          <div className="relative px-6 py-10 sm:py-14 text-center">
+            <h3 className="font-display text-4xl sm:text-5xl font-bold tracking-wide text-[#e9a089] mb-2">{t('game.gameOver')}</h3>
+            <p className="text-lg text-parchment-200 mb-6">{t('game.pskovFallen')}</p>
+            <div className="flex justify-center gap-3 mb-8">
+              {gameState.players.map((player, i) => (
+                <img
+                  key={i}
+                  src={FACTION_THUMBS[player.faction]}
+                  alt={t(`factions.${player.faction}`)}
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-[#6b5a42]"
+                  style={{ filter: 'grayscale(1) brightness(0.7)' }}
+                />
+              ))}
             </div>
-          ) : (() => {
-            const result = getGameResult();
-            return (
-              <div className="mb-5">
-                <h3 className="heading-serif text-2xl text-center mb-1">{t('game.victory')}</h3>
-                <p className="text-center text-ink-light mb-4">{t('game.republicSurvived')}</p>
-                <div className="border-2 border-accent rounded-lg p-4 mb-4 bg-parchment-50 text-center">
-                  <h4 className="heading-serif text-lg">
-                    {t('end.winner', { faction: t(`factions.${result.winner.faction}`) })}
-                  </h4>
-                  <p className="text-sm text-ink-light">
-                    {t('end.vp', { count: result.winner.victoryPoints })} &middot; {fmtCoins(result.winner.money, i18n.language)}<CoinIcon />
-                  </p>
-                </div>
-
-                <h4 className="font-display text-base font-medium text-ink-light tracking-wide mb-2">{t('end.rankings')}</h4>
-                <div className="space-y-2">
-                  {result.rankings.map((player, rank) => (
-                    <div key={player.index} className={`p-3 rounded ${rank === 0 ? 'bg-parchment-50 border border-accent' : 'border border-parchment-400'}`}>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="font-medium text-ink">#{rank + 1} {t(`factions.${player.faction}`)}</span>
-                        <span className="text-ink-light">
-                          {t('end.vp', { count: player.victoryPoints })} &middot; {fmtCoins(player.money, i18n.language)}<CoinIcon />
-                        </span>
-                      </div>
-                      <div className="text-xs text-ink-muted mt-1 flex flex-wrap gap-x-3">
-                        {player.breakdown.secular > 0 && <span>{t('end.secular', { count: player.breakdown.secular })}</span>}
-                        {player.breakdown.religious > 0 && <span>{t('end.religious', { count: player.breakdown.religious, vp: player.breakdown.religious * 2 })}</span>}
-                        {player.breakdown.bonus > 0 && <span>{t('end.bonus', { count: player.breakdown.bonus })}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
-          <div className="flex gap-2 justify-center">
-            {mode === 'local' && (
-              <button onClick={() => initLocalGame(aiPlayers)} className="btn-accent px-5 py-2 text-sm">
-                {t('end.playAgain')}
+            <div className="flex gap-2 justify-center">
+              {mode === 'local' && (
+                <button onClick={() => initLocalGame(aiPlayers)} className="btn-accent px-6 py-2.5">
+                  {t('end.playAgain')}
+                </button>
+              )}
+              <button onClick={onMenu} className="btn-secondary px-6 py-2.5 !bg-parchment-50/90">
+                {t('end.backToMenu')}
               </button>
-            )}
-            <button onClick={onMenu} className="btn-secondary px-5 py-2 text-sm">
-              {t('end.backToMenu')}
-            </button>
+            </div>
           </div>
         </div>
-      )}
+      ) : (() => {
+        /* Victory: the Republic survived; the factions take their places on the podium */
+        const result = getGameResult();
+        const medal = ['#d9bf7a', '#c9c3b8', '#c08a5a'];
+        return (
+          <div className="card-parchment-raised p-5 sm:p-8 phase-enter">
+            <div className="text-center mb-6">
+              <p className="font-display text-sm tracking-[0.25em] text-accent">{t('game.republicSurvived')}</p>
+              <h3 className="font-display text-4xl sm:text-5xl font-bold text-ink">
+                {t('end.winner', { faction: t(`factions.${result.winner.faction}`) })}
+              </h3>
+              <div className="section-divider mx-auto max-w-xs" />
+            </div>
+
+            {/* Podium: second, first, third on wide screens; in rank order on phones */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 sm:items-end mb-7">
+              {result.rankings.map((player, rank) => (
+                <div
+                  key={player.index}
+                  className={`end-podium flex sm:flex-col items-center gap-3 sm:gap-2 text-left sm:text-center ${
+                    rank === 0 ? 'sm:order-2' : rank === 1 ? 'sm:order-1' : 'sm:order-3'
+                  }`}
+                  style={{ animationDelay: `${[0.9, 0.5, 0.2][rank]}s` }}
+                >
+                  <div className={`relative flex-shrink-0 ${rank === 0 ? 'w-24 sm:w-full' : 'w-20 sm:w-[82%]'}`}>
+                    <div className="art-frame aspect-[3/4]" style={rank === 0 ? { borderColor: '#b08a3e', boxShadow: '0 0 0 1px #d9bf7a, 0 0 32px rgba(217,191,122,0.55)' } : undefined}>
+                      <img src={FACTION_CARDS[player.faction]} alt="" className="art w-full h-full object-cover object-top" />
+                    </div>
+                    <span
+                      className="absolute -top-2 -left-2 w-9 h-9 rounded-full grid place-items-center font-display text-lg font-bold text-ink border-2 border-[#5c4033] shadow"
+                      style={{ background: medal[rank] }}
+                    >
+                      {rank + 1}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="heading-serif text-lg font-bold text-ink">{t(`factions.${player.faction}`)}</div>
+                    <div className="font-display text-2xl font-bold text-ink lining-nums tabular-nums">
+                      <AnimatedNumber value={player.victoryPoints} from={0} duration={1400} format={(n) => Math.round(n)} />
+                      <span className="ml-1 text-sm text-ink-muted">{t('player.vp')}</span>
+                    </div>
+                    <div className="text-sm text-ink-light">{fmtCoins(player.money, i18n.language)}<CoinIcon /></div>
+                    <div className="text-xs text-ink-muted mt-0.5 flex flex-wrap sm:justify-center gap-x-2">
+                      {player.breakdown.secular > 0 && <span>{t('end.secular', { count: player.breakdown.secular })}</span>}
+                      {player.breakdown.religious > 0 && <span>{t('end.religious', { count: player.breakdown.religious, vp: player.breakdown.religious * 2 })}</span>}
+                      {player.breakdown.bonus > 0 && <span>{t('end.bonus', { count: player.breakdown.bonus })}</span>}
+                    </div>
+                  </div>
+                  {/* Plinth */}
+                  <div
+                    className="hidden sm:block w-full rounded-t-md border border-b-0 border-[#8b7355]"
+                    style={{ height: ['3.5rem', '2.25rem', '1.25rem'][rank], background: 'linear-gradient(to bottom, #e8dcc0, #d4c4a8)' }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 justify-center">
+              {mode === 'local' && (
+                <button onClick={() => initLocalGame(aiPlayers)} className="btn-accent px-6 py-2.5">
+                  {t('end.playAgain')}
+                </button>
+              )}
+              <button onClick={onMenu} className="btn-secondary px-6 py-2.5">
+                {t('end.backToMenu')}
+              </button>
+            </div>
+          </div>
+        );
+      })())}
 
           {/* ===== ACTION BAR: the single "what next" control, pinned to the bottom of the screen ===== */}
           {primaryAction && (

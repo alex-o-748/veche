@@ -495,6 +495,178 @@
   to { transform: scale(1); opacity: 1; }
 }
 
+/* ===== Game feel ===== */
+.delta-chip {
+  display: block;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.1rem;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(44, 24, 16, 0.25);
+  animation: deltaFloat 1.8s ease-out forwards;
+}
+.delta-up {
+  background: #e6efd9;
+  color: var(--color-good);
+  border: 1px solid rgba(63, 107, 47, 0.4);
+}
+.delta-down {
+  background: #f6e1da;
+  color: var(--color-war);
+  border: 1px solid rgba(155, 47, 30, 0.4);
+}
+@keyframes deltaFloat {
+  0% { opacity: 0; transform: translateY(6px) scale(0.8); }
+  15% { opacity: 1; transform: translateY(0) scale(1); }
+  70% { opacity: 1; transform: translateY(-10px); }
+  100% { opacity: 0; transform: translateY(-18px); }
+}
+
+.phase-banner {
+  text-align: center;
+  padding: 0.75rem 3rem 0.9rem;
+  background:
+    var(--wood-grain),
+    linear-gradient(to bottom, rgba(74, 54, 38, 0.96), rgba(47, 34, 23, 0.96));
+  border-top: 2px solid #b08a3e;
+  border-bottom: 2px solid #b08a3e;
+  box-shadow: 0 10px 40px rgba(20, 12, 5, 0.45);
+  clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
+  animation: bannerInOut 1.7s ease-in-out forwards;
+}
+@keyframes bannerInOut {
+  0% { opacity: 0; transform: scaleX(0.6); }
+  18% { opacity: 1; transform: scaleX(1); }
+  78% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+
+/* ===== Event card flip ===== */
+.flip-card {
+  position: relative;
+  perspective: 1400px;
+}
+.flip-card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.flip-card.is-flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+.flip-face {
+  position: absolute;
+  inset: 0;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 0.75rem;
+}
+.flip-front {
+  transform: rotateY(180deg);
+}
+.card-back {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background:
+    var(--wood-grain),
+    radial-gradient(ellipse at center, #4a3626 0%, #2f2217 75%);
+  border: 3px solid #6b5a42;
+  box-shadow:
+    0 0 0 1px #b08a3e,
+    inset 0 0 0 8px #2f2217,
+    inset 0 0 0 9px rgba(176, 138, 62, 0.7),
+    inset 0 0 0 13px #2f2217,
+    inset 0 0 0 14px rgba(176, 138, 62, 0.35),
+    0 6px 24px rgba(44, 24, 16, 0.25);
+}
+.card-back-emblem {
+  width: min(38%, 9rem);
+  max-height: 45%;
+  animation: emblemGlow 1.6s ease-in-out infinite;
+}
+@keyframes emblemGlow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(217, 191, 122, 0.3)); }
+  50% { filter: drop-shadow(0 0 10px rgba(217, 191, 122, 0.8)); }
+}
+.event-content-in {
+  animation: contentIn 0.5s ease-out 0.35s both;
+}
+@keyframes contentIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Battle report ===== */
+.battle-report {
+  position: relative;
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.5rem;
+  background: var(--paper-grain), #fbf6ec;
+  border: 1px solid #c9b896;
+  overflow: hidden;
+}
+.battle-report.is-forecast {
+  background: rgba(250, 243, 232, 0.6);
+  border-style: dashed;
+}
+.battle-bar {
+  position: relative;
+  height: 0.875rem;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, #3a3330, #1c1917);
+  border: 1px solid #1c1917;
+  overflow: hidden;
+}
+.battle-bar-ours {
+  height: 100%;
+  background: linear-gradient(to bottom, #e3c983, #b08a3e);
+  border-right: 2px solid #faf3e8;
+  transition: width 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.battle-bar-mid {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: rgba(250, 243, 232, 0.7);
+}
+.battle-stamp {
+  padding: 0.1rem 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border: 3px double currentColor;
+  border-radius: 0.35rem;
+  background: rgba(250, 243, 232, 0.88);
+  opacity: 0;
+  transform: rotate(-5deg) scale(2);
+  transition: opacity 0.25s ease-out, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+.battle-stamp.is-in {
+  opacity: 1;
+  transform: rotate(-5deg) scale(1);
+}
+.battle-stamp.is-won { color: var(--color-good); }
+.battle-stamp.is-lost { color: var(--color-war); }
+
+/* ===== End screen ===== */
+.end-podium {
+  animation: podiumRise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes podiumRise {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ===== Animations ===== */
 .phase-enter {
   animation: phaseIn 0.3s ease-out;
@@ -532,12 +704,22 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .flip-card-inner,
+  .battle-bar-ours,
+  .battle-stamp {
+    transition: none;
+  }
   .phase-enter,
   .event-card-revealed,
   .map-pulse,
   .map-threat,
   .map-march,
-  .map-pop {
+  .map-pop,
+  .delta-chip,
+  .phase-banner,
+  .card-back-emblem,
+  .event-content-in,
+  .end-podium {
     animation: none;
     opacity: 1;
     transform: none;

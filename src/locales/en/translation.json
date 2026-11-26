@@ -327,7 +327,16 @@
     "plagueContained": "Plague partially contained! All factions lose 5 strength for 2 turns.",
     "plagueSpread": "Plague spreads unchecked! All factions lose 25 strength for 2 turns.",
     "squirrelsSkinned": "Squirrels skinned for magnificent furs! +25% income but commoners are furious. -12 strength for 3 turns.",
-    "squirrelsBefriended": "Giant squirrels welcomed! They help find forest paths and bring nuts. -25% income but +5 strength for 3 turns."
+    "squirrelsBefriended": "Giant squirrels welcomed! They help find forest paths and bring nuts. -25% income but +5 strength for 3 turns.",
+    "chance": "Chance of victory",
+    "ourForces": "Pskov",
+    "orderForces": "Order",
+    "forecast": "Forecast as the council stands",
+    "fortressNote": "A fortress adds +10 if the Order strikes a fortified region.",
+    "orderFortressNote": "The Order holds a fortress here: +10 to its strength.",
+    "reportTitle": "Battle for {{region}}",
+    "stampVictory": "Victory",
+    "stampDefeat": "Defeat"
   },
   "eventCards": {
     "merchants_robbed": {
@@ -575,5 +584,14 @@
     "ai": "AI",
     "turn": "Turn",
     "vp": "VP"
+  },
+  "banner": {
+    "turn": "Turn {{turn}}",
+    "eventsSub": "Fortune turns",
+    "vecheSub": "The bell calls the people"
+  },
+  "sound": {
+    "mute": "Mute sounds",
+    "unmute": "Turn sounds on"
   }
 }
