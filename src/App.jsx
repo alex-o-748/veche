@@ -2138,7 +2138,8 @@ const PskovGame = ({ onMenu }) => {
     }
 
     // Execute the resolution ONCE, outside of setGameState
-    const liveState = { ...gameState, currentEvent: event };
+    // battleResult is cleared so the map only marks a battle this event actually caused
+    const liveState = { ...gameState, currentEvent: event, battleResult: null };
     const newState = eventType.resolve(event, liveState, gameState.eventVotes);
 
     // Check if a new event was triggered (nested event scenario)
@@ -2225,6 +2226,59 @@ const PskovGame = ({ onMenu }) => {
     return null;
   };
   const primaryAction = getPrimaryAction();
+
+  // ---- Region selection for construction (region buttons and the map) ----
+  const selectRegion = (regionName) => {
+    setGameState(prev => ({ ...prev, selectedRegion: regionName }));
+    if (mode === 'online') {
+      sendAction({ type: 'SELECT_REGION', regionName });
+    }
+  };
+
+  // ---- What the map should show for the current moment of the game ----
+  const getMapProps = () => {
+    const props = {};
+    const phase = gameState.phase;
+    if (isGameOver) return props;
+
+    // Construction: the builder can pick a region on the map
+    const builderIndex = mode === 'online' ? playerId : gameState.currentPlayer;
+    const builder = gameState.players[builderIndex];
+    const builderCanAct = phase === 'construction' && builder && !hotseatConstructionDone
+      && !(mode === 'local' && aiPlayers[gameState.currentPlayer])
+      && !(mode === 'online' && gameState.constructionReady[playerId]);
+    if (builderCanAct) {
+      props.selectedRegion = gameState.selectedRegion;
+      props.selectableRegions = Object.entries(gameState.regions)
+        .filter(([name, region]) => region.controller === 'republic' && (builder.faction !== 'Merchants' || name === 'pskov'))
+        .map(([name]) => name);
+      props.onRegionClick = selectRegion;
+    }
+
+    // Order attack pending: show where the Order may strike (same rule as the resolver:
+    // Pskov is only attacked when nothing else is reachable)
+    const ev = gameState.currentEvent;
+    if (phase === 'events' && ev?.type === 'order_attack' && !gameState.eventResolved) {
+      const targets = getValidOrderAttackTargets(gameState.regions);
+      const nonPskov = targets.filter((r) => r !== 'pskov');
+      props.threatTargets = nonPskov.length > 0 ? nonPskov : targets;
+    }
+
+    // Veche: the campaign being planned
+    if (phase === 'veche' && gameState.attackPlanning === 'planning' && gameState.attackTarget) {
+      props.campaign = { target: gameState.attackTarget };
+    }
+
+    // The battle just fought (its result text is still on screen)
+    const br = gameState.battleResult;
+    if (gameState.lastEventResult && br?.region && (phase === 'events' || phase === 'veche')) {
+      props.battle = {
+        region: br.region,
+        outcome: br.type === 'defense_victory' || br.type === 'attack_victory' ? 'won' : 'lost',
+      };
+    }
+    return props;
+  };
 
   // ---- Shared layout for the per-faction voting columns (events and Veche) ----
   const FACTION_BORDER_CLASS = {
@@ -2486,12 +2540,8 @@ const PskovGame = ({ onMenu }) => {
                 return (
                   <button
                     key={regionName}
-                    onClick={() => {
-                      setGameState(prev => ({ ...prev, selectedRegion: regionName }));
-                      if (mode === 'online') {
-                        sendAction({ type: 'SELECT_REGION', regionName });
-                      }
-                    }}
+                    onClick={() => selectRegion(regionName)}
+                    aria-pressed={gameState.selectedRegion === regionName}
                     disabled={!isAvailable}
                     className={`px-3 py-1.5 rounded text-sm border transition-colors ${
                       gameState.selectedRegion === regionName
@@ -3502,7 +3552,7 @@ const PskovGame = ({ onMenu }) => {
 
           {/* Map: capped on tablets so the portrait image does not fill the screen */}
           <div className="max-w-sm mx-auto lg:max-w-none">
-            <GameMap gameState={gameState} />
+            <GameMap gameState={gameState} {...getMapProps()} />
           </div>
         </aside>
 

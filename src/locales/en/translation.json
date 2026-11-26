@@ -89,12 +89,19 @@
   "map": {
     "title": "Map of the Pskov Republic",
     "legend": {
-      "capital": "Pskov (Capital)",
-      "republic_town": "Republic Town",
-      "republic_fortress": "Republic Fortress",
-      "order_town": "Order Territory",
-      "order_fortress": "Order Fortress"
-    }
+      "republic": "Republic",
+      "order": "Order",
+      "fortress": "Fortress",
+      "buildings": "Buildings"
+    },
+    "capital": "capital",
+    "heldByRepublic": "Held by the Republic",
+    "heldByOrder": "Held by the Teutonic Order",
+    "fortress": "fortress",
+    "threatened": "The Order may strike here",
+    "noBuildings": "No buildings yet",
+    "clickToBuild": "Click to build here",
+    "lake": "Lake Peipus"
   },
   "game": {
     "loading": "Loading game...",

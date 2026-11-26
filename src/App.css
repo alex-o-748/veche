@@ -445,6 +445,56 @@
   }
 }
 
+/* ===== Map ===== */
+.map-settlement {
+  outline: none;
+}
+.map-settlement:focus-visible .map-hit {
+  stroke: var(--color-accent);
+  stroke-width: 5;
+  stroke-dasharray: 4 6;
+}
+.map-settlement.cursor-pointer:hover .map-selectable {
+  stroke-dasharray: none;
+  fill: rgba(139, 69, 19, 0.12);
+}
+.map-pulse {
+  animation: mapPulse 1.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.map-threat {
+  animation: mapSpin 14s linear infinite, mapThreat 1.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.map-march {
+  animation: mapMarch 0.9s linear infinite;
+}
+.map-pop {
+  animation: mapPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes mapPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+@keyframes mapThreat {
+  0%, 100% { stroke-opacity: 1; }
+  50% { stroke-opacity: 0.45; }
+}
+@keyframes mapSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes mapMarch {
+  to { stroke-dashoffset: -32; }
+}
+@keyframes mapPop {
+  from { transform: scale(0.2); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 /* ===== Animations ===== */
 .phase-enter {
   animation: phaseIn 0.3s ease-out;
@@ -483,7 +533,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .phase-enter,
-  .event-card-revealed {
+  .event-card-revealed,
+  .map-pulse,
+  .map-threat,
+  .map-march,
+  .map-pop {
     animation: none;
     opacity: 1;
     transform: none;
