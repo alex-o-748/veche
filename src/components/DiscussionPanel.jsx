@@ -5,19 +5,19 @@ import { useGameStore } from '../store/gameStore';
 // Faction color schemes (parchment-themed)
 const FACTION_COLORS = {
   Nobles: {
-    border: 'border-l-purple-600',
-    name: 'text-purple-800',
-    dot: 'bg-purple-600',
+    border: 'faction-border-nobles',
+    name: 'text-faction-nobles',
+    dot: 'bg-faction-nobles',
   },
   Merchants: {
-    border: 'border-l-amber-600',
-    name: 'text-amber-800',
-    dot: 'bg-amber-600',
+    border: 'faction-border-merchants',
+    name: 'text-ink',
+    dot: 'bg-faction-merchants',
   },
   Commoners: {
-    border: 'border-l-emerald-600',
-    name: 'text-emerald-800',
-    dot: 'bg-emerald-600',
+    border: 'faction-border-commoners',
+    name: 'text-faction-commoners',
+    dot: 'bg-faction-commoners',
   },
 };
 
@@ -63,7 +63,7 @@ const DiscussionPanel = () => {
           return (
             <div
               key={i}
-              className={`${colors.border} border-l-3 pl-3 py-2`}
+              className={`${colors.border} pl-3 py-2`}
             >
               <div className="flex items-center gap-1.5 mb-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
@@ -88,7 +88,7 @@ const DiscussionPanel = () => {
               return (
                 <div
                   key={i}
-                  className={`${colors.border} border-l-3 pl-3 py-2 animate-pulse`}
+                  className={`${colors.border} pl-3 py-2 animate-pulse`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />

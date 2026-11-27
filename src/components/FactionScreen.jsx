@@ -2,25 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FACTION_IMAGES } from '../imageAssets';
 
+// Faction pigment for the portrait frame and the divider
 const FACTION_ACCENTS = {
-  Nobles: {
-    border: 'border-purple-400/60',
-    glow: 'shadow-purple-300/30',
-    text: 'text-purple-200',
-    divider: 'bg-purple-300/40',
-  },
-  Merchants: {
-    border: 'border-yellow-400/60',
-    glow: 'shadow-yellow-300/30',
-    text: 'text-yellow-200',
-    divider: 'bg-yellow-300/40',
-  },
-  Commoners: {
-    border: 'border-green-400/60',
-    glow: 'shadow-green-300/30',
-    text: 'text-green-200',
-    divider: 'bg-green-300/40',
-  },
+  Nobles: '#8f5a80',
+  Merchants: '#c9963a',
+  Commoners: '#6f9455',
 };
 
 /**
@@ -43,18 +29,27 @@ export const FactionScreen = ({ faction, onContinue, onBack }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-stone-950 overflow-y-auto"
+      className="fixed inset-0 z-50 overflow-y-auto"
       style={{
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.6s ease-in',
       }}
     >
-      {/* Subtle radial vignette */}
-      <div className="fixed inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)',
-        }}
-      />
+      {/* Backdrop: the faction's own portrait, blurred and darkened, over dark wood */}
+      <div className="fixed inset-0 pointer-events-none" style={{ background: '#1d150d' }} aria-hidden="true">
+        {image && (
+          <img
+            src={image}
+            alt=""
+            className="w-full h-full object-cover scale-110"
+            style={{ filter: 'blur(28px) brightness(0.4) sepia(0.4) saturate(0.8)' }}
+          />
+        )}
+        <div
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(ellipse at center, transparent 35%, rgba(12,8,4,0.75) 100%)' }}
+        />
+      </div>
 
       {onBack && (
         <button
@@ -67,11 +62,13 @@ export const FactionScreen = ({ faction, onContinue, onBack }) => {
 
       <div className="min-h-full flex items-center justify-center py-12">
       <div className="relative flex flex-col items-center gap-6 px-6 max-w-md w-full">
-        {/* Faction portrait */}
+        {/* Faction portrait, framed like a playing card */}
         <div
-          className={`w-56 h-56 md:w-64 md:h-64 rounded-full overflow-hidden border-4 ${accent.border} shadow-2xl ${accent.glow}`}
+          className="art-frame w-52 md:w-64 aspect-[2/3]"
           style={{
-            transform: visible ? 'scale(1)' : 'scale(0.92)',
+            borderColor: accent,
+            boxShadow: `0 0 0 1px #b08a3e, 0 20px 50px rgba(0,0,0,0.55), 0 0 60px ${accent}40`,
+            transform: visible ? 'scale(1)' : 'scale(0.94)',
             transition: 'transform 0.7s ease-out',
           }}
         >
@@ -79,14 +76,14 @@ export const FactionScreen = ({ faction, onContinue, onBack }) => {
             <img
               src={image}
               alt={t(`factions.${faction}`)}
-              className="w-full h-full object-cover"
+              className="art w-full h-full object-cover object-top"
             />
           )}
         </div>
 
         {/* Faction name */}
         <h1
-          className="text-4xl md:text-5xl font-bold text-parchment-100 tracking-wide text-center"
+          className="font-display text-4xl md:text-5xl font-bold text-parchment-100 tracking-wide text-center"
           style={{
             opacity: visible ? 1 : 0,
             transform: visible ? 'translateY(0)' : 'translateY(12px)',
@@ -98,8 +95,9 @@ export const FactionScreen = ({ faction, onContinue, onBack }) => {
 
         {/* Decorative divider */}
         <div
-          className={`w-24 h-px ${accent.divider}`}
+          className="w-24 h-px"
           style={{
+            background: `linear-gradient(to right, transparent, ${accent}, transparent)`,
             opacity: visible ? 1 : 0,
             transform: visible ? 'scaleX(1)' : 'scaleX(0)',
             transition: 'opacity 0.5s ease-out 0.5s, transform 0.5s ease-out 0.5s',
@@ -108,7 +106,7 @@ export const FactionScreen = ({ faction, onContinue, onBack }) => {
 
         {/* Faction description */}
         <p
-          className={`text-lg ${accent.text} text-center leading-relaxed max-w-sm`}
+          className="text-lg text-parchment-200 text-center leading-relaxed max-w-sm"
           style={{
             opacity: visible ? 1 : 0,
             transform: visible ? 'translateY(0)' : 'translateY(8px)',
@@ -121,10 +119,7 @@ export const FactionScreen = ({ faction, onContinue, onBack }) => {
         {/* Continue button */}
         <button
           onClick={onContinue}
-          className="mt-4 px-8 py-3 rounded-lg text-lg font-semibold
-                     bg-parchment-100/10 hover:bg-parchment-100/20
-                     text-parchment-200 border border-parchment-400/30
-                     hover:border-parchment-400/50 transition-all cursor-pointer"
+          className="mt-2 px-10 py-3 text-lg btn-accent"
           style={{
             opacity: visible ? 1 : 0,
             transform: visible ? 'translateY(0)' : 'translateY(10px)',

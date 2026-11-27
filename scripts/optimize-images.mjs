@@ -6,6 +6,7 @@
 // Output goes to public/img/ as WebP:
 //   <name>.webp        full image, at most FULL_WIDTH px wide (never upscaled)
 //   <name>-thumb.webp  square crop, THUMB_SIZE px, for small icons and avatars
+//   <name>-card.webp   CARD_WIDTH px wide, same aspect (only for assets with card: true)
 //
 // To add or replace art: drop the original into art/originals/, add a line to
 // ASSETS below, run the script, and point src/imageAssets.js at /img/<name>.webp.
@@ -18,19 +19,21 @@ const SRC = 'art/originals';
 const OUT = 'public/img';
 const FULL_WIDTH = 800;
 const THUMB_SIZE = 160;
+const CARD_WIDTH = 360;
 
 // name: [source path, options]
 //   full: max width of the full image (default FULL_WIDTH)
 //   thumb: whether to emit a square thumbnail (default true)
 //   position: crop focus for the thumbnail (sharp position, default 'attention')
+//   card: whether to emit a mid-size card image (default false)
 const ASSETS = {
   // Map: shown large and overlaid with SVG at native coordinates, keep native size
   'map': ['map-background.png', { full: 1024, thumb: false }],
 
   // Faction portraits: crop thumbnails towards the face
-  'faction-nobles': ['factions/alexsyggr_a_medieval_Russian_horseman_with_a_stern_face_weari_7fe783e7-e4ca-4cd5-ab95-c561e16ca7c5_1.png', { position: 'top' }],
-  'faction-merchants': ['factions/alexsyggr_A_medieval_rich_Russian_merchant_half-body_portrait_2db14a53-1310-442f-aa46-be695301daf3_0.png', { position: 'top' }],
-  'faction-commoners': ['factions/alexsyggr_a_medieval_Russian_peasant_with_a_wooden_shield_lea_eeec1450-419a-4791-b261-e57425db6f3f_2.png', { position: 'top' }],
+  'faction-nobles': ['factions/alexsyggr_a_medieval_Russian_horseman_with_a_stern_face_weari_7fe783e7-e4ca-4cd5-ab95-c561e16ca7c5_1.png', { position: 'top', card: true }],
+  'faction-merchants': ['factions/alexsyggr_A_medieval_rich_Russian_merchant_half-body_portrait_2db14a53-1310-442f-aa46-be695301daf3_0.png', { position: 'top', card: true }],
+  'faction-commoners': ['factions/alexsyggr_a_medieval_Russian_peasant_with_a_wooden_shield_lea_eeec1450-419a-4791-b261-e57425db6f3f_2.png', { position: 'top', card: true }],
 
   // Buildings
   'building-noble-manor': ['buildings/alexsyggr_A_manor_of_a_medieval_Russian_nobleman_several_wood_7c4b29b2-f640-4577-8296-75faa4c1360a_1.png'],
@@ -97,6 +100,16 @@ for (const [name, [file, opts = {}]] of Object.entries(ASSETS)) {
     const thumbSize = (await stat(thumbPath)).size;
     after += thumbSize;
     line += `, thumb ${kb(thumbSize)}`;
+  }
+  if (opts.card) {
+    const cardPath = path.join(OUT, `${name}-card.webp`);
+    await sharp(src)
+      .resize({ width: CARD_WIDTH, withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toFile(cardPath);
+    const cardSize = (await stat(cardPath)).size;
+    after += cardSize;
+    line += `, card ${kb(cardSize)}`;
   }
   console.log(line);
 }

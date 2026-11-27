@@ -18,7 +18,14 @@ export const FACTION_IMAGES = {
   Commoners: full('faction-commoners'),
 };
 
-// Faction portraits - thumbnails for the menu, player cards and other small avatars
+// Faction portraits - mid-size cards for the main menu faction picker
+export const FACTION_CARDS = {
+  Nobles: `/img/faction-nobles-card.webp`,
+  Merchants: `/img/faction-merchants-card.webp`,
+  Commoners: `/img/faction-commoners-card.webp`,
+};
+
+// Faction portraits - thumbnails for player cards and other small avatars
 export const FACTION_THUMBS = {
   Nobles: thumb('faction-nobles'),
   Merchants: thumb('faction-merchants'),
@@ -74,6 +81,20 @@ export const EVENT_IMAGES = {
   fur_auction: full('event-fur-market'),
   hunters_brought_furs: full('event-fur-market'),
   giant_squirrels: full('event-giant-squirrels'),
+};
+
+// Where the subject sits vertically in each event image (CSS object-position y).
+// Used when the art is cropped to a wide banner on phones and tablets.
+export const EVENT_IMAGE_FOCUS = {
+  order_attack: '72%',
+  merchants_robbed: '60%',
+  fur_auction: '55%',
+  hunters_brought_furs: '55%',
+};
+
+export const getEventImageFocus = (eventId) => {
+  if (eventId && eventId.startsWith('order_attack')) return EVENT_IMAGE_FOCUS.order_attack;
+  return EVENT_IMAGE_FOCUS[eventId] || '45%';
 };
 
 // Expedition image - shown as a small tile in the construction UI

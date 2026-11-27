@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { MAP_IMAGE } from '../imageAssets';
 
 /**
  * HowToPlay - rules overview shown before the first game, and accessible via help button.
@@ -70,7 +71,7 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
         transition: 'opacity 0.4s ease-out, transform 0.4s ease-out',
       }}
     >
-      <h2 id="how-to-play-title" className={`font-serif text-2xl md:text-3xl font-bold text-center mb-6 tracking-wide ${
+      <h2 id="how-to-play-title" className={`font-display text-3xl md:text-4xl font-bold text-center mb-6 tracking-wide ${
         isModal ? 'text-ink' : 'text-parchment-100'
       }`}>
         {t('howToPlay.title')}
@@ -79,17 +80,17 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
       <div className="space-y-5">
         {sections.map((section, si) => (
           <div key={si}>
-            <h3 className={`text-sm font-semibold uppercase tracking-wider mb-2 ${
-              isModal ? 'text-ink-light' : 'text-parchment-400'
+            <h3 className={`font-display text-lg font-medium tracking-wide mb-1.5 ${
+              isModal ? 'text-accent' : 'text-[#d9bf7a]'
             }`}>
               {section.title}
             </h3>
             <ul className="space-y-1.5">
               {section.items.map((item, ii) => (
-                <li key={ii} className={`text-sm leading-relaxed flex gap-2 ${
-                  isModal ? 'text-ink-muted' : 'text-parchment-300'
+                <li key={ii} className={`text-[15px] leading-relaxed flex gap-2 ${
+                  isModal ? 'text-ink-light' : 'text-parchment-200'
                 }`}>
-                  <span className="flex-shrink-0 mt-0.5">&#8226;</span>
+                  <span className={`flex-shrink-0 mt-0.5 ${isModal ? 'text-gold' : 'text-[#b08a3e]'}`} aria-hidden="true">&#9670;</span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -101,11 +102,7 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
       <div className="mt-8 text-center">
         <button
           onClick={onContinue}
-          className={`px-8 py-3 rounded-lg text-lg font-semibold transition-all cursor-pointer ${
-            isModal
-              ? 'btn-accent'
-              : 'bg-parchment-100/10 hover:bg-parchment-100/20 text-parchment-200 border border-parchment-400/30 hover:border-parchment-400/50'
-          }`}
+          className="px-10 py-3 text-lg btn-accent"
         >
           {isModal ? t('howToPlay.close') : t('howToPlay.startPlaying')}
         </button>
@@ -137,14 +134,27 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-stone-950 overflow-y-auto"
+      className="fixed inset-0 z-50 overflow-y-auto"
       style={{
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.4s ease-in',
       }}
     >
+      {/* Backdrop: the campaign map, darkened, behind the rules */}
+      <div className="fixed inset-0 pointer-events-none" style={{ background: '#1d150d' }} aria-hidden="true">
+        <img
+          src={MAP_IMAGE}
+          alt=""
+          className="w-full h-full object-cover"
+          style={{ filter: 'blur(3px) brightness(0.28) sepia(0.6)' }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(20,13,7,0.35) 30%, rgba(12,8,4,0.85) 100%)' }}
+        />
+      </div>
       {/* min-h-full + centring: short content is centred, tall content starts at the top and scrolls */}
-      <div className="min-h-full flex items-center justify-center py-8">
+      <div className="relative min-h-full flex items-center justify-center py-8">
         {content}
       </div>
     </div>
