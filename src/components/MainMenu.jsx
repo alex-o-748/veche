@@ -23,6 +23,8 @@ const FACTION_CARD_COLORS = {
  * - Create online room
  * - Join existing online room
  */
+const CLASSIC_RULES_KEY = 'veche.classicRules';
+
 export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onCreateRoom, onJoinRoom }) => {
   const { t, i18n } = useTranslation();
   const [showJoinForm, setShowJoinForm] = useState(false);
@@ -32,6 +34,17 @@ export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onC
   const [playerName, setPlayerName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [aiPlayers, setAiPlayers] = useState([false, false, false]);
+  // "Classic rules": the game without Glory and the siege of Pskov, for players who want to compare
+  const [classicRules, setClassicRules] = useState(() => {
+    try { return localStorage.getItem(CLASSIC_RULES_KEY) === '1'; } catch { return false; }
+  });
+  const toggleClassicRules = () => {
+    setClassicRules((on) => {
+      try { localStorage.setItem(CLASSIC_RULES_KEY, on ? '0' : '1'); } catch { /* storage unavailable */ }
+      return !on;
+    });
+  };
+  const gameOptions = { ruleset: classicRules ? 'classic' : 'standard' };
   const error = useGameStore((state) => state.error);
   const clearError = useGameStore((state) => state.clearError);
 
@@ -67,7 +80,7 @@ export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onC
   const handleStartWithAi = () => {
     // At least one human player required
     if (aiPlayers.every(ai => ai)) return;
-    onStartLocal(aiPlayers);
+    onStartLocal(aiPlayers, gameOptions);
   };
 
   const setPreset = (preset) => {
@@ -250,13 +263,16 @@ export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onC
             )}
 
             {/* Solo — inline faction picker (one click to play) */}
-            <p className="text-sm text-ink-muted text-center">{savedGame ? t('menu.orNewGame') : t('menu.chooseFaction')}</p>
+            <p className="text-sm text-ink-muted text-center">
+              {savedGame ? t('menu.orNewGame') : t('menu.chooseFaction')}
+              {classicRules && <span className="ml-1 tag-chip bg-parchment-200 text-ink-light">{t('menu.classicRules')}</span>}
+            </p>
 
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {FACTIONS.map((faction, index) => (
                 <button
                   key={faction}
-                  onClick={() => onStartSolo(index)}
+                  onClick={() => onStartSolo(index, gameOptions)}
                   className={`group flex flex-col text-center rounded-lg border-2 bg-parchment-50 overflow-hidden shadow-sm transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md ${FACTION_CARD_COLORS[faction]}`}
                 >
                   <div className="relative aspect-[3/4] overflow-hidden bg-parchment-800">
@@ -292,6 +308,20 @@ export const MainMenu = ({ savedGame, onContinue, onStartLocal, onStartSolo, onC
 
             {showMultiplayer && (
               <div className="space-y-3">
+                {/* Rules for local games (solo and hot-seat) */}
+                <label className="flex items-start gap-2 text-sm text-ink-light cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={classicRules}
+                    onChange={toggleClassicRules}
+                    className="mt-0.5 accent-[var(--color-accent)]"
+                  />
+                  <span>
+                    <span className="font-medium text-ink">{t('menu.classicRules')}</span>
+                    <span className="block text-xs text-ink-muted">{t('menu.classicRulesDesc')}</span>
+                  </span>
+                </label>
+
                 {/* Hotseat button */}
                 <button
                   onClick={() => setShowGameSetup(true)}

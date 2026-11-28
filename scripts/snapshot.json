@@ -1,0 +1,3152 @@
+[
+ {
+  "seed": 1,
+  "ruleset": "standard",
+  "turns": [
+   {
+    "turn": 1,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 0,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 000000",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_bonus:all:5:3"
+    ]
+   },
+   {
+    "turn": 2,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 1
+     },
+     {
+      "faction": "Merchants",
+      "money": 0,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 1
+     },
+     {
+      "faction": "Commoners",
+      "money": 0,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 1
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 000000",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_bonus:all:5:2"
+    ]
+   },
+   {
+    "turn": 3,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 1
+     },
+     {
+      "faction": "Merchants",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 1
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 1
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 000000",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_bonus:all:5:1",
+     "income_penalty:all:-0.25:3",
+     "strength_bonus:all:5:3"
+    ]
+   },
+   {
+    "turn": 4,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.5,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 1
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.5,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 1
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.5,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 1
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 000000",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "income_penalty:all:-0.25:2",
+     "strength_bonus:all:5:2"
+    ]
+   },
+   {
+    "turn": 5,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 2
+     },
+     {
+      "faction": "Merchants",
+      "money": 0,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 2
+     },
+     {
+      "faction": "Commoners",
+      "money": 0,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 2
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 101010",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "income_penalty:all:-0.25:1",
+     "strength_bonus:all:5:1"
+    ]
+   },
+   {
+    "turn": 6,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.25,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 3.25,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 1,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.25,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 101010",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 7,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.5,
+      "improvements": 2,
+      "religiousBuildings": 1,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 8.5,
+      "improvements": 2,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.5,
+      "improvements": 2,
+      "religiousBuildings": 1,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111120",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-25:2"
+    ]
+   },
+   {
+    "turn": 8,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.75,
+      "improvements": 3,
+      "religiousBuildings": 1,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 8,
+      "improvements": 3,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.75,
+      "improvements": 3,
+      "religiousBuildings": 1,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111130",
+     "ostrov": "republic 1010",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-25:1"
+    ]
+   },
+   {
+    "turn": 9,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 8.5,
+      "improvements": 3,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111130",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 10,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.25,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 9,
+      "improvements": 3,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.25,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111130",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1010",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 11,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.75,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 9.5,
+      "improvements": 4,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.75,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111140",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1111",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:5",
+     "income_penalty:all:-0.5:5"
+    ]
+   },
+   {
+    "turn": 12,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 5.875,
+      "improvements": 5,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 1,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111150",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1111",
+     "skrynnitsy": "republic 1010",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:4",
+     "income_penalty:all:-0.5:4"
+    ]
+   },
+   {
+    "turn": 13,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.375,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 5
+     },
+     {
+      "faction": "Merchants",
+      "money": 4.375,
+      "improvements": 6,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 1,
+      "glory": 5
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.375,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 5
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111160",
+     "ostrov": "republic 1111",
+     "izborsk": "republic+fort 1111",
+     "skrynnitsy": "republic 1010",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:3",
+     "income_penalty:all:-0.5:3"
+    ]
+   },
+   {
+    "turn": 14,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.75,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 7
+     },
+     {
+      "faction": "Merchants",
+      "money": 2,
+      "improvements": 7,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 1,
+      "glory": 7
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.75,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 7
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111170",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "republic+fort 1111",
+     "skrynnitsy": "republic 1010",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:2",
+     "income_penalty:all:-0.5:2"
+    ]
+   },
+   {
+    "turn": 15,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.125,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 7
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.75,
+      "improvements": 8,
+      "religiousBuildings": 1,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 1,
+      "glory": 7
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.125,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 7
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111171",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "order+fort 0000",
+     "skrynnitsy": "republic 1010",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:1",
+     "income_penalty:all:-0.5:1"
+    ]
+   },
+   {
+    "turn": 16,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.375,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 7
+     },
+     {
+      "faction": "Merchants",
+      "money": 1,
+      "improvements": 9,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 1,
+      "glory": 7
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.375,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 7
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111172",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "order+fort 0000",
+     "skrynnitsy": "republic 1111",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 17,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.375,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 9
+     },
+     {
+      "faction": "Merchants",
+      "money": 0,
+      "improvements": 10,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 1,
+      "glory": 9
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.375,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 9
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111173",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "republic+fort 0000",
+     "skrynnitsy": "republic 1111",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Commoners:-12:3"
+    ]
+   },
+   {
+    "turn": 18,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.625,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 11
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.25,
+      "improvements": 11,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 1,
+      "glory": 9
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.625,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 11
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111174",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "republic+fort 0000",
+     "skrynnitsy": "republic 1111",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Commoners:-12:2",
+     "strength_penalty:Merchants:-10:3"
+    ]
+   },
+   {
+    "turn": 19,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.125,
+      "improvements": 7,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 11
+     },
+     {
+      "faction": "Merchants",
+      "money": 2.75,
+      "improvements": 12,
+      "religiousBuildings": 5,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 1,
+      "glory": 9
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.125,
+      "improvements": 7,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 11
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111175",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "republic+fort 0101",
+     "skrynnitsy": "republic 1111",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Commoners:-12:1",
+     "strength_penalty:Merchants:-10:2",
+     "strength_penalty:all:-10:2"
+    ]
+   },
+   {
+    "turn": 20,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.625,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 11
+     },
+     {
+      "faction": "Merchants",
+      "money": 4.25,
+      "improvements": 13,
+      "religiousBuildings": 6,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 1,
+      "glory": 9
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.625,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 11
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111176",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "republic+fort 1111",
+     "skrynnitsy": "republic 1111",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Merchants:-10:1",
+     "strength_penalty:all:-10:1",
+     "income_penalty:all:0.25:3",
+     "strength_penalty:Commoners:-12:3"
+    ]
+   }
+  ],
+  "result": {
+   "winner": "Nobles",
+   "scores": [
+    [
+     "Nobles",
+     23
+    ],
+    [
+     "Commoners",
+     23
+    ],
+    [
+     "Merchants",
+     21.4
+    ]
+   ]
+  }
+ },
+ {
+  "seed": 2,
+  "ruleset": "standard",
+  "turns": [
+   {
+    "turn": 1,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 000000",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 2,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 000010",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-7:2"
+    ]
+   },
+   {
+    "turn": 3,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.25,
+      "improvements": 2,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 101020",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-7:1",
+     "strength_penalty:all:-10:2"
+    ]
+   },
+   {
+    "turn": 4,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.25,
+      "improvements": 2,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.75,
+      "improvements": 3,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.25,
+      "improvements": 2,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111130",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-10:1",
+     "strength_penalty:Merchants:-10:3"
+    ]
+   },
+   {
+    "turn": 5,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.5,
+      "improvements": 3,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.5,
+      "improvements": 4,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.5,
+      "improvements": 3,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111140",
+     "ostrov": "republic 1010",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "order 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Merchants:-10:2"
+    ]
+   },
+   {
+    "turn": 6,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.75,
+      "improvements": 3,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.25,
+      "improvements": 5,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.75,
+      "improvements": 3,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111150",
+     "ostrov": "republic 1010",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "order 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Merchants:-10:1",
+     "strength_penalty:all:-25:2"
+    ]
+   },
+   {
+    "turn": 7,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.25,
+      "improvements": 6,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 0,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111160",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-25:1"
+    ]
+   },
+   {
+    "turn": 8,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.25,
+      "improvements": 7,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111170",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 9,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 2
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.5,
+      "improvements": 8,
+      "religiousBuildings": 1,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 2
+     },
+     {
+      "faction": "Commoners",
+      "money": 0,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 2
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111171",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1010",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 10,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.5,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 0,
+      "improvements": 9,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.5,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111172",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1010",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 11,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.5,
+      "improvements": 10,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111173",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 12,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.75,
+      "improvements": 11,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111174",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic 1010",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 13,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.25,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Merchants",
+      "money": 2,
+      "improvements": 12,
+      "religiousBuildings": 5,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 1,
+      "bonusPoints": 0,
+      "glory": 3
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.25,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 3
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111175",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic 1111",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 14,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.5,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 4
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.25,
+      "improvements": 13,
+      "religiousBuildings": 6,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 4
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.5,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 4
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111176",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic 1111",
+     "gdov": "republic 1010",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 15,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 4
+     },
+     {
+      "faction": "Merchants",
+      "money": 2.5,
+      "improvements": 14,
+      "religiousBuildings": 7,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 4
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 4
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111177",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic 1111",
+     "gdov": "republic 1111",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "income_penalty:all:0.25:3",
+     "strength_penalty:Commoners:-12:3"
+    ]
+   },
+   {
+    "turn": 16,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.125,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 4
+     },
+     {
+      "faction": "Merchants",
+      "money": 6.563,
+      "improvements": 14,
+      "religiousBuildings": 7,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 4
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.125,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 4
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111177",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic 1111",
+     "gdov": "republic 1111",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "income_penalty:all:0.25:2",
+     "strength_penalty:Commoners:-12:2"
+    ]
+   },
+   {
+    "turn": 17,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.25,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 8
+     },
+     {
+      "faction": "Merchants",
+      "money": 6.625,
+      "improvements": 14,
+      "religiousBuildings": 7,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 8
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.25,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 8
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111177",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "republic 1111",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "income_penalty:all:0.25:1",
+     "strength_penalty:Commoners:-12:1",
+     "strength_penalty:all:-15:5",
+     "income_penalty:all:-0.5:5"
+    ]
+   },
+   {
+    "turn": 18,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.625,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 8
+     },
+     {
+      "faction": "Merchants",
+      "money": 8.375,
+      "improvements": 14,
+      "religiousBuildings": 7,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 8
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.625,
+      "improvements": 8,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 8
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111177",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "republic 1111",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:4",
+     "income_penalty:all:-0.5:4",
+     "strength_penalty:all:-5:3"
+    ]
+   },
+   {
+    "turn": 19,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0,
+      "improvements": 7,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 8
+     },
+     {
+      "faction": "Merchants",
+      "money": 9.125,
+      "improvements": 14,
+      "religiousBuildings": 7,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 8
+     },
+     {
+      "faction": "Commoners",
+      "money": 0,
+      "improvements": 7,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 8
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111177",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 0101",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:3",
+     "income_penalty:all:-0.5:3",
+     "strength_penalty:all:-5:2"
+    ]
+   },
+   {
+    "turn": 20,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.125,
+      "improvements": 5,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 8
+     },
+     {
+      "faction": "Merchants",
+      "money": 9.75,
+      "improvements": 14,
+      "religiousBuildings": 7,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 8
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.125,
+      "improvements": 5,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 8
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111177",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 0101",
+     "skrynnitsy": "order+fort 0000",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:2",
+     "income_penalty:all:-0.5:2",
+     "strength_penalty:all:-5:1"
+    ]
+   }
+  ],
+  "result": {
+   "winner": "Merchants",
+   "scores": [
+    [
+     "Merchants",
+     20.6
+    ],
+    [
+     "Nobles",
+     16
+    ],
+    [
+     "Commoners",
+     16
+    ]
+   ]
+  }
+ },
+ {
+  "seed": 3,
+  "ruleset": "classic",
+  "turns": [
+   {
+    "turn": 1,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 0,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 000000",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": []
+   },
+   {
+    "turn": 2,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 1,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 101010",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Commoners:-12:3"
+    ]
+   },
+   {
+    "turn": 3,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.25,
+      "improvements": 2,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.25,
+      "improvements": 2,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.25,
+      "improvements": 2,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111120",
+     "ostrov": "republic 0000",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Commoners:-12:2"
+    ]
+   },
+   {
+    "turn": 4,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.5,
+      "improvements": 3,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.75,
+      "improvements": 3,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.5,
+      "improvements": 3,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111130",
+     "ostrov": "republic 1010",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Commoners:-12:1"
+    ]
+   },
+   {
+    "turn": 5,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.5,
+      "improvements": 4,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111140",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 0000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Nobles:-15:3"
+    ]
+   },
+   {
+    "turn": 6,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.5,
+      "improvements": 3,
+      "religiousBuildings": 1,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.5,
+      "improvements": 5,
+      "religiousBuildings": 0,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.5,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 1,
+      "armor": 0,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111050",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1000",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Nobles:-15:2"
+    ]
+   },
+   {
+    "turn": 7,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.75,
+      "improvements": 6,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.25,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 1,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111160",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1100",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:Nobles:-15:1",
+     "strength_penalty:all:-15:5",
+     "income_penalty:all:-0.5:5"
+    ]
+   },
+   {
+    "turn": 8,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.25,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.5,
+      "improvements": 7,
+      "religiousBuildings": 0,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.625,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111170",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1100",
+     "skrynnitsy": "republic 0000",
+     "gdov": "republic 0000",
+     "pechory": "republic 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:4",
+     "income_penalty:all:-0.5:4",
+     "strength_penalty:all:-25:2"
+    ]
+   },
+   {
+    "turn": 9,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.5,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.375,
+      "improvements": 8,
+      "religiousBuildings": 1,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 0,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111171",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1100",
+     "skrynnitsy": "republic 1000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:3",
+     "income_penalty:all:-0.5:3",
+     "strength_penalty:all:-25:1"
+    ]
+   },
+   {
+    "turn": 10,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 2.625,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.125,
+      "improvements": 8,
+      "religiousBuildings": 1,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1.375,
+      "improvements": 7,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 1,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111171",
+     "ostrov": "republic 1111",
+     "izborsk": "republic 1100",
+     "skrynnitsy": "republic 1000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:2",
+     "income_penalty:all:-0.5:2",
+     "strength_penalty:all:-5:3"
+    ]
+   },
+   {
+    "turn": 11,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.75,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.875,
+      "improvements": 8,
+      "religiousBuildings": 1,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 1,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 0.75,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111171",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic 1000",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:1",
+     "income_penalty:all:-0.5:1",
+     "strength_penalty:all:-5:2"
+    ]
+   },
+   {
+    "turn": 12,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.75,
+      "improvements": 4,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.125,
+      "improvements": 9,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 0,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111172",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic 1100",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-5:1"
+    ]
+   },
+   {
+    "turn": 13,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.5,
+      "improvements": 5,
+      "religiousBuildings": 2,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 1.125,
+      "improvements": 10,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 2,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111173",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic 1110",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "income_penalty:all:-0.25:3",
+     "strength_bonus:all:5:3"
+    ]
+   },
+   {
+    "turn": 14,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.375,
+      "improvements": 11,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 2.5,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111174",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "income_penalty:all:-0.25:2",
+     "strength_bonus:all:5:2",
+     "strength_penalty:all:-5:6"
+    ]
+   },
+   {
+    "turn": 15,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.5,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.625,
+      "improvements": 11,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 2,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111174",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "income_penalty:all:-0.25:1",
+     "strength_bonus:all:5:1",
+     "strength_penalty:all:-5:5",
+     "strength_penalty:all:-10:2"
+    ]
+   },
+   {
+    "turn": 16,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 2.5,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.625,
+      "improvements": 12,
+      "religiousBuildings": 5,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 3,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111175",
+     "ostrov": "republic 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-5:4",
+     "strength_penalty:all:-10:1"
+    ]
+   },
+   {
+    "turn": 17,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.5,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.625,
+      "improvements": 13,
+      "religiousBuildings": 6,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111176",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-5:3"
+    ]
+   },
+   {
+    "turn": 18,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 0.5,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.625,
+      "improvements": 14,
+      "religiousBuildings": 7,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 1,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111177",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "order 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-5:2"
+    ]
+   },
+   {
+    "turn": 19,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.5,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 0.625,
+      "improvements": 14,
+      "religiousBuildings": 7,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 0,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111177",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "republic 0000",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-5:1"
+    ]
+   },
+   {
+    "turn": 20,
+    "gameOver": false,
+    "players": [
+     {
+      "faction": "Nobles",
+      "money": 1.75,
+      "improvements": 7,
+      "religiousBuildings": 4,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Merchants",
+      "money": 3.875,
+      "improvements": 14,
+      "religiousBuildings": 7,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 2,
+      "bonusPoints": 0,
+      "glory": 0
+     },
+     {
+      "faction": "Commoners",
+      "money": 2.25,
+      "improvements": 6,
+      "religiousBuildings": 3,
+      "weapons": 2,
+      "armor": 2,
+      "expeditions": 0,
+      "bonusPoints": 0,
+      "glory": 0
+     }
+    ],
+    "regions": {
+     "pskov": "republic+fort 111177",
+     "ostrov": "republic+fort 1111",
+     "izborsk": "order 0000",
+     "skrynnitsy": "republic+fort 1111",
+     "gdov": "republic 0001",
+     "pechory": "order 0000",
+     "bearhill": "order 0000"
+    },
+    "effects": [
+     "strength_penalty:all:-15:5",
+     "income_penalty:all:-0.5:5"
+    ]
+   }
+  ],
+  "result": {
+   "winner": "Nobles",
+   "scores": [
+    [
+     "Nobles",
+     11
+    ],
+    [
+     "Merchants",
+     10.5
+    ],
+    [
+     "Commoners",
+     9
+    ]
+   ]
+  }
+ }
+]

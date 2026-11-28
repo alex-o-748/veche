@@ -21,6 +21,16 @@ export {
   DEFENSE_COST_TOTAL,
   ATTACK_COST_TOTAL,
   FORTRESS_COST_TOTAL,
+  DEFENSE_COST_PER_PLAYER,
+  ATTACK_COST_PER_PLAYER,
+  GLORY_PER_COIN,
+  MERCHANT_VP_MULTIPLIER,
+  MERCHANT_VP_MULTIPLIER_STANDARD,
+  getMerchantVpMultiplier,
+  setTuning,
+  RULESETS,
+  getRules,
+  RELIGIOUS_BUILDING_TYPES,
   createRegionBuildings,
   createInitialRegions,
   createInitialPlayers,
@@ -39,7 +49,16 @@ export {
   getRegionsForFortress,
   canSelectRegion,
   getRegionBuildings,
+  PSKOV_NEIGHBOURS,
+  getOrderAttackTargets,
+  isPskovThreatened,
 } from './regions.js';
+
+// Randomness (seedable for tests)
+export { random, randomInt, setRandomSource, createSeededRandom } from './random.js';
+
+// Outcomes (result codes the UI translates)
+export { createOutcome, setOutcome } from './outcome.js';
 
 // Effects management
 export {
@@ -68,6 +87,8 @@ export {
   executeBattle,
   executeAttack,
   destroyRandomBuildings,
+  awardGlory,
+  getOrderDefenseStrength,
 } from './combat.js';
 
 // Events
@@ -75,7 +96,9 @@ export {
   eventTypes,
   eventDeck,
   drawEvent,
+  toEventCard,
   resolveEvent,
+  getDefenders,
   getVotingResult,
   getAuctionResult,
   getParticipationResult,
@@ -87,11 +110,14 @@ export {
   decideEventVote,
   decideAttackVote,
   decideFortressVote,
+  decideAttackTarget,
+  decideFortressTarget,
 } from './ai.js';
 
 // Actions (main entry point for state mutations)
 export {
   ActionTypes,
+  MAX_TURNS,
   validateAction,
   applyAction,
   nextPhase,
@@ -100,6 +126,11 @@ export {
   buildBuilding,
   buyEquipment,
   sendExpedition,
+  setConstructionReady,
+  calculateIncome,
+  getAttackFunding,
+  getFortressFunding,
+  calculateBuildingVictoryPoints,
   voteOnEvent,
   resolveCurrentEvent,
   initiateAttack,

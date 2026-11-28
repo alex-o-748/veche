@@ -1,213 +1,152 @@
 #!/usr/bin/env node
 // Faction Balance Simulator
-// Runs N headless games with all AI players and reports win rates & stats.
+// Runs N headless games with all AI players through the rules engine (src/game)
+// and reports win rates & stats.
 //
 // Usage:
-//   node simulate.js          # 1000 games (default)
-//   node simulate.js 500      # 500 games
+//   node simulate.js                         # 1000 games, standard rules (Glory + siege)
+//   node simulate.js 3000                    # 3000 games
+//   node simulate.js 3000 --classic          # the rules without Glory and the siege
+//   node simulate.js 3000 --never-pay=Merchants      # one faction pays for nothing shared
+//   node simulate.js 3000 --defence-only=Merchants   # one faction funds only defences
+//   node simulate.js 3000 --merchant-vp=0.6          # try another Merchant VP multiplier
+//   node simulate.js 3000 --glory=0.5                # try another Glory per coin
+//   node simulate.js --check                 # replay the seeded games, compare to the snapshot
+//   node simulate.js --record                # re-record the snapshot (after an intended rule change)
+//   node simulate.js --check --engine=path/to/bundle.mjs  # check another build of the engine
 
-import { createInitialGameState, PHASES } from './src/game/state.js';
-import { applyAction, ActionTypes, nextPhase, getGameResult } from './src/game/actions.js';
-import { decideConstruction, decideEventVote, decideAttackVote, decideFortressVote } from './src/game/ai.js';
-import { getValidRepublicAttackTargets, getRegionsForFortress } from './src/game/regions.js';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { playGame, seededGameRecord } from './scripts/simulation.js';
 
-const NUM_GAMES = parseInt(process.argv[2], 10) || 1000;
+const args = process.argv.slice(2);
+const flag = (name) => {
+  const hit = args.find((a) => a === `--${name}` || a.startsWith(`--${name}=`));
+  if (!hit) return null;
+  return hit.includes('=') ? hit.slice(hit.indexOf('=') + 1) : true;
+};
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const enginePath = flag('engine') ? path.resolve(flag('engine')) : path.join(here, 'src/game/index.js');
+const engineModule = await import(pathToFileURL(enginePath).href);
+// A worker bundle exposes the engine as `engine`; src/game exports it directly
+const engine = { ...(engineModule.engine || engineModule) };
 
 // ---------------------------------------------------------------------------
-// Headless game loop
+// Snapshot check: seeded games must replay exactly as recorded
 // ---------------------------------------------------------------------------
 
-function simulateGame() {
-  let state = createInitialGameState();
+const SNAPSHOT_FILE = path.join(here, 'scripts/snapshot.json');
+const SNAPSHOT_GAMES = [
+  { seed: 1, ruleset: 'standard' },
+  { seed: 2, ruleset: 'standard' },
+  { seed: 3, ruleset: 'classic' },
+];
 
-  // The game starts on phase 'resources' at turn 1.
-  // Phase order: resources → construction → events → veche → (next turn) resources …
-  // nextPhase() handles income calc when *leaving* resources, draws event when
-  // *entering* events, and bumps the turn counter when wrapping from veche→resources.
+if (flag('check') || flag('record')) {
+  const records = SNAPSHOT_GAMES.map(({ seed, ruleset }) => seededGameRecord(engine, seed, { ruleset }));
 
-  while (state.turn <= 20 && !state.gameOver) {
-    // --- RESOURCES phase: just advance past it (nextPhase computes income) ---
-    state = nextPhase(state); // resources → construction
-
-    // --- CONSTRUCTION phase ---
-    for (let p = 0; p < 3; p++) {
-      const decision = decideConstruction(state, p);
-
-      // Select region
-      if (decision.regionName) {
-        state = applyAction(state, { type: ActionTypes.SELECT_REGION, regionName: decision.regionName }).newState;
-      }
-
-      // Build
-      if (decision.buildingType) {
-        state = applyAction(state, { type: ActionTypes.BUILD_BUILDING, buildingType: decision.buildingType }).newState;
-      }
-
-      // Equipment
-      if (decision.equipmentType) {
-        state = applyAction(state, { type: ActionTypes.BUY_EQUIPMENT, item: decision.equipmentType }).newState;
-      }
-
-      // Expedition
-      if (decision.sendExpedition) {
-        const result = applyAction(state, { type: ActionTypes.SEND_EXPEDITION });
-        state = result.newState;
-      }
-
-      // Advance currentPlayer so the next AI sees correct index
-      state = applyAction(state, { type: ActionTypes.NEXT_PLAYER }).newState;
-    }
-
-    state = nextPhase(state); // construction → events
-
-    // --- EVENTS phase ---
-    // nextPhase already drew the event. Process it.
-    let eventLoops = 0;
-    while (state.currentEvent && !state.eventResolved && eventLoops < 5) {
-      eventLoops++;
-      const event = state.currentEvent;
-
-      // All AI players vote
-      for (let p = 0; p < 3; p++) {
-        const vote = decideEventVote(state, p, event);
-        const result = applyAction(state, { type: ActionTypes.VOTE_EVENT, vote }, p);
-        state = result.newState;
-      }
-
-      // Resolve the event
-      const resolveResult = applyAction(state, { type: ActionTypes.RESOLVE_EVENT });
-      state = resolveResult.newState;
-
-      // Check for nested event (e.g. rob_foreign triggers an Order attack)
-      // If a new event was triggered, eventResolved will be false and currentEvent changed.
-      // The while loop will handle it.
-      if (state.gameOver) break;
-    }
-
-    if (state.gameOver) break;
-
-    state = nextPhase(state); // events → veche
-
-    // --- VECHE phase ---
-    // AI decides whether to initiate an attack
-    const attackTargets = getValidRepublicAttackTargets(state.regions);
-    if (attackTargets.length > 0) {
-      // Pick a random target
-      const target = attackTargets[Math.floor(Math.random() * attackTargets.length)];
-
-      // Check if majority would vote yes before initiating
-      const votes = [0, 1, 2].map(p => decideAttackVote(state, p));
-      const yesCount = votes.filter(v => v === true).length;
-
-      if (yesCount >= 2) {
-        // Initiate attack
-        state = applyAction(state, { type: ActionTypes.INITIATE_ATTACK, targetRegion: target }).newState;
-
-        // Cast votes
-        for (let p = 0; p < 3; p++) {
-          state = applyAction(state, { type: ActionTypes.VOTE_ATTACK, vote: votes[p] }, p).newState;
-        }
-
-        // Execute attack
-        const attackResult = applyAction(state, { type: ActionTypes.EXECUTE_ATTACK });
-        state = attackResult.newState;
-      }
-    }
-
-    // AI decides whether to build a fortress
-    const fortressSites = getRegionsForFortress(state.regions);
-    if (fortressSites.length > 0 && !state.gameOver) {
-      const target = fortressSites[Math.floor(Math.random() * fortressSites.length)];
-
-      const votes = [0, 1, 2].map(p => decideFortressVote(state, p));
-      const yesCount = votes.filter(v => v === true).length;
-
-      if (yesCount >= 2) {
-        state = applyAction(state, { type: ActionTypes.INITIATE_FORTRESS, targetRegion: target }).newState;
-
-        for (let p = 0; p < 3; p++) {
-          state = applyAction(state, { type: ActionTypes.VOTE_FORTRESS, vote: votes[p] }, p).newState;
-        }
-
-        const fortressResult = applyAction(state, { type: ActionTypes.EXECUTE_FORTRESS });
-        state = fortressResult.newState;
-      }
-    }
-
-    if (state.gameOver) break;
-
-    state = nextPhase(state); // veche → resources (turn increments)
+  if (flag('record')) {
+    writeFileSync(SNAPSHOT_FILE, JSON.stringify(records, null, 1) + '\n');
+    console.log(`Recorded ${records.length} seeded games to ${path.relative(process.cwd(), SNAPSHOT_FILE)}`);
+    process.exit(0);
   }
 
-  // Force turn past 20 so getGameResult fires
-  if (!state.gameOver && state.turn <= 20) {
-    state = { ...state, turn: 21 };
+  const expected = JSON.parse(readFileSync(SNAPSHOT_FILE, 'utf8'));
+  let failed = false;
+  records.forEach((record, i) => {
+    const want = expected[i];
+    const label = `seed ${record.seed} (${record.ruleset})`;
+    if (JSON.stringify(record) === JSON.stringify(want)) {
+      console.log(`ok    ${label}: ${record.result.winner} wins after ${record.turns.length} turns`);
+      return;
+    }
+    failed = true;
+    const turn = record.turns.findIndex((t, n) => JSON.stringify(t) !== JSON.stringify(want?.turns?.[n]));
+    console.log(`FAIL  ${label}: differs from the snapshot${turn >= 0 ? ` at turn ${turn + 1}` : ' in the result'}`);
+    if (turn >= 0) {
+      console.log('  expected:', JSON.stringify(want?.turns?.[turn]));
+      console.log('  actual:  ', JSON.stringify(record.turns[turn]));
+    }
+  });
+  if (failed) {
+    console.log('\nThe rules changed. If that was intended, run `node simulate.js --record`.');
+    process.exit(1);
   }
-
-  return getGameResult(state);
+  process.exit(0);
 }
 
 // ---------------------------------------------------------------------------
-// Run simulation & collect stats
+// Balance run
 // ---------------------------------------------------------------------------
 
-const stats = {
-  Nobles:    { wins: 0, totalVP: 0, totalMoney: 0 },
-  Merchants: { wins: 0, totalVP: 0, totalMoney: 0 },
-  Commoners: { wins: 0, totalVP: 0, totalMoney: 0 },
-};
-let pskovFell = 0;
+const NUM_GAMES = parseInt(args.find((a) => /^\d+$/.test(a)), 10) || 1000;
+const ruleset = flag('classic') ? 'classic' : 'standard';
+const policies = {};
+if (flag('never-pay')) policies[flag('never-pay')] = 'never_pay';
+if (flag('defence-only')) policies[flag('defence-only')] = 'defence_only';
 
+// Tuning knobs: the engine reads these constants through live ES module bindings,
+// so overriding them needs the engine's own setters. They are plain exports, so we
+// patch them through a small hook in state.js when present.
+if (flag('merchant-vp') || flag('glory')) {
+  if (!engine.setTuning) {
+    console.error('This engine build has no setTuning(): tuning flags are not supported.');
+    process.exit(1);
+  }
+  engine.setTuning({
+    ...(flag('merchant-vp') ? { merchantVpMultiplier: parseFloat(flag('merchant-vp')) } : {}),
+    ...(flag('glory') ? { gloryPerCoin: parseFloat(flag('glory')) } : {}),
+  });
+}
+
+const stats = Object.fromEntries(
+  ['Nobles', 'Merchants', 'Commoners'].map((f) => [f, { wins: 0, totalVP: 0, totalMoney: 0, totalGlory: 0 }])
+);
+let pskovFell = 0;
 const startTime = Date.now();
 
 for (let i = 0; i < NUM_GAMES; i++) {
-  const result = simulateGame();
-
-  if (!result) {
-    // Shouldn't happen, but guard against it
-    continue;
-  }
-
-  if (result.gameOver) pskovFell++;
-
-  stats[result.winner.faction].wins++;
+  let state = playGame(engine, { ruleset, policies });
+  if (!state.gameOver && state.turn <= engine.MAX_TURNS) state = { ...state, turn: engine.MAX_TURNS + 1 };
+  const result = engine.getGameResult(state);
 
   for (const ranking of result.rankings) {
     stats[ranking.faction].totalVP += ranking.victoryPoints;
     stats[ranking.faction].totalMoney += ranking.money;
+    stats[ranking.faction].totalGlory += ranking.breakdown.glory;
   }
+
+  // When Pskov falls, everyone loses
+  if (result.gameOver) pskovFell++;
+  else stats[result.winner.faction].wins++;
 }
 
 const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+const pct = (n) => ((n / NUM_GAMES) * 100).toFixed(1) + '%';
 
-// ---------------------------------------------------------------------------
-// Print results
-// ---------------------------------------------------------------------------
+const setup = [
+  ruleset,
+  ...Object.entries(policies).map(([f, p]) => `${f}: ${p.replace('_', ' ')}`),
+  flag('merchant-vp') && `merchant VP ×${flag('merchant-vp')}`,
+  flag('glory') && `glory ${flag('glory')}/coin`,
+].filter(Boolean).join(', ');
 
-console.log(`\nFaction Balance Simulation (${NUM_GAMES} games, ${elapsed}s)`);
-console.log('='.repeat(56));
-console.log(
-  'Faction'.padEnd(14) +
-  'Wins'.padStart(6) +
-  'Win%'.padStart(8) +
-  'Avg VP'.padStart(9) +
-  'Avg Money'.padStart(11)
-);
-console.log('-'.repeat(56));
-
-for (const faction of ['Nobles', 'Merchants', 'Commoners']) {
+console.log(`\nFaction Balance Simulation (${NUM_GAMES} games, ${setup}, ${elapsed}s)`);
+console.log('='.repeat(64));
+console.log('Faction'.padEnd(14) + 'Wins'.padStart(6) + 'Win%'.padStart(8) + 'Avg VP'.padStart(9) + 'Avg Glory'.padStart(11) + 'Avg Money'.padStart(11));
+console.log('-'.repeat(64));
+for (const faction of Object.keys(stats)) {
   const s = stats[faction];
-  const winPct = ((s.wins / NUM_GAMES) * 100).toFixed(1);
-  const avgVP = (s.totalVP / NUM_GAMES).toFixed(1);
-  const avgMoney = (s.totalMoney / NUM_GAMES).toFixed(1);
   console.log(
     faction.padEnd(14) +
-    String(s.wins).padStart(6) +
-    (winPct + '%').padStart(8) +
-    avgVP.padStart(9) +
-    avgMoney.padStart(11)
+      String(s.wins).padStart(6) +
+      pct(s.wins).padStart(8) +
+      (s.totalVP / NUM_GAMES).toFixed(1).padStart(9) +
+      (s.totalGlory / NUM_GAMES).toFixed(1).padStart(11) +
+      (s.totalMoney / NUM_GAMES).toFixed(1).padStart(11)
   );
 }
-
-console.log('-'.repeat(56));
-console.log(`Pskov fell: ${pskovFell}/${NUM_GAMES} (${((pskovFell / NUM_GAMES) * 100).toFixed(1)}%)`);
+console.log('-'.repeat(64));
+console.log(`Pskov fell: ${pskovFell}/${NUM_GAMES} (${pct(pskovFell)}) — everyone loses`);

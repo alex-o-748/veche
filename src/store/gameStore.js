@@ -91,10 +91,11 @@ export const useGameStore = create(
     // ============ Game Lifecycle ============
 
     // Initialize a new local game
-    initLocalGame: (aiConfig) => {
+    // options.ruleset: 'standard' (Glory and the siege of Pskov) or 'classic'
+    initLocalGame: (aiConfig, options = {}) => {
       set({
         mode: 'local',
-        gameState: createInitialGameState(),
+        gameState: createInitialGameState({ ruleset: options.ruleset }),
         aiPlayers: aiConfig || [false, false, false],
         playerId: null, // In local mode, control all players
         connected: false,

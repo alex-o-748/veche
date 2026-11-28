@@ -7,8 +7,8 @@ import { useGameStore } from './gameStore';
  * so leaving to the menu or reloading the page does not lose a game.
  * Online games are never saved: the server owns their state.
  *
- * Event cards carry effect functions, which JSON drops. That is fine:
- * resolveEvent looks the live card up by id before resolving.
+ * Event cards in the game state are plain data; the rules engine looks the live
+ * card up by id when resolving. Saves from before Glory load with glory 0.
  */
 
 const SAVE_KEY = 'veche.save.v1';
