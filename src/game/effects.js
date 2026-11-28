@@ -1,5 +1,7 @@
 // Active effects management
 
+import { random } from './random.js';
+
 // Effect types:
 // - strength_bonus: Adds to faction strength
 // - strength_penalty: Subtracts from faction strength
@@ -7,7 +9,7 @@
 
 // Create a new effect
 export const createEffect = (type, target, value, turnsRemaining, description) => ({
-  id: `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+  id: `${type}_${Math.floor(random() * 2 ** 32).toString(36)}`,
   type,
   target, // 'all' or specific faction name
   value,

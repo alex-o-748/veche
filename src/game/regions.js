@@ -98,3 +98,20 @@ export const getRegionBuildings = (region) => {
     .filter(([_, count]) => count > 0)
     .map(([type, count]) => ({ type, count }));
 };
+
+// The regions that border Pskov itself
+export const PSKOV_NEIGHBOURS = MAP_ADJACENCY.pskov;
+
+// Where the next Order attack can land.
+// Siege rule: Pskov is a target like any other as soon as the Order holds a
+// region next to it. Classic rule: Pskov is attacked only when nothing else is in reach.
+export const getOrderAttackTargets = (regions, rules = { siege: true }) => {
+  const targets = getValidOrderAttackTargets(regions);
+  if (rules.siege) return targets;
+  const others = targets.filter((name) => name !== 'pskov');
+  return others.length > 0 ? others : targets;
+};
+
+// Is Pskov itself among the places the Order can strike next?
+export const isPskovThreatened = (regions, rules) =>
+  getOrderAttackTargets(regions, rules).includes('pskov');

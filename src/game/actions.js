@@ -1,5 +1,8 @@
 // Pure state mutation functions for all game actions
-// These functions take state and return new state (no side effects)
+// These functions take state and return new state (no side effects).
+//
+// This is the only rulebook: solo, hot-seat (src/App.jsx) and online (worker/) all
+// play through applyAction / nextPhase, and the simulator tests exactly these rules.
 
 import {
   PHASES,
@@ -10,18 +13,23 @@ import {
   EXPEDITION_MAX_PER_GAME,
   EXPEDITION_PROFIT,
   EXPEDITION_WINDFALL,
+  ATTACK_COST_PER_PLAYER,
+  FORTRESS_COST_TOTAL,
+  GLORY_PER_COIN,
+  getMerchantVpMultiplier,
   createInitialGameState,
   createInitialConstructionActions,
   formatRegionName,
+  getRules,
 } from './state.js';
-import { countRepublicRegions, getValidRepublicAttackTargets } from './regions.js';
+import { countRepublicRegions } from './regions.js';
 import { getIncomeModifier, updateEffects as updateEffectsHelper } from './effects.js';
-import {
-  calculatePlayerStrength,
-  calculateTotalStrength,
-  executeAttack as executeAttackCombat,
-} from './combat.js';
+import { executeAttack as executeAttackCombat, awardGlory } from './combat.js';
 import { drawEvent, resolveEvent as resolveEventHelper } from './events.js';
+import { randomInt } from './random.js';
+import { createOutcome, setOutcome } from './outcome.js';
+
+export const MAX_TURNS = 20;
 
 // Action Types
 export const ActionTypes = {
@@ -34,6 +42,7 @@ export const ActionTypes = {
   BUILD_BUILDING: 'BUILD_BUILDING',
   BUY_EQUIPMENT: 'BUY_EQUIPMENT',
   SEND_EXPEDITION: 'SEND_EXPEDITION',
+  SET_CONSTRUCTION_READY: 'SET_CONSTRUCTION_READY',
 
   // Events phase
   VOTE_EVENT: 'VOTE_EVENT',
@@ -55,13 +64,26 @@ export const ActionTypes = {
   RESET_GAME: 'RESET_GAME',
 };
 
+// Yes/no votes arrive as booleans locally and may arrive as 'true'/'false' over the network
+const toBoolVote = (vote) => vote === true || vote === 'true';
+
+// The player a construction action is for: in online games everyone builds at once,
+// so it is the sender; otherwise it is whoever's turn it is.
+const constructionActor = (state, playerId) =>
+  state.simultaneousConstruction && playerId !== null && playerId !== undefined ? playerId : state.currentPlayer;
+
+const isOver = (state) => Boolean(state.gameOver) || state.turn > MAX_TURNS;
+
 // Validate if an action can be performed
 export const validateAction = (state, action, playerId) => {
+  const notYourTurn = !state.simultaneousConstruction && state.currentPlayer !== playerId;
+  const player = state.players[playerId];
+
   switch (action.type) {
     case ActionTypes.BUILD_BUILDING:
       if (state.phase !== 'construction') return { error: 'Not in construction phase' };
-      if (state.currentPlayer !== playerId) return { error: 'Not your turn' };
-      if (state.players[playerId].money < 2) return { error: 'Not enough money' };
+      if (notYourTurn) return { error: 'Not your turn' };
+      if (player.money < 2) return { error: 'Not enough money' };
       if (state.constructionActions[playerId].improvement) {
         return { error: 'Already built this turn' };
       }
@@ -69,23 +91,28 @@ export const validateAction = (state, action, playerId) => {
 
     case ActionTypes.BUY_EQUIPMENT:
       if (state.phase !== 'construction') return { error: 'Not in construction phase' };
-      if (state.currentPlayer !== playerId) return { error: 'Not your turn' };
-      if (state.players[playerId].money < 1) return { error: 'Not enough money' };
+      if (notYourTurn) return { error: 'Not your turn' };
+      if (player.money < 1) return { error: 'Not enough money' };
       if (state.constructionActions[playerId].equipment) {
         return { error: 'Already bought equipment this turn' };
       }
-      if (action.item && state.players[playerId][action.item] >= 2) {
+      if (action.item && player[action.item] >= 2) {
         return { error: 'Maximum equipment of this type reached' };
       }
       return { valid: true };
 
     case ActionTypes.SEND_EXPEDITION:
       if (state.phase !== 'construction') return { error: 'Not in construction phase' };
-      if (state.currentPlayer !== playerId) return { error: 'Not your turn' };
-      if (state.players[playerId].faction !== 'Merchants') return { error: 'Only Merchants can send expeditions' };
-      if (state.players[playerId].money < EXPEDITION_COST) return { error: 'Not enough money' };
-      if (state.players[playerId].expeditions >= EXPEDITION_MAX_PER_GAME) return { error: 'Maximum expeditions reached' };
+      if (notYourTurn) return { error: 'Not your turn' };
+      if (player.faction !== 'Merchants') return { error: 'Only Merchants can send expeditions' };
+      if (player.money < EXPEDITION_COST) return { error: 'Not enough money' };
+      if (player.expeditions >= EXPEDITION_MAX_PER_GAME) return { error: 'Maximum expeditions reached' };
       if (state.constructionActions[playerId].expedition) return { error: 'Already sent expedition this turn' };
+      return { valid: true };
+
+    case ActionTypes.SET_CONSTRUCTION_READY:
+      if (state.phase !== 'construction') return { error: 'Not in construction phase' };
+      if (state.constructionReady[playerId]) return { error: 'Already marked as ready' };
       return { valid: true };
 
     case ActionTypes.VOTE_EVENT:
@@ -108,15 +135,18 @@ export const validateAction = (state, action, playerId) => {
   }
 };
 
-// Apply an action to the game state
+// Apply an action to the game state.
+// playerId: who sent the action (validated when given); null for trusted local calls.
 export const applyAction = (state, action, playerId = null, randomValues = {}) => {
   // Validate action if playerId is provided
-  if (playerId !== null) {
+  if (playerId !== null && playerId !== undefined) {
     const validation = validateAction(state, action, playerId);
     if (validation.error) {
       return { newState: state, error: validation.error };
     }
   }
+
+  const actor = constructionActor(state, playerId);
 
   switch (action.type) {
     case ActionTypes.NEXT_PHASE:
@@ -133,26 +163,35 @@ export const applyAction = (state, action, playerId = null, randomValues = {}) =
 
     case ActionTypes.BUILD_BUILDING:
       return {
-        newState: buildBuilding(state, action.buildingType),
+        newState: buildBuilding(state, action.buildingType, actor, action.regionName),
         result: { type: 'building_built' },
       };
 
     case ActionTypes.BUY_EQUIPMENT:
       return {
-        newState: buyEquipment(state, action.item),
+        newState: buyEquipment(state, action.item, actor),
         result: { type: 'equipment_bought' },
       };
 
     case ActionTypes.SEND_EXPEDITION:
-      return sendExpedition(state, randomValues);
+      return sendExpedition(state, randomValues, actor);
+
+    case ActionTypes.SET_CONSTRUCTION_READY:
+      return {
+        newState: setConstructionReady(state, playerId ?? state.currentPlayer),
+        result: { type: 'construction_ready' },
+      };
 
     case ActionTypes.VOTE_EVENT:
+      if (playerId === null || playerId === undefined) return { newState: state, error: 'Player ID required' };
       return {
         newState: voteOnEvent(state, playerId, action.vote),
         result: { type: 'vote_cast' },
       };
 
     case ActionTypes.RESOLVE_EVENT:
+      if (!state.currentEvent) return { newState: state, error: 'No event to resolve' };
+      if (state.eventResolved) return { newState: state, error: 'Event already resolved' };
       return {
         newState: resolveCurrentEvent(state, randomValues),
         result: { type: 'event_resolved' },
@@ -165,8 +204,9 @@ export const applyAction = (state, action, playerId = null, randomValues = {}) =
       };
 
     case ActionTypes.VOTE_ATTACK:
+      if (playerId === null || playerId === undefined) return { newState: state, error: 'Player ID required' };
       return {
-        newState: voteOnAttack(state, playerId, action.vote),
+        newState: voteOnAttack(state, playerId, toBoolVote(action.vote)),
         result: { type: 'attack_vote_cast' },
       };
 
@@ -186,8 +226,9 @@ export const applyAction = (state, action, playerId = null, randomValues = {}) =
       };
 
     case ActionTypes.VOTE_FORTRESS:
+      if (playerId === null || playerId === undefined) return { newState: state, error: 'Player ID required' };
       return {
-        newState: voteOnFortress(state, playerId, action.vote),
+        newState: voteOnFortress(state, playerId, toBoolVote(action.vote)),
         result: { type: 'fortress_vote_cast' },
       };
 
@@ -202,7 +243,10 @@ export const applyAction = (state, action, playerId = null, randomValues = {}) =
 
     case ActionTypes.RESET_GAME:
       return {
-        newState: createInitialGameState(),
+        newState: createInitialGameState({
+          ruleset: state.ruleset,
+          simultaneousConstruction: state.simultaneousConstruction,
+        }),
         result: { type: 'game_reset' },
       };
 
@@ -211,8 +255,18 @@ export const applyAction = (state, action, playerId = null, randomValues = {}) =
   }
 };
 
+// Income a player receives in the resources phase
+export const calculateIncome = (player, state) => {
+  const republicRegions = countRepublicRegions(state.regions);
+  const secularBuildings = player.improvements - (player.religiousBuildings || 0);
+  const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25;
+  return baseIncome * getIncomeModifier(state.activeEffects, player.faction);
+};
+
 // Phase transition logic
 export const nextPhase = (state) => {
+  if (isOver(state)) return state;
+
   const currentPhaseIndex = PHASES.indexOf(state.phase);
   const isLastPhase = currentPhaseIndex === PHASES.length - 1;
   const nextPhaseName = isLastPhase ? PHASES[0] : PHASES[currentPhaseIndex + 1];
@@ -221,17 +275,10 @@ export const nextPhase = (state) => {
 
   // Handle resources phase - calculate income
   if (state.phase === 'resources') {
-    const republicRegions = countRepublicRegions(state.regions);
-    newState.players = state.players.map((player) => {
-      const secularBuildings = player.improvements - (player.religiousBuildings || 0);
-      const baseIncome = 0.5 + republicRegions * 0.25 + secularBuildings * 0.25;
-      const incomeModifier = getIncomeModifier(state.activeEffects, player.faction);
-      const finalIncome = baseIncome * incomeModifier;
-      return {
-        ...player,
-        money: player.money + finalIncome,
-      };
-    });
+    newState.players = state.players.map((player) => ({
+      ...player,
+      money: player.money + calculateIncome(player, state),
+    }));
   }
 
   // Draw event when moving TO events phase
@@ -250,6 +297,7 @@ export const nextPhase = (state) => {
     newState.currentPlayer = 0;
     newState.selectedRegion = 'pskov';
     newState.constructionActions = createInitialConstructionActions();
+    newState.constructionReady = [false, false, false];
     newState.lastExpeditionResult = null;
   }
 
@@ -258,8 +306,14 @@ export const nextPhase = (state) => {
     newState.currentEvent = null;
     newState.eventVotes = [null, null, null];
     newState.eventResolved = false;
-    newState.lastEventResult = null;
     newState.eventImageRevealed = false;
+  }
+
+  // Each phase starts without the previous phase's result on screen
+  if (state.phase === 'events' || state.phase === 'veche') {
+    newState.lastEventResult = null;
+    newState.lastOutcome = null;
+    newState.battleResult = null;
   }
 
   // Update effects at end of turn (when moving from veche to resources)
@@ -267,18 +321,43 @@ export const nextPhase = (state) => {
     newState = updateEffectsHelper(newState);
   }
 
-  return {
+  newState = {
     ...newState,
     phase: nextPhaseName,
     turn: isLastPhase ? state.turn + 1 : state.turn,
   };
+
+  // Online games skip the resources phase: income is paid and construction begins
+  if (newState.phase === 'resources' && state.simultaneousConstruction && !isOver(newState)) {
+    return nextPhase(newState);
+  }
+  return newState;
 };
 
-// Player turn transition
-export const nextPlayer = (state) => ({
-  ...state,
-  currentPlayer: (state.currentPlayer + 1) % 3,
-});
+// Player turn transition (turn-based construction): the current player is done
+export const nextPlayer = (state) => {
+  const constructionReady = [...state.constructionReady];
+  constructionReady[state.currentPlayer] = true;
+  const nextPlayerIndex = (state.currentPlayer + 1) % 3;
+  // Merchants can only build in Pskov, so select it for them
+  const selectedRegion = state.players[nextPlayerIndex].faction === 'Merchants' ? 'pskov' : state.selectedRegion;
+  return {
+    ...state,
+    currentPlayer: nextPlayerIndex,
+    selectedRegion,
+    constructionReady,
+  };
+};
+
+// Simultaneous construction: a player says they are done; when all are, the phase moves on
+export const setConstructionReady = (state, playerIndex) => {
+  const constructionReady = [...state.constructionReady];
+  constructionReady[playerIndex] = true;
+  if (constructionReady.every(Boolean)) {
+    return nextPhase({ ...state, constructionReady });
+  }
+  return { ...state, constructionReady };
+};
 
 // Region selection
 export const selectRegion = (state, regionName) => ({
@@ -286,33 +365,29 @@ export const selectRegion = (state, regionName) => ({
   selectedRegion: regionName,
 });
 
-// Build a building
-export const buildBuilding = (state, buildingType) => {
-  const player = state.players[state.currentPlayer];
+// Build a building for a player (default: the current player) in a region (default: the selected one)
+export const buildBuilding = (state, buildingType, playerIndex = state.currentPlayer, regionName = state.selectedRegion) => {
+  const player = state.players[playerIndex];
+  const buildingDef = BUILDING_TYPES[buildingType];
+  const currentRegion = state.regions[regionName];
 
-  if (player.money < 2) {
-    return state;
-  }
+  if (!buildingDef || !currentRegion || player.money < buildingDef.cost) return state;
+  if (state.constructionActions[playerIndex].improvement) return state;
+  if (currentRegion.controller !== 'republic') return state;
+  if (buildingDef.faction !== player.faction) return state;
 
   // Enforce pskovOnly restriction for merchant buildings
-  const buildingDef = BUILDING_TYPES[buildingType];
-  if (buildingDef?.pskovOnly && state.selectedRegion !== 'pskov') {
-    return state;
-  }
+  if (buildingDef.pskovOnly && regionName !== 'pskov') return state;
 
-  const currentRegion = state.regions[state.selectedRegion];
   const currentCount = currentRegion.buildings[buildingType] || 0;
-  const maxPerRegion = buildingDef?.maxPerRegion || 1;
-  if (currentCount >= maxPerRegion) {
-    return state;
-  }
+  if (currentCount >= (buildingDef.maxPerRegion || 1)) return state;
 
   const isReligious = RELIGIOUS_BUILDING_TYPES.has(buildingType);
   const newPlayers = state.players.map((p, i) =>
-    i === state.currentPlayer
+    i === playerIndex
       ? {
           ...p,
-          money: p.money - 2,
+          money: p.money - buildingDef.cost,
           improvements: p.improvements + 1,
           religiousBuildings: (p.religiousBuildings || 0) + (isReligious ? 1 : 0),
         }
@@ -320,76 +395,62 @@ export const buildBuilding = (state, buildingType) => {
   );
 
   const newConstructionActions = state.constructionActions.map((ca, i) =>
-    i === state.currentPlayer ? { ...ca, improvement: true } : ca
+    i === playerIndex ? { ...ca, improvement: true } : ca
   );
-
-  const newBuildings = buildingType.startsWith('merchant_')
-    ? { ...currentRegion.buildings, [buildingType]: currentRegion.buildings[buildingType] + 1 }
-    : { ...currentRegion.buildings, [buildingType]: 1 };
-
-  const newRegions = {
-    ...state.regions,
-    [state.selectedRegion]: {
-      ...currentRegion,
-      buildings: newBuildings,
-    },
-  };
 
   return {
     ...state,
-    regions: newRegions,
+    regions: {
+      ...state.regions,
+      [regionName]: {
+        ...currentRegion,
+        buildings: { ...currentRegion.buildings, [buildingType]: currentCount + 1 },
+      },
+    },
     players: newPlayers,
     constructionActions: newConstructionActions,
   };
 };
 
 // Buy equipment
-export const buyEquipment = (state, item) => {
-  const playerIndex = state.currentPlayer;
+export const buyEquipment = (state, item, playerIndex = state.currentPlayer) => {
   const player = state.players[playerIndex];
-  const cost = EQUIPMENT_COSTS[item] || 1;
+  const cost = EQUIPMENT_COSTS[item];
 
-  if (player.money < cost || player[item] >= 2) {
-    return state;
-  }
-
-  const newPlayers = state.players.map((p, i) =>
-    i === playerIndex ? { ...p, money: p.money - cost, [item]: p[item] + 1 } : p
-  );
-
-  const newConstructionActions =
-    item === 'weapons' || item === 'armor'
-      ? state.constructionActions.map((action, i) =>
-          i === playerIndex ? { ...action, equipment: true } : action
-        )
-      : state.constructionActions;
+  if (cost === undefined || player.money < cost || player[item] >= 2) return state;
+  if (state.constructionActions[playerIndex].equipment) return state;
 
   return {
     ...state,
-    players: newPlayers,
-    constructionActions: newConstructionActions,
+    players: state.players.map((p, i) =>
+      i === playerIndex ? { ...p, money: p.money - cost, [item]: p[item] + 1 } : p
+    ),
+    constructionActions: state.constructionActions.map((action, i) =>
+      i === playerIndex ? { ...action, equipment: true } : action
+    ),
   };
 };
 
 // Send a trading expedition overseas (Merchants only, max 2 per game)
-export const sendExpedition = (state, randomValues = {}) => {
-  const playerIndex = state.currentPlayer;
+export const sendExpedition = (state, randomValues = {}, playerIndex = state.currentPlayer) => {
   const player = state.players[playerIndex];
 
-  if (player.faction !== 'Merchants' || player.money < EXPEDITION_COST || player.expeditions >= EXPEDITION_MAX_PER_GAME) {
+  if (
+    player.faction !== 'Merchants' ||
+    player.money < EXPEDITION_COST ||
+    player.expeditions >= EXPEDITION_MAX_PER_GAME ||
+    state.constructionActions[playerIndex].expedition
+  ) {
     return { newState: state, error: 'Cannot send expedition' };
   }
 
   // Roll for outcome: 0 = loss, 1 = profit, 2 = windfall
-  const roll = randomValues.expeditionRoll !== undefined
-    ? randomValues.expeditionRoll
-    : Math.floor(Math.random() * 3);
+  const roll = randomValues.expeditionRoll !== undefined ? randomValues.expeditionRoll : randomInt(3);
 
   let moneyChange = -EXPEDITION_COST;
   let outcome;
   if (roll === 0) {
     outcome = 'loss';
-    // Total loss - just lose the cost
   } else if (roll === 1) {
     outcome = 'profit';
     moneyChange += EXPEDITION_PROFIT;
@@ -398,21 +459,15 @@ export const sendExpedition = (state, randomValues = {}) => {
     moneyChange += EXPEDITION_WINDFALL;
   }
 
-  const newPlayers = state.players.map((p, i) =>
-    i === playerIndex
-      ? { ...p, money: p.money + moneyChange, expeditions: p.expeditions + 1 }
-      : p
-  );
-
-  const newConstructionActions = state.constructionActions.map((ca, i) =>
-    i === playerIndex ? { ...ca, expedition: true } : ca
-  );
-
   return {
     newState: {
       ...state,
-      players: newPlayers,
-      constructionActions: newConstructionActions,
+      players: state.players.map((p, i) =>
+        i === playerIndex ? { ...p, money: p.money + moneyChange, expeditions: p.expeditions + 1 } : p
+      ),
+      constructionActions: state.constructionActions.map((ca, i) =>
+        i === playerIndex ? { ...ca, expedition: true } : ca
+      ),
       lastExpeditionResult: { outcome, moneyChange, playerIndex },
     },
     result: { type: 'expedition_sent', outcome, moneyChange },
@@ -429,19 +484,18 @@ export const voteOnEvent = (state, playerIndex, vote) => {
 // Resolve current event
 export const resolveCurrentEvent = (state, randomValues = {}) => {
   const event = state.currentEvent;
+  if (!event) return state;
 
-  if (!event) {
-    return state;
-  }
+  // Start from a clean result, so the screen only shows what this event caused
+  const cleanState = { ...state, battleResult: null, lastOutcome: null, lastEventResult: null };
+  const newState = resolveEventHelper(event, cleanState, state.eventVotes, randomValues);
 
-  const newState = resolveEventHelper(event, state, state.eventVotes, randomValues);
-
-  // Check if a new event was triggered (nested event scenario)
+  // A new event was triggered (the Order retaliates): it still has to be decided
   const newEventTriggered = newState.currentEvent && newState.currentEvent.id !== event.id;
 
   return {
     ...newState,
-    eventResolved: newEventTriggered ? false : true,
+    eventResolved: !newEventTriggered,
   };
 };
 
@@ -459,57 +513,47 @@ export const voteOnAttack = (state, playerIndex, vote) => {
   return { ...state, attackVotes: newVotes };
 };
 
-export const executeAttackAction = (state, randomValues = {}) => {
-  const { attackTarget, attackVotes, players } = state;
-  const participants = attackVotes.filter((v) => v === true).length;
+// Who would join the campaign as votes stand, and whether it can go ahead
+export const getAttackFunding = (state) => {
+  const participants = state.attackVotes.map((v, i) => (v === true ? i : -1)).filter((i) => i >= 0);
+  const cannotAfford = participants.filter((i) => state.players[i].money < ATTACK_COST_PER_PLAYER);
+  return {
+    participants,
+    costPerParticipant: ATTACK_COST_PER_PLAYER,
+    cannotAfford,
+    funded: participants.length > 0 && cannotAfford.length === 0,
+  };
+};
 
-  if (participants === 0) {
+export const executeAttackAction = (state, randomValues = {}) => {
+  const { attackTarget, players } = state;
+  const funding = getAttackFunding(state);
+
+  if (funding.participants.length === 0) {
     return {
       newState: cancelAttack(state),
       result: { type: 'attack_cancelled', reason: 'no_participants' },
     };
   }
 
-  const costPerParticipant = 2;
-
-  // Check if all participants can afford
-  let allCanAfford = true;
-  players.forEach((player, index) => {
-    if (attackVotes[index] === true && player.money < costPerParticipant) {
-      allCanAfford = false;
-    }
-  });
-
-  if (!allCanAfford) {
+  if (!funding.funded) {
     return {
-      newState: {
-        ...cancelAttack(state),
-        lastEventResult: 'Attack cancelled - not enough funding!',
-      },
+      newState: setOutcome(cancelAttack(state), createOutcome('veche.attackCancelled'), 'Attack cancelled - not enough funding!'),
       result: { type: 'attack_cancelled', reason: 'insufficient_funds' },
     };
   }
 
-  // Deduct money from participants
-  const newPlayers = players.map((player, index) => {
-    if (attackVotes[index] === true) {
-      return { ...player, money: player.money - costPerParticipant };
-    }
-    return player;
-  });
+  const cost = funding.costPerParticipant;
+  const newPlayers = players.map((player, index) =>
+    funding.participants.includes(index) ? { ...player, money: player.money - cost } : player
+  );
 
-  // Get attacking players
-  const attackingPlayers = [];
-  attackVotes.forEach((vote, index) => {
-    if (vote === true) attackingPlayers.push(index);
-  });
-
-  // Execute combat
   const combatResult = executeAttackCombat(
     { ...state, players: newPlayers },
     attackTarget,
-    attackingPlayers,
-    randomValues.battleRoll
+    funding.participants,
+    randomValues.battleRoll,
+    { gloryPerPlayer: getRules(state).glory ? cost * GLORY_PER_COIN : 0 }
   );
 
   return {
@@ -548,70 +592,65 @@ export const voteOnFortress = (state, playerIndex, vote) => {
   return { ...state, fortressVotes: newVotes };
 };
 
-export const executeFortressAction = (state) => {
-  const { fortressTarget, fortressVotes, players } = state;
-  const participants = fortressVotes.filter((v) => v === true).length;
-
-  if (participants === 0) {
-    return {
-      newState: {
-        ...cancelFortress(state),
-        lastEventResult: 'Fortress construction cancelled - no funding!',
-      },
-      result: { type: 'fortress_cancelled', reason: 'no_participants' },
-    };
-  }
-
-  const costPerParticipant = 6 / participants;
-
-  // Check if all participants can afford
-  let allCanAfford = true;
-  players.forEach((player, index) => {
-    if (fortressVotes[index] === true && player.money < costPerParticipant) {
-      allCanAfford = false;
-    }
-  });
-
-  if (!allCanAfford) {
-    return {
-      newState: {
-        ...cancelFortress(state),
-        lastEventResult: 'Fortress construction cancelled - insufficient funding!',
-      },
-      result: { type: 'fortress_cancelled', reason: 'insufficient_funds' },
-    };
-  }
-
-  // Deduct money from participants
-  const newPlayers = players.map((player, index) => {
-    if (fortressVotes[index] === true) {
-      return { ...player, money: player.money - costPerParticipant };
-    }
-    return player;
-  });
-
-  // Build the fortress
-  const newRegions = {
-    ...state.regions,
-    [fortressTarget]: {
-      ...state.regions[fortressTarget],
-      fortress: true,
-    },
+// Who would fund the fortress as votes stand, what each pays, and whether it gets built
+export const getFortressFunding = (state) => {
+  const participants = state.fortressVotes.map((v, i) => (v === true ? i : -1)).filter((i) => i >= 0);
+  const costPerParticipant = participants.length > 0 ? FORTRESS_COST_TOTAL / participants.length : 0;
+  const cannotAfford = participants.filter((i) => state.players[i].money < costPerParticipant);
+  return {
+    participants,
+    costPerParticipant,
+    cannotAfford,
+    funded: participants.length > 0 && cannotAfford.length === 0,
   };
+};
 
-  const regionDisplayName = formatRegionName(fortressTarget);
+export const executeFortressAction = (state) => {
+  const { fortressTarget, players } = state;
+  const funding = getFortressFunding(state);
+
+  if (!funding.funded) {
+    const reason = funding.participants.length === 0 ? 'no_participants' : 'insufficient_funds';
+    return {
+      newState: setOutcome(
+        { ...cancelFortress(state), battleResult: null },
+        createOutcome('battle.fortressCancelledInsufficient'),
+        'Fortress construction cancelled - insufficient funding!'
+      ),
+      result: { type: 'fortress_cancelled', reason },
+    };
+  }
+
+  const cost = funding.costPerParticipant;
+  const paid = players.map((player, index) =>
+    funding.participants.includes(index) ? { ...player, money: player.money - cost } : player
+  );
+  // Glory: every coin paid toward a fortress that gets built
+  const glory = getRules(state).glory ? cost * GLORY_PER_COIN : 0;
+  const newPlayers = awardGlory(paid, funding.participants, glory);
+
+  const gloryOutcome = glory > 0
+    ? createOutcome('glory.earned', { factions: funding.participants.map((i) => players[i].faction), amount: glory })
+    : null;
 
   return {
-    newState: {
-      ...state,
-      players: newPlayers,
-      regions: newRegions,
-      fortressPlanning: null,
-      fortressTarget: null,
-      fortressVotes: [null, null, null],
-      lastEventResult: `Fortress built in ${regionDisplayName}! (+10 defense bonus)`,
-    },
-    result: { type: 'fortress_built', region: fortressTarget },
+    newState: setOutcome(
+      {
+        ...state,
+        players: newPlayers,
+        regions: {
+          ...state.regions,
+          [fortressTarget]: { ...state.regions[fortressTarget], fortress: true },
+        },
+        fortressPlanning: null,
+        fortressTarget: null,
+        fortressVotes: [null, null, null],
+        battleResult: null,
+      },
+      createOutcome('battle.fortressBuilt', { region: fortressTarget }, gloryOutcome),
+      `Fortress built in ${formatRegionName(fortressTarget)}! (+10 defense bonus)`
+    ),
+    result: { type: 'fortress_built', region: fortressTarget, glory },
   };
 };
 
@@ -622,111 +661,73 @@ export const cancelFortress = (state) => ({
   fortressVotes: [null, null, null],
 });
 
-// Get available buildings for current player in selected region
-export const getAvailableBuildings = (state) => {
-  const player = state.players[state.currentPlayer];
-  const region = state.regions[state.selectedRegion];
-  const buildings = [];
+// Buildings a player can put up in a region (default: the current player, the selected region)
+export const getAvailableBuildings = (state, playerIndex = state.currentPlayer, regionName = state.selectedRegion) => {
+  const player = state.players[playerIndex];
+  const region = state.regions[regionName];
+  if (!player || !region) return [];
 
-  if (player.faction === 'Commoners') {
-    buildings.push(
-      {
-        type: 'commoner_huts',
-        name: 'Huts',
-        cost: 2,
-        built: region.buildings.commoner_huts > 0,
-        canBuild: region.buildings.commoner_huts === 0,
-      },
-      {
-        type: 'commoner_church',
-        name: 'Village Church',
-        cost: 2,
-        built: region.buildings.commoner_church > 0,
-        canBuild: region.buildings.commoner_church === 0,
-      }
-    );
-  } else if (player.faction === 'Nobles') {
-    buildings.push(
-      {
-        type: 'noble_manor',
-        name: 'Manor',
-        cost: 2,
-        built: region.buildings.noble_manor > 0,
-        canBuild: region.buildings.noble_manor === 0,
-      },
-      {
-        type: 'noble_monastery',
-        name: 'Monastery',
-        cost: 2,
-        built: region.buildings.noble_monastery > 0,
-        canBuild: region.buildings.noble_monastery === 0,
-      }
-    );
-  } else if (player.faction === 'Merchants') {
-    if (state.selectedRegion === 'pskov') {
-      buildings.push(
-        {
-          type: 'merchant_mansion',
-          name: 'Mansion',
-          cost: 2,
-          built: region.buildings.merchant_mansion,
-          canBuild: region.buildings.merchant_mansion < 7,
-        },
-        {
-          type: 'merchant_church',
-          name: 'Church',
-          cost: 2,
-          built: region.buildings.merchant_church,
-          canBuild: region.buildings.merchant_church < 7,
-        }
-      );
-    }
-  }
-
-  return buildings;
+  return Object.entries(BUILDING_TYPES)
+    .filter(([, def]) => def.faction === player.faction && (!def.pskovOnly || regionName === 'pskov'))
+    .map(([type, def]) => {
+      const count = region.buildings[type] || 0;
+      const max = def.maxPerRegion || 1;
+      return {
+        type,
+        name: def.name,
+        cost: def.cost,
+        // Merchants can build several of each: they see how many stand
+        built: max > 1 ? count : count > 0,
+        canBuild: count < max,
+        isReligious: RELIGIOUS_BUILDING_TYPES.has(type),
+      };
+    });
 };
 
-// Calculate victory points
-// Religious buildings are worth 2 VP each (counted once in improvements, once in religiousBuildings)
-// Secular buildings are worth 1 VP each (counted only in improvements)
-// Merchants earn half VP per building (their buildings are safe in Pskov)
-export const calculateVictoryPoints = (player) => {
+// VP from buildings: 1 per secular, 2 per religious; Merchants earn less (their buildings are safe in Pskov)
+// rules: the game's rules (getRules(state)); defaults to the standard rules
+export const calculateBuildingVictoryPoints = (player, rules) => {
   const buildingVP = player.improvements + (player.religiousBuildings || 0);
-  const vpMultiplier = player.faction === 'Merchants' ? 0.5 : 1;
-  return buildingVP * vpMultiplier + (player.bonusPoints || 0);
+  return buildingVP * (player.faction === 'Merchants' ? getMerchantVpMultiplier(rules) : 1);
 };
+
+// Total victory points: buildings + bonus points (auction) + Glory
+export const calculateVictoryPoints = (player, rules) =>
+  calculateBuildingVictoryPoints(player, rules) + (player.bonusPoints || 0) + (player.glory || 0);
 
 // Check game result
 export const getGameResult = (state) => {
-  if (state.turn > 20 || state.gameOver) {
-    const playerScores = state.players.map((player, index) => {
-      const religious = player.religiousBuildings || 0;
-      const secular = player.improvements - religious;
-      return {
-        faction: player.faction,
-        victoryPoints: calculateVictoryPoints(player),
-        money: player.money,
-        index,
-        breakdown: {
-          secular,
-          religious,
-          bonus: player.bonusPoints || 0,
-        },
-      };
-    });
+  if (!isOver(state)) return null;
 
-    playerScores.sort((a, b) => {
-      if (b.victoryPoints !== a.victoryPoints) {
-        return b.victoryPoints - a.victoryPoints;
-      }
-      return b.money - a.money;
-    });
-
+  const rules = getRules(state);
+  const playerScores = state.players.map((player, index) => {
+    const religious = player.religiousBuildings || 0;
+    const secular = player.improvements - religious;
     return {
-      winner: playerScores[0],
-      rankings: playerScores,
-      gameOver: state.gameOver,
+      faction: player.faction,
+      victoryPoints: calculateVictoryPoints(player, rules),
+      money: player.money,
+      index,
+      breakdown: {
+        secular,
+        religious,
+        buildingVP: calculateBuildingVictoryPoints(player, rules),
+        bonus: player.bonusPoints || 0,
+        glory: player.glory || 0,
+      },
     };
-  }
-  return null;
+  });
+
+  playerScores.sort((a, b) => {
+    if (b.victoryPoints !== a.victoryPoints) {
+      return b.victoryPoints - a.victoryPoints;
+    }
+    return b.money - a.money;
+  });
+
+  return {
+    winner: playerScores[0],
+    rankings: playerScores,
+    gameOver: Boolean(state.gameOver),
+  };
 };

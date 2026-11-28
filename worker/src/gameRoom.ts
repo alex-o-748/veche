@@ -11,15 +11,13 @@
 import { DurableObject } from 'cloudflare:workers';
 import {
   GameState,
-  createInitialGameState,
-  FACTIONS,
-} from './game';
-import {
-  applyAction,
-  nextPhase,
   GameAction,
   RandomValues,
-} from './game/actions';
+  createInitialGameState,
+  applyAction,
+  nextPhase,
+  FACTIONS,
+} from './engine';
 
 // Message types from client to server
 interface ClientMessage {
@@ -297,7 +295,7 @@ export class GameRoom extends DurableObject<Env> {
   private async handleReady(ws: WebSocket): Promise<void> {
     const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
 
-    if (!attachment || attachment.playerId === undefined) {
+    if (!attachment || attachment.playerId === undefined || attachment.playerId === null) {
       this.sendToSocket(ws, { type: 'error', error: 'Not in room' });
       return;
     }
@@ -328,7 +326,7 @@ export class GameRoom extends DurableObject<Env> {
   private async handleAction(ws: WebSocket, message: ClientMessage): Promise<void> {
     const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
 
-    if (!attachment || attachment.playerId === undefined) {
+    if (!attachment || attachment.playerId === undefined || attachment.playerId === null) {
       this.sendToSocket(ws, { type: 'error', error: 'Not in room' });
       return;
     }
@@ -347,14 +345,8 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
-    // Generate server-side random values for actions that need them
+    // Randomness is server-authoritative: the engine rolls here, never on a client
     const randomValues: RandomValues = {};
-
-    if (action.type === 'RESOLVE_EVENT' || action.type === 'EXECUTE_ATTACK') {
-      randomValues.battleRoll = Math.random();
-      randomValues.eventRoll = Math.random();
-      randomValues.targetRoll = Math.random();
-    }
 
     // Apply the action using server-authoritative game logic
     const result = applyAction(gameState, action, attachment.playerId, randomValues);
@@ -435,9 +427,9 @@ export class GameRoom extends DurableObject<Env> {
     room.gameStarted = true;
     await this.saveRoom(room);
 
-    // Create initial game state and auto-advance past resources phase
-    // (resources phase is auto-skipped; income is calculated and we start at construction)
-    const initialState = createInitialGameState();
+    // Everyone builds at the same time online; the engine then skips the resources
+    // phase each turn (income is paid and construction starts)
+    const initialState = createInitialGameState({ simultaneousConstruction: true });
     const gameState = nextPhase(initialState);
     await this.saveGameState(gameState);
 

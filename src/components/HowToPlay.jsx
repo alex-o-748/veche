@@ -32,6 +32,7 @@ export const HowToPlay = ({ onContinue, isModal = false }) => {
         t('howToPlay.goal1'),
         t('howToPlay.goal2'),
         t('howToPlay.goal3'),
+        t('howToPlay.goal4'),
       ],
     },
     {

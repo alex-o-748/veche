@@ -72,6 +72,40 @@ export const DEFENSE_COST_TOTAL = 3;
 export const ATTACK_COST_TOTAL = 6;
 export const FORTRESS_COST_TOTAL = 6;
 
+// What each faction pays to fund a defence or to join a Veche campaign
+export const DEFENSE_COST_PER_PLAYER = 1;
+export const ATTACK_COST_PER_PLAYER = 2;
+
+// Glory: VP earned for every coin spent on a defence or campaign that wins,
+// or on a fortress that gets built. Never halved for Merchants, never lost.
+export let GLORY_PER_COIN = 1;
+
+// Merchant buildings sit safe inside Pskov, so they are worth less VP.
+// Building VP only: Glory and bonus points are never multiplied.
+// Classic rules use ×0.5; with Glory and the siege, ×0.6 keeps Merchants near a 30% win rate.
+export const MERCHANT_VP_MULTIPLIER = 0.5;
+export const MERCHANT_VP_MULTIPLIER_STANDARD = 0.6;
+
+// Balance experiments only (simulate.js --glory= / --merchant-vp=): override the tuning knobs
+export let merchantVpOverride = null;
+export const setTuning = ({ gloryPerCoin, merchantVpMultiplier } = {}) => {
+  if (gloryPerCoin !== undefined) GLORY_PER_COIN = gloryPerCoin;
+  if (merchantVpMultiplier !== undefined) merchantVpOverride = merchantVpMultiplier;
+};
+
+// Rule sets. "standard" adds Glory and the Siege of Pskov; "classic" is the game without them.
+export const RULESETS = {
+  standard: { glory: true, siege: true, merchantVpMultiplier: MERCHANT_VP_MULTIPLIER_STANDARD },
+  classic: { glory: false, siege: false, merchantVpMultiplier: MERCHANT_VP_MULTIPLIER },
+};
+
+// The rules a game is played with (old saves have none: they get the standard rules)
+export const getRules = (state) => ({ ...RULESETS.standard, ...(state?.rules || {}) });
+
+// Merchant building VP multiplier under a set of rules
+export const getMerchantVpMultiplier = (rules = RULESETS.standard) =>
+  merchantVpOverride ?? rules.merchantVpMultiplier ?? MERCHANT_VP_MULTIPLIER;
+
 // Create empty buildings object for a region
 export const createRegionBuildings = (isPskov = false) => {
   const buildings = {
@@ -129,11 +163,19 @@ export const createInitialRegions = () => ({
 });
 
 // Create initial player state
-export const createInitialPlayers = () => [
-  { faction: 'Nobles', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0, expeditions: 0, religiousBuildings: 0 },
-  { faction: 'Merchants', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0, expeditions: 0, religiousBuildings: 0 },
-  { faction: 'Commoners', money: 0, weapons: 0, armor: 0, improvements: 0, bonusPoints: 0, expeditions: 0, religiousBuildings: 0 },
-];
+const createPlayer = (faction) => ({
+  faction,
+  money: 0,
+  weapons: 0,
+  armor: 0,
+  improvements: 0,
+  bonusPoints: 0,
+  glory: 0,
+  expeditions: 0,
+  religiousBuildings: 0,
+});
+
+export const createInitialPlayers = () => FACTIONS.map(createPlayer);
 
 // Create initial construction actions
 export const createInitialConstructionActions = () => [
@@ -143,7 +185,14 @@ export const createInitialConstructionActions = () => [
 ];
 
 // Create complete initial game state
-export const createInitialGameState = () => ({
+// options.ruleset: 'standard' (default) or 'classic'
+// options.simultaneousConstruction: every player builds at once (online games)
+export const createInitialGameState = (options = {}) => ({
+  // Rules this game is played with
+  ruleset: options.ruleset === 'classic' ? 'classic' : 'standard',
+  rules: { ...(RULESETS[options.ruleset] || RULESETS.standard) },
+  simultaneousConstruction: Boolean(options.simultaneousConstruction),
+
   // Turn tracking
   turn: 1,
   phase: 'resources',
@@ -160,7 +209,8 @@ export const createInitialGameState = () => ({
   currentEvent: null,
   eventVotes: [null, null, null],
   eventResolved: false,
-  lastEventResult: null,
+  lastEventResult: null, // English text of the last outcome (logs, simulator)
+  lastOutcome: null, // the same outcome as { key, params, then? } for the UI to translate
   eventImageRevealed: false,
   shuffledEventOrder: [],
   eventDrawIndex: 0,
@@ -173,6 +223,7 @@ export const createInitialGameState = () => ({
 
   // Battle state
   battleState: null,
+  battleResult: null,
   militaryAction: null,
   militaryParticipants: [],
   targetRegion: null,

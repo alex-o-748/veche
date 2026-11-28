@@ -264,6 +264,7 @@ const Pips = ({ x, y, pips }) => {
  *  selectableRegions  regions that can be clicked right now
  *  onRegionClick      called with the region name when a selectable region is clicked
  *  threatTargets      regions the Order may attack (pending Order attack event)
+ *  capitalThreatened  the Order holds a region next to Pskov and can besiege the capital
  *  campaign           { target } Republic attack being planned in the Veche
  *  battle             { region, outcome: 'won' | 'lost' } last battle, if any
  */
@@ -273,6 +274,7 @@ const GameMap = ({
   selectableRegions = [],
   onRegionClick,
   threatTargets = [],
+  capitalThreatened = false,
   campaign = null,
   battle = null,
 }) => {
@@ -326,6 +328,7 @@ const GameMap = ({
           {region.fortress && <span className="text-ink-light font-normal"> · {t('map.fortress')}</span>}
         </div>
         {threatTargets.includes(hovered) && <div className="text-xs text-war mt-0.5">{t('map.threatened')}</div>}
+        {hovered === 'pskov' && capitalThreatened && <div className="text-xs font-semibold text-war mt-0.5">{t('map.capitalThreatened')}</div>}
         <div className="mt-1 text-xs text-ink-light">
           {built.length === 0 ? (
             <span className="italic text-ink-muted">{t('map.noBuildings')}</span>
@@ -455,6 +458,10 @@ const GameMap = ({
                 )}
                 {isThreatened && (
                   <circle cx={x} cy={y} r={haloR + 6} fill={COLORS.war} fillOpacity="0.15" stroke={COLORS.war} strokeWidth="6" strokeDasharray="16 10" className="map-threat" />
+                )}
+                {/* Siege: a stronger, steady warning around the capital while the Order is at its gates */}
+                {isPskov && capitalThreatened && (
+                  <circle cx={x} cy={y} r={haloR + 22} fill="none" stroke={COLORS.war} strokeWidth="10" strokeOpacity="0.85" className="map-siege" />
                 )}
 
                 {/* Control ring (a hexagon for the capital) */}

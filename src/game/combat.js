@@ -6,11 +6,14 @@ import {
   FORTRESS_DEFENSE_BONUS,
   ORDER_TURN_SCALING,
   ORDER_SCALING_INTERVAL,
+  ORDER_BASE_STRENGTH,
   BUILDING_NAMES,
   RELIGIOUS_BUILDING_TYPES,
   formatRegionName,
 } from './state.js';
 import { getStrengthModifier } from './effects.js';
+import { random, randomInt } from './random.js';
+import { createOutcome, setOutcome } from './outcome.js';
 
 // Calculate Order turn-based strength bonus
 // The Order grows stronger over time, gaining ORDER_TURN_SCALING strength
@@ -58,7 +61,7 @@ export const getVictoryChance = (strengthDiff) => {
 // Roll for victory (deterministic version for server use)
 export const rollForVictory = (strengthDiff, randomValue = null) => {
   const chancePercent = getVictoryChance(strengthDiff);
-  const roll = randomValue !== null ? randomValue * 100 : Math.random() * 100;
+  const roll = randomValue !== null && randomValue !== undefined ? randomValue * 100 : random() * 100;
   return {
     success: roll < chancePercent,
     roll,
@@ -70,13 +73,16 @@ export const rollForVictory = (strengthDiff, randomValue = null) => {
 export const surrenderRegion = (state, regionName) => {
   if (regionName === 'pskov') {
     // Game over - Pskov captured
-    return {
-      ...state,
-      gameOver: true,
-      gameEnded: true,
-      lastEventResult: 'GAME OVER: Pskov has fallen to the Teutonic Order!',
-      battleResult: { type: 'game_over', region: regionName },
-    };
+    return setOutcome(
+      {
+        ...state,
+        gameOver: true,
+        gameEnded: true,
+        battleResult: { type: 'game_over', region: regionName },
+      },
+      createOutcome('battle.gameOver', { region: regionName }),
+      'GAME OVER: Pskov has fallen to the Teutonic Order!'
+    );
   }
 
   // Lose the region and destroy all buildings except fortresses
@@ -111,24 +117,38 @@ export const surrenderRegion = (state, regionName) => {
   newRegions[regionName] = region;
   const regionDisplayName = formatRegionName(regionName);
 
-  return {
-    ...state,
-    regions: newRegions,
-    players: newPlayers,
-    lastEventResult: `${regionDisplayName} surrendered to the Order! All buildings destroyed.`,
-    battleResult: { type: 'surrendered', region: regionName },
-  };
+  return setOutcome(
+    {
+      ...state,
+      regions: newRegions,
+      players: newPlayers,
+      battleResult: { type: 'surrendered', region: regionName },
+    },
+    createOutcome('battle.surrendered', { region: regionName }),
+    `${regionDisplayName} surrendered to the Order! All buildings destroyed.`
+  );
+};
+
+// Give each listed player `amount` Glory
+export const awardGlory = (players, playerIndices, amount) => {
+  if (!amount) return players;
+  return players.map((player, index) =>
+    playerIndices.includes(index) ? { ...player, glory: (player.glory || 0) + amount } : player
+  );
 };
 
 // Execute a battle (defense)
+// options.gloryPerPlayer: Glory each defender earns if the defence holds
 export const executeBattle = (
   state,
   orderStrength,
   targetRegion,
   defendingPlayers,
-  randomValue = null
+  randomValue = null,
+  options = {}
 ) => {
   const { players, regions, activeEffects } = state;
+  const gloryPerPlayer = options.gloryPerPlayer || 0;
 
   // Calculate Pskov strength
   const pskovStrength = calculateTotalStrength(players, defendingPlayers, activeEffects);
@@ -149,32 +169,49 @@ export const executeBattle = (
     chancePercent: result.chancePercent,
     pskovStrength: finalPskovStrength,
     orderStrength,
+    participants: defendingPlayers,
+    glory: 0,
+  };
+  const params = {
+    region: targetRegion,
+    chance: result.chancePercent,
+    pskovStrength: finalPskovStrength,
+    orderStrength,
   };
 
   if (result.success) {
-    // Successful defense
-    return {
-      ...state,
-      lastEventResult: `VICTORY! ${regionDisplayName} successfully defended! (${result.chancePercent}% chance)`,
-      battleResult: { ...battleResult, type: 'defense_victory' },
-    };
-  } else {
-    // Failed defense - lose region
-    const surrenderResult = surrenderRegion(state, targetRegion);
-    return {
-      ...surrenderResult,
-      lastEventResult: `DEFEAT! ${regionDisplayName} lost to the Order! (${result.chancePercent}% chance) ${surrenderResult.lastEventResult}`,
-      battleResult: { ...battleResult, type: 'defense_defeat' },
-    };
+    // Successful defense: every defender earns Glory
+    return setOutcome(
+      {
+        ...state,
+        players: awardGlory(players, defendingPlayers, gloryPerPlayer),
+        battleResult: { ...battleResult, type: 'defense_victory', glory: gloryPerPlayer },
+      },
+      createOutcome('battle.defenseVictory', params),
+      `VICTORY! ${regionDisplayName} successfully defended! (${result.chancePercent}% chance)`
+    );
   }
+
+  // Failed defense - lose region
+  const surrenderResult = surrenderRegion(state, targetRegion);
+  return setOutcome(
+    {
+      ...surrenderResult,
+      battleResult: { ...battleResult, type: 'defense_defeat' },
+    },
+    createOutcome('battle.defenseFailed', params, surrenderResult.lastOutcome),
+    `DEFEAT! ${regionDisplayName} lost to the Order! (${result.chancePercent}% chance) ${surrenderResult.lastEventResult}`
+  );
 };
 
 // Execute an attack on Order territory
-export const executeAttack = (state, targetRegion, attackingPlayers, randomValue = null) => {
+// options.gloryPerPlayer: Glory each attacker earns if the region is taken
+export const executeAttack = (state, targetRegion, attackingPlayers, randomValue = null, options = {}) => {
   const { players, regions, activeEffects } = state;
+  const gloryPerPlayer = options.gloryPerPlayer || 0;
 
-  // Calculate Order strength (base 100 + turn bonus + fortress bonus)
-  const orderStrength = 100 + getOrderTurnBonus(state.turn) + (regions[targetRegion]?.fortress ? FORTRESS_DEFENSE_BONUS : 0);
+  // Calculate Order strength (base + turn bonus + fortress bonus)
+  const orderStrength = getOrderDefenseStrength(state, targetRegion);
 
   // Calculate Pskov strength (attacking, so no fortress bonus for attackers)
   const pskovStrength = calculateTotalStrength(players, attackingPlayers, activeEffects);
@@ -189,7 +226,10 @@ export const executeAttack = (state, targetRegion, attackingPlayers, randomValue
     chancePercent: result.chancePercent,
     pskovStrength,
     orderStrength,
+    participants: attackingPlayers,
+    glory: 0,
   };
+  const params = { region: targetRegion, chance: result.chancePercent, pskovStrength, orderStrength };
 
   if (result.success) {
     // Successful attack - recapture region
@@ -200,28 +240,37 @@ export const executeAttack = (state, targetRegion, attackingPlayers, randomValue
     };
 
     return {
-      newState: {
-        ...state,
-        regions: newRegions,
-        lastEventResult: `VICTORY! ${regionDisplayName} recaptured from the Order! (${result.chancePercent}% chance)`,
-        battleResult: { ...battleResult, type: 'attack_victory' },
-      },
+      newState: setOutcome(
+        {
+          ...state,
+          regions: newRegions,
+          players: awardGlory(players, attackingPlayers, gloryPerPlayer),
+          battleResult: { ...battleResult, type: 'attack_victory', glory: gloryPerPlayer },
+        },
+        createOutcome('battle.attackVictory', params),
+        `VICTORY! ${regionDisplayName} recaptured from the Order! (${result.chancePercent}% chance)`
+      ),
       success: true,
       result,
     };
-  } else {
-    // Failed attack
-    return {
-      newState: {
-        ...state,
-        lastEventResult: `DEFEAT! Attack on ${regionDisplayName} failed! (${result.chancePercent}% chance)`,
-        battleResult: { ...battleResult, type: 'attack_defeat' },
-      },
-      success: false,
-      result,
-    };
   }
+
+  // Failed attack
+  return {
+    newState: setOutcome(
+      { ...state, battleResult: { ...battleResult, type: 'attack_defeat' } },
+      createOutcome('battle.attackDefeat', params),
+      `DEFEAT! Attack on ${regionDisplayName} failed! (${result.chancePercent}% chance)`
+    ),
+    success: false,
+    result,
+  };
 };
+
+// Strength of the Order garrison the Republic must beat to retake a region
+export const getOrderDefenseStrength = (state, targetRegion) =>
+  ORDER_BASE_STRENGTH + getOrderTurnBonus(state.turn) +
+  (state.regions[targetRegion]?.fortress ? FORTRESS_DEFENSE_BONUS : 0);
 
 // Destroy random buildings in a region (for events like uprising, fire)
 export const destroyRandomBuildings = (state, regionName, count = 1) => {
@@ -232,12 +281,14 @@ export const destroyRandomBuildings = (state, regionName, count = 1) => {
     return {
       state,
       destroyedBuildings: [],
+      destroyedTypes: [],
     };
   }
 
   let newRegions = { ...state.regions };
   let newPlayers = [...state.players];
   const destroyedBuildings = [];
+  const destroyedTypes = [];
 
   // Copy remaining building types for random selection
   const availableBuildings = [...buildingTypes];
@@ -245,7 +296,7 @@ export const destroyRandomBuildings = (state, regionName, count = 1) => {
   for (let i = 0; i < Math.min(count, buildingTypes.length); i++) {
     if (availableBuildings.length === 0) break;
 
-    const randomIndex = Math.floor(Math.random() * availableBuildings.length);
+    const randomIndex = randomInt(availableBuildings.length);
     const [buildingType, _] = availableBuildings[randomIndex];
 
     // Destroy the building
@@ -278,6 +329,7 @@ export const destroyRandomBuildings = (state, regionName, count = 1) => {
     });
 
     destroyedBuildings.push(BUILDING_NAMES[buildingType] || buildingType);
+    destroyedTypes.push(buildingType);
 
     // Remove from available buildings for next iteration
     availableBuildings.splice(randomIndex, 1);
@@ -290,5 +342,6 @@ export const destroyRandomBuildings = (state, regionName, count = 1) => {
       players: newPlayers,
     },
     destroyedBuildings,
+    destroyedTypes,
   };
 };

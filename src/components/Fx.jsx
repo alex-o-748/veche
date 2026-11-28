@@ -131,7 +131,8 @@ export const PhaseBanner = ({ turn, phase, hidden }) => {
  *  title         heading (e.g. "Battle for Pechory" or "Forecast")
  *  note          optional small print under the bar
  */
-export const BattleReport = ({ ours, theirs, chance, outcome, title, note }) => {
+// glory: [{ faction, amount }] — Glory each contributor earned (shown after a victory)
+export const BattleReport = ({ ours, theirs, chance, outcome, title, note, glory }) => {
   const { t } = useTranslation();
   const [filled, setFilled] = useState(prefersReducedMotion());
   const [stamped, setStamped] = useState(prefersReducedMotion());
@@ -172,6 +173,16 @@ export const BattleReport = ({ ours, theirs, chance, outcome, title, note }) => 
           <div className={`battle-stamp ${outcome === 'won' ? 'is-won' : 'is-lost'} ${stamped ? 'is-in' : ''}`} aria-live="polite">
             {outcome === 'won' ? t('battle.stampVictory') : t('battle.stampDefeat')}
           </div>
+        </div>
+      )}
+
+      {outcome === 'won' && glory?.length > 0 && (
+        <div className={`mt-2 flex flex-wrap justify-center gap-1.5 glory-chips ${stamped ? 'is-in' : ''}`}>
+          {glory.map(({ faction, amount }) => (
+            <span key={faction} className="tag-chip glory-chip">
+              {t(`factions.${faction}`)} · {t('glory.chip', { count: amount })}
+            </span>
+          ))}
         </div>
       )}
     </div>

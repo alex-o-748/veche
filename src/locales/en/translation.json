@@ -30,7 +30,9 @@
     "duo": "2 Players + AI",
     "threePlayer": "3 Players (Hotseat)",
     "continueGame": "Continue game (turn {{turn}})",
-    "orNewGame": "Or start a new game:"
+    "orNewGame": "Or start a new game:",
+    "classicRules": "Classic rules",
+    "classicRulesDesc": "No Glory and no siege of Pskov: the game as it was. Applies to solo and hot-seat games."
   },
   "lobby": {
     "title": "Game Lobby",
@@ -101,7 +103,8 @@
     "threatened": "The Order may strike here",
     "noBuildings": "No buildings yet",
     "clickToBuild": "Click to build here",
-    "lake": "Lake Peipus"
+    "lake": "Lake Peipus",
+    "capitalThreatened": "The Order is at the gates: Pskov can be besieged"
   },
   "game": {
     "loading": "Loading game...",
@@ -336,7 +339,10 @@
     "orderFortressNote": "The Order holds a fortress here: +10 to its strength.",
     "reportTitle": "Battle for {{region}}",
     "stampVictory": "Victory",
-    "stampDefeat": "Defeat"
+    "stampDefeat": "Defeat",
+    "goodHarvest": "A good harvest! Every faction gains 1○.",
+    "izhorianSentBack": "The Izhorians are sent away. Nothing changes.",
+    "nothingDestroyed": "none"
   },
   "eventCards": {
     "merchants_robbed": {
@@ -468,7 +474,7 @@
     "title": "How to Play",
     "goalTitle": "Your Goal",
     "goal1": "Survive 20 turns defending the Pskov Republic from the Teutonic Order",
-    "goal2": "If Pskov (the capital) falls, you lose immediately",
+    "goal2": "If the Order holds a region next to Pskov, it can besiege the capital. If Pskov falls, everyone loses.",
     "goal3": "After 20 turns, victory points are tallied — secular buildings score 1 VP and boost income, religious buildings score 2 VP but give no income",
     "phasesTitle": "Each turn: income, then 3 phases",
     "phase1": "Income — collected automatically from your territories and secular buildings",
@@ -486,7 +492,8 @@
     "faction3": "Commoners — the people (25 str), build huts and village churches across all regions",
     "startPlaying": "Start Playing",
     "close": "Got It",
-    "helpButton": "?"
+    "helpButton": "?",
+    "goal4": "Glory: every coin you pay toward a defence or campaign that wins, or a fortress that gets built, earns 1 VP"
   },
   "factionScreen": {
     "continue": "Begin",
@@ -512,7 +519,9 @@
     "religious": "{{count}} religious ({{vp}} VP)",
     "bonus": "+{{count}} bonus",
     "playAgain": "Play again",
-    "backToMenu": "Main menu"
+    "backToMenu": "Main menu",
+    "glory": "+{{count}} Glory",
+    "merchantBuildings": "{{secular}} secular, {{religious}} religious: {{raw}} VP × {{rate}} = {{vp}} VP"
   },
   "auction": {
     "title": "Fur Auction",
@@ -593,5 +602,19 @@
   "sound": {
     "mute": "Mute sounds",
     "unmute": "Turn sounds on"
+  },
+  "glory": {
+    "fortressStake": "Each contributor earns {{glory}} Glory when the fortress is built.",
+    "chip": "+{{count}} Glory",
+    "earned": "{{factions}}: +{{amount}} Glory each.",
+    "vpBuildings": "Buildings: {{count}} VP",
+    "vpBonus": "Bonus: {{count}} VP",
+    "vpGlory": "Glory: {{count}} VP",
+    "ifWeWin": "{{cost}}○ · +{{glory}} Glory if we win",
+    "perCoin": "+1 Glory per coin when built"
+  },
+  "siege": {
+    "pskovInReach": "Pskov itself is within reach.",
+    "capitalWarning": "⚠ The Order holds a region next to Pskov: the capital itself can be besieged."
   }
 }

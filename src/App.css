@@ -658,6 +658,30 @@
 .battle-stamp.is-won { color: var(--color-good); }
 .battle-stamp.is-lost { color: var(--color-war); }
 
+/* Glory earned by each contributor, after a victory */
+.glory-chip {
+  background: #f3e3b5;
+  color: #5c4033;
+  border: 1px solid #b08a3e;
+  font-weight: 600;
+}
+.glory-chips {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.3s ease-out 0.15s, transform 0.3s ease-out 0.15s;
+}
+.glory-chips.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Siege: the Order can strike the capital itself */
+.map-siege {
+  animation: mapThreat 1s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 /* ===== End screen ===== */
 .end-podium {
   animation: podiumRise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -706,13 +730,19 @@
 @media (prefers-reduced-motion: reduce) {
   .flip-card-inner,
   .battle-bar-ours,
-  .battle-stamp {
+  .battle-stamp,
+  .glory-chips {
     transition: none;
+  }
+  .glory-chips {
+    opacity: 1;
+    transform: none;
   }
   .phase-enter,
   .event-card-revealed,
   .map-pulse,
   .map-threat,
+  .map-siege,
   .map-march,
   .map-pop,
   .delta-chip,

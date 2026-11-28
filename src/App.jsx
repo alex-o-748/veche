@@ -18,47 +18,48 @@ import { MainMenu, Lobby, FactionScreen, GameMap, DiscussionPanel, HowToPlay } f
 // Import discussion service
 import { requestDiscussion } from './services/discussion';
 
-// Import game logic from modular structure
+// The rules engine: the only place game rules live (shared with the online server)
 import {
   // Constants
-  PHASES,
-  PHASE_NAMES,
-  PHASE_DESCRIPTIONS,
-  BUILDING_NAMES,
-  FORTRESS_DEFENSE_BONUS,
   EXPEDITION_COST,
   EXPEDITION_MAX_PER_GAME,
+  ATTACK_COST_PER_PLAYER,
+  DEFENSE_COST_PER_PLAYER,
+  GLORY_PER_COIN,
+  getRules,
+  getMerchantVpMultiplier,
+
+  // Actions
+  ActionTypes,
+  applyAction,
 
   // Region logic
-  MAP_ADJACENCY,
-  getValidOrderAttackTargets,
   getValidRepublicAttackTargets,
-  countRepublicRegions,
-  getRegionsForFortress,
-
-  // Effects
-  createEffect,
-  getStrengthModifier as getStrengthModifierPure,
-  getIncomeModifier as getIncomeModifierPure,
+  getOrderAttackTargets,
+  isPskovThreatened,
 
   // Combat
   getOrderTurnBonus,
   getAttackStrengthLabel,
+  getOrderDefenseStrength,
   calculatePlayerStrength as calculatePlayerStrengthPure,
   calculateTotalStrength as calculateTotalStrengthPure,
   getVictoryChance as getVictoryChancePure,
-  surrenderRegion as surrenderRegionPure,
-  executeBattle as executeBattlePure,
-  executeAttack as executeAttackPure,
-  destroyRandomBuildings,
 
   // Events
   eventDeck,
-  eventTypes as eventTypesPure,
+  getDefenders,
+  getVotingResult as getVotingResultPure,
+  getAuctionResult as getAuctionResultPure,
+  getParticipationResult as getParticipationResultPure,
 
-  // State
-  createInitialGameState,
-  formatRegionName,
+  // Score, buildings and Veche funding
+  calculateVictoryPoints as calculateVictoryPointsPure,
+  calculateBuildingVictoryPoints,
+  getGameResult as getGameResultPure,
+  getAvailableBuildings as getAvailableBuildingsPure,
+  getAttackFunding,
+  getFortressFunding,
 
   // AI
   decideConstruction,
@@ -86,6 +87,9 @@ const PskovGame = ({ onMenu }) => {
   // Help modal state
   const [showHelp, setShowHelp] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  // Online games: the region this player is building in (everyone builds at once)
+  const [onlineRegion, setOnlineRegion] = useState('pskov');
 
   // Income notification state (shown briefly at top of construction phase)
   const incomeAdvancingRef = useRef(false);
@@ -255,8 +259,8 @@ const PskovGame = ({ onMenu }) => {
 
   // During the Veche, fetch the next event card's art so it is cached when drawn
   useEffect(() => {
-    // Local games only: the draw order indexes this file's deck (online uses the server's)
-    if (!gameState || mode !== 'local' || gameState.phase !== 'veche') return;
+    // The draw order indexes the shared deck, the same on the server
+    if (!gameState || gameState.phase !== 'veche') return;
     const order = gameState.shuffledEventOrder || [];
     const next = order[gameState.eventDrawIndex];
     if (next === undefined) return; // the deck reshuffles: next card unknown
@@ -282,87 +286,21 @@ const PskovGame = ({ onMenu }) => {
 
         setGameState(prev => {
           if (!prev || prev.phase !== 'construction' || prev.currentPlayer !== aiIndex) return prev;
-          let state = { ...prev };
-
-          // Select region and build if decided
-          if (decision.buildingType && decision.regionName && prev.players[aiIndex].money >= 2) {
-            const region = state.regions[decision.regionName];
-            const buildingType = decision.buildingType;
-
-            // Check building is available
-            let canBuild = false;
-            if (buildingType.startsWith('merchant_')) {
-              canBuild = (region.buildings[buildingType] || 0) < 7;
-            } else {
-              canBuild = (region.buildings[buildingType] || 0) === 0;
-            }
-
-            if (canBuild && !state.constructionActions[aiIndex].improvement) {
-              const newBuildings = buildingType.startsWith('merchant_')
-                ? { ...region.buildings, [buildingType]: (region.buildings[buildingType] || 0) + 1 }
-                : { ...region.buildings, [buildingType]: 1 };
-
-              state = {
-                ...state,
-                selectedRegion: decision.regionName,
-                regions: {
-                  ...state.regions,
-                  [decision.regionName]: { ...region, buildings: newBuildings },
-                },
-                players: state.players.map((p, i) => {
-                  if (i !== aiIndex) return p;
-                  const isReligious = buildingType === 'commoner_church' || buildingType === 'noble_monastery' || buildingType === 'merchant_church';
-                  return {
-                    ...p,
-                    money: p.money - 2,
-                    improvements: p.improvements + 1,
-                    religiousBuildings: (p.religiousBuildings || 0) + (isReligious ? 1 : 0),
-                  };
-                }),
-                constructionActions: state.constructionActions.map((ca, i) =>
-                  i === aiIndex ? { ...ca, improvement: true } : ca
-                ),
-              };
-            }
+          // Play the AI's choices through the rules engine; anything it refuses is skipped
+          let state = prev;
+          const play = (action) => {
+            const { newState, error } = applyAction(state, action, aiIndex);
+            if (!error) state = newState;
+          };
+          if (decision.buildingType && decision.regionName) {
+            play({ type: ActionTypes.SELECT_REGION, regionName: decision.regionName });
+            play({ type: ActionTypes.BUILD_BUILDING, buildingType: decision.buildingType });
           }
-
-          // Buy equipment if decided and affordable
-          if (decision.equipmentType && state.players[aiIndex].money >= 1 && !state.constructionActions[aiIndex].equipment && state.players[aiIndex][decision.equipmentType] < 2) {
-            const eqType = decision.equipmentType;
-            state = {
-              ...state,
-              players: state.players.map((p, i) =>
-                i === aiIndex ? { ...p, money: p.money - 1, [eqType]: p[eqType] + 1 } : p
-              ),
-              constructionActions: state.constructionActions.map((ca, i) =>
-                i === aiIndex ? { ...ca, equipment: true } : ca
-              ),
-            };
-          }
-
-          // Send expedition if decided (Merchants only)
-          if (decision.sendExpedition && state.players[aiIndex].money >= 1
-              && !state.constructionActions[aiIndex].expedition
-              && state.players[aiIndex].expeditions < 2) {
-            const roll = Math.floor(Math.random() * 3);
-            let moneyChange = -1;
-            if (roll === 1) moneyChange += 3;
-            else if (roll === 2) moneyChange += 6;
-            state = {
-              ...state,
-              players: state.players.map((p, i) =>
-                i === aiIndex ? { ...p, money: p.money + moneyChange, expeditions: p.expeditions + 1 } : p
-              ),
-              constructionActions: state.constructionActions.map((ca, i) =>
-                i === aiIndex ? { ...ca, expedition: true } : ca
-              ),
-            };
-          }
-
-          // Mark AI as done and advance to next player
-          const newReady = [...state.constructionReady];
-          newReady[aiIndex] = true;
-          return { ...state, currentPlayer: (aiIndex + 1) % 3, constructionReady: newReady };
+          if (decision.equipmentType) play({ type: ActionTypes.BUY_EQUIPMENT, item: decision.equipmentType });
+          if (decision.sendExpedition) play({ type: ActionTypes.SEND_EXPEDITION });
+          // Done: mark ready and pass to the next player
+          play({ type: ActionTypes.NEXT_PLAYER });
+          return state;
         });
       }, 800); // Short delay so human can see AI is taking a turn
       return () => clearTimeout(timer);
@@ -382,9 +320,8 @@ const PskovGame = ({ onMenu }) => {
 
           setGameState(prev => {
             if (!prev || !prev.currentEvent || prev.eventVotes[nextAi] !== null) return prev;
-            const newVotes = [...prev.eventVotes];
-            newVotes[nextAi] = decideEventVote(prev, nextAi, prev.currentEvent);
-            return { ...prev, eventVotes: newVotes };
+            const vote = decideEventVote(prev, nextAi, prev.currentEvent);
+            return applyAction(prev, { type: ActionTypes.VOTE_EVENT, vote }, nextAi).newState;
           });
         }, 900);
         return () => clearTimeout(timer);
@@ -399,9 +336,8 @@ const PskovGame = ({ onMenu }) => {
         const timer = setTimeout(() => {
           setGameState(prev => {
             if (!prev || prev.attackPlanning !== 'planning' || prev.attackVotes[nextAi] !== null) return prev;
-            const newVotes = [...prev.attackVotes];
-            newVotes[nextAi] = decideAttackVote(prev, nextAi);
-            return { ...prev, attackVotes: newVotes };
+            const vote = decideAttackVote(prev, nextAi);
+            return applyAction(prev, { type: ActionTypes.VOTE_ATTACK, vote }, nextAi).newState;
           });
         }, 700);
         return () => clearTimeout(timer);
@@ -416,9 +352,8 @@ const PskovGame = ({ onMenu }) => {
         const timer = setTimeout(() => {
           setGameState(prev => {
             if (!prev || prev.fortressPlanning !== 'planning' || prev.fortressVotes[nextAi] !== null) return prev;
-            const newVotes = [...prev.fortressVotes];
-            newVotes[nextAi] = decideFortressVote(prev, nextAi);
-            return { ...prev, fortressVotes: newVotes };
+            const vote = decideFortressVote(prev, nextAi);
+            return applyAction(prev, { type: ActionTypes.VOTE_FORTRESS, vote }, nextAi).newState;
           });
         }, 700);
         return () => clearTimeout(timer);
@@ -521,55 +456,28 @@ const PskovGame = ({ onMenu }) => {
     veche: t('phases.veche'),
   };
 
-  // Effects management functions
-  const addEffect = (newEffect) => {
-    setGameState(prev => ({
-      ...prev,
-      activeEffects: [...prev.activeEffects, {
-        ...newEffect,
-        id: `${newEffect.type}_${Date.now()}` // Generate unique ID
-      }]
-    }));
-  };
+  // ---- Rules: everything below goes through the shared rules engine (src/game) ----
+  const rules = getRules(gameState);
 
-  const updateEffects = () => {
-    setGameState(prev => ({
-      ...prev,
-      activeEffects: prev.activeEffects
-        .map(effect => ({
-          ...effect,
-          turnsRemaining: effect.turnsRemaining - 1
-        }))
-        .filter(effect => effect.turnsRemaining > 0)
-    }));
-  };
-
-  // Calculate strength modifiers from active effects
-  const getStrengthModifier = (faction) => {
-    return gameState.activeEffects.reduce((total, effect) => {
-      if (effect.type === 'strength_bonus' || effect.type === 'strength_penalty') {
-        if (effect.target === 'all' || effect.target === faction) {
-          return total + effect.value;
-        }
+  // Local games apply an action through the engine; online games send it to the server,
+  // which runs the same engine. `actor` is the player the action is for (validated).
+  const dispatch = (action, actor = null) => {
+    if (mode === 'online') {
+      sendAction(action);
+      return;
+    }
+    setGameState(prev => {
+      if (!prev) return prev;
+      const { newState, error } = applyAction(prev, action, actor);
+      if (error) {
+        console.warn(`${action.type}: ${error}`);
+        return prev;
       }
-      return total;
-    }, 0);
-  };
-
-  // Calculate income modifiers from active effects
-  const getIncomeModifier = (faction) => {
-    let modifier = 1.0; // Start with 100%
-    gameState.activeEffects.forEach(effect => {
-      if (effect.type === 'income_penalty') {
-        if (effect.target === 'all' || effect.target === faction) {
-          modifier *= (1 + effect.value); // value should be negative (e.g., -0.5 for -50%)
-        }
-      }
+      return newState;
     });
-    return modifier;
   };
 
-  // Military calculation functions — delegate to pure game modules
+  // Military calculation functions — delegate to the engine
   const calculatePlayerStrength = (playerIndex) => {
     return calculatePlayerStrengthPure(gameState.players[playerIndex], gameState.activeEffects);
   };
@@ -578,1586 +486,122 @@ const PskovGame = ({ onMenu }) => {
     return calculateTotalStrengthPure(gameState.players, participants, gameState.activeEffects);
   };
 
-  const getVictoryChance = (strengthDiff) => {
-    return getVictoryChancePure(strengthDiff);
-  };
+  const getVictoryChance = (strengthDiff) => getVictoryChancePure(strengthDiff);
 
-  // Translate battleResult from pure module output into localized lastEventResult
-  const translateBattleResult = (state) => {
-    const br = state.battleResult;
-    if (!br) return state;
-
-    const regionNames = regionArgs(br.region);
-    let lastEventResult;
-
-    switch (br.type) {
-      case 'game_over':
-        lastEventResult = t('battle.gameOver');
-        break;
-      case 'surrendered':
-        lastEventResult = t('battle.surrendered', regionNames);
-        break;
-      case 'defense_victory':
-        lastEventResult = t('battle.defenseVictory', {
-          ...regionNames,
-          chance: br.chancePercent,
-          pskovStrength: br.pskovStrength,
-          orderStrength: br.orderStrength,
-        });
-        break;
-      case 'defense_defeat': {
-        const surrenderMsg = t('battle.surrendered', regionNames);
-        lastEventResult = `${t('battle.defenseFailed', {
-          ...regionNames,
-          chance: br.chancePercent,
-          pskovStrength: br.pskovStrength,
-          orderStrength: br.orderStrength,
-        })} ${surrenderMsg}`;
-        break;
-      }
-      case 'attack_victory':
-        lastEventResult = t('battle.attackVictory', {
-          ...regionNames,
-          chance: br.chancePercent,
-          pskovStrength: br.pskovStrength,
-          orderStrength: br.orderStrength,
-        });
-        break;
-      case 'attack_defeat':
-        lastEventResult = t('battle.attackDefeat', {
-          ...regionNames,
-          chance: br.chancePercent,
-          pskovStrength: br.pskovStrength,
-          orderStrength: br.orderStrength,
-        });
-        break;
-      default:
-        return state;
+  // ---- Outcomes: the engine reports what happened as { key, params }; we translate it ----
+  const outcomeParams = (params = {}) => {
+    const out = { ...params };
+    if (params.region) Object.assign(out, regionArgs(params.region));
+    if (params.building) out.building = t(`buildings.${params.building}`);
+    if (Array.isArray(params.buildings)) {
+      out.buildings = params.buildings.map((b) => t(`buildings.${b}`)).join(', ') || t('battle.nothingDestroyed');
     }
+    if (params.faction) out.faction = t(`factions.${params.faction}`);
+    if (Array.isArray(params.factions)) out.factions = params.factions.map((f) => t(`factions.${f}`)).join(' & ');
+    return out;
+  };
+  const describeOutcome = (outcome) => {
+    if (!outcome) return null;
+    const text = t(outcome.key, outcomeParams(outcome.params));
+    return outcome.then ? `${text} ${describeOutcome(outcome.then)}` : text;
+  };
+  // What just happened, in the player's language (older saves only have the English line)
+  const outcomeText = gameState.lastOutcome ? describeOutcome(gameState.lastOutcome) : gameState.lastEventResult;
 
-    return { ...state, lastEventResult };
+  // Glory each contributor earned in the battle just fought: chips on the battle report
+  const gloryChips = (br) => {
+    if (!br?.glory || !br.participants?.length) return undefined;
+    return br.participants.map((i) => ({ faction: gameState.players[i].faction, amount: br.glory }));
   };
 
-  // Battle outcome functions — delegate to pure modules and translate
-  const surrenderRegion = (gameState, regionName) => {
-    return translateBattleResult(surrenderRegionPure(gameState, regionName));
-  };
-
-  const executeBattle = (gameState, orderStrength, targetRegion, defendingPlayers) => {
-    return translateBattleResult(executeBattlePure(gameState, orderStrength, targetRegion, defendingPlayers));
-  };
-
-  const initiateAttack = (targetRegion) => {
-    setGameState(prev => ({
-      ...prev,
-      attackPlanning: 'planning',
-      attackTarget: targetRegion,
-      attackVotes: [null, null, null]
-    }));
-  };
-
-  const executeAttack = () => {
-    const { attackTarget, attackVotes } = gameState;
-    const participants = attackVotes.filter(v => v === true).length;
-    const costPerParticipant = 2;
-
-    // Deduct money from participants
-    const newPlayers = gameState.players.map((player, index) => {
-      if (attackVotes[index] === true) {
-        return { ...player, money: player.money - costPerParticipant };
-      }
-      return player;
-    });
-
-    // Get attacking players
-    const attackingPlayers = [];
-    attackVotes.forEach((vote, index) => {
-      if (vote === true) attackingPlayers.push(index);
-    });
-
-    // Delegate to pure combat module (includes turn-based Order scaling)
-    const combatResult = executeAttackPure(
-      { ...gameState, players: newPlayers },
-      attackTarget,
-      attackingPlayers
-    );
-
-    const translatedState = translateBattleResult(combatResult.newState);
-
-    setGameState(prev => ({
-      ...translatedState,
-      attackPlanning: null,
-      attackTarget: null,
-      attackVotes: [null, null, null],
-    }));
-  };
-
-  // Fortress building functions
-  const initiateFortressBuild = (targetRegion) => {
-    setGameState(prev => ({
-      ...prev,
-      fortressPlanning: 'planning',
-      fortressTarget: targetRegion,
-      fortressVotes: [null, null, null]
-    }));
-  };
-
-  const executeFortressBuild = () => {
-    const { fortressTarget, fortressVotes } = gameState;
-    const participants = fortressVotes.filter(v => v === true).length;
-    const costPerParticipant = participants > 0 ? (6 / participants) : 0;
-
-    // Check if all participants can afford their share
-    let allCanAfford = true;
-    gameState.players.forEach((player, index) => {
-      if (fortressVotes[index] === true && player.money < costPerParticipant) {
-        allCanAfford = false;
-      }
-    });
-
-    if (participants === 0 || !allCanAfford) {
-      // Not enough funding - cancel
-      setGameState(prev => ({
-        ...prev,
-        fortressPlanning: null,
-        fortressTarget: null,
-        fortressVotes: [null, null, null],
-        battleResult: null,
-        lastEventResult: t('battle.fortressCancelledInsufficient')
-      }));
-      return;
-    }
-
-    // Deduct money from participants
-    const newPlayers = gameState.players.map((player, index) => {
-      if (fortressVotes[index] === true) {
-        return { ...player, money: player.money - costPerParticipant };
-      }
-      return player;
-    });
-
-    // Build the fortress
-    const newRegions = { ...gameState.regions };
-    newRegions[fortressTarget].fortress = true;
-
-    setGameState(prev => ({
-      ...prev,
-      players: newPlayers,
-      regions: newRegions,
-      fortressPlanning: null,
-      fortressTarget: null,
-      fortressVotes: [null, null, null],
-      battleResult: null,
-      lastEventResult: t('battle.fortressBuilt', regionArgs(fortressTarget))
-    }));
-  };
-
-  // Event system abstraction
-  const eventTypes = {
-    immediate: {
-      resolve: (event, gameState) => {
-        return event.effect(gameState);
-      }
-    },
-    participation: {
-      resolve: (event, gameState, votes) => {
-        const participants = votes.filter(v => v === true).length;
-        const costPerParticipant = participants > 0 ? event.totalCost / participants : 0;
-
-        let allCanAfford = true;
-        gameState.players.forEach((player, index) => {
-          if (votes[index] === true && player.money < costPerParticipant) {
-            allCanAfford = false;
-          }
-        });
-
-        if (!allCanAfford || participants === 0) {
-          return gameState;
-        }
-
-        const newPlayers = gameState.players.map((player, index) => {
-          if (votes[index] === true) {
-            return { ...player, money: player.money - costPerParticipant };
-          }
-          return player;
-        });
-
-        return { ...gameState, players: newPlayers };
-      }
-    },
-    order_attack: {
-      resolve: (event, gameState, votes) => {
-        // Delegate to pure game module (handles target selection, iterative
-        // defender affordability, cost deduction, and battle with turn scaling)
-        const result = eventTypesPure.order_attack.resolve(event, gameState, votes);
-        return translateBattleResult(result);
-      }
-    },
-    voting: {
-      resolve: (event, gameState, votes) => {
-        const voteCounts = {};
-        votes.forEach(vote => {
-          if (vote) {
-            voteCounts[vote] = (voteCounts[vote] || 0) + 1;
-          }
-        });
-
-        let winningOption = event.defaultOption || 'send_back';
-        let maxVotes = 0;
-        Object.entries(voteCounts).forEach(([option, count]) => {
-          if (count >= 2) {
-            if (count > maxVotes) {
-              maxVotes = count;
-              winningOption = option;
-            }
-          }
-        });
-
-        if (winningOption === 'accept' && event.acceptCost) {
-          const acceptVoters = votes.filter(v => v === 'accept').length;
-          const costPerVoter = acceptVoters > 0 ? event.acceptCost / acceptVoters : 0;
-
-          let allCanAfford = true;
-          gameState.players.forEach((player, index) => {
-            if (votes[index] === 'accept' && player.money < costPerVoter) {
-              allCanAfford = false;
-            }
-          });
-
-          if (!allCanAfford || acceptVoters === 0) {
-            winningOption = event.defaultOption || 'send_back';
-          }
-        }
-
-        return event.effects[winningOption](gameState, votes);
-      }
-    }
-  };
-
-  // Event deck with all events
-  const eventDeck = [
-    {
-      id: 'merchants_robbed',
-      name: 'Merchants Robbed',
-      description: 'Our merchants have been robbed in the Order lands. How will you respond?',
-      type: 'voting',
-      defaultOption: 'trade_risk',
-      options: [
-        { id: 'rob_foreign', name: 'Rob foreign merchants', effectText: '50% chance: Order attacks (100)' },
-        { id: 'demand_compensation', name: 'Demand compensation', costText: 'Merchants: -1○', effectText: '50% chance: Merchants -10 str/3 turns' },
-        { id: 'trade_risk', name: 'Trade is risk', effectText: 'Merchants: -10 str/3 turns' }
-      ],
-      effects: {
-        rob_foreign: (gameState) => {
-          // Roll 1-6, on 1-3 Order attack occurs
-          const roll = Math.floor(Math.random() * 6) + 1;
-
-          if (roll <= 3) {
-            // Trigger immediate Order attack
-            const orderAttackEvent = {
-              id: 'order_attack_rob_foreign',
-              name: 'Order Attack',
-              description: 'The Teutonic Order retaliates for the robbed merchants! They launch an attack.',
-              type: 'order_attack',
-              orderStrength: 100,
-              question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
-              minCostPerPlayer: 1,
-              successText: 'DEFENSE FUNDED',
-              failureText: 'NO DEFENSE - SURRENDER'
-            };
-
-            return {
-              ...gameState,
-              currentEvent: orderAttackEvent,
-              eventResolved: false,
-              eventVotes: [null, null, null],
-              lastEventResult: t('battle.orderAttacksImmediately', { roll })
-            };
-          } else {
-            return {
-              ...gameState,
-              lastEventResult: t('battle.robberyUnnoticed', { roll })
-            };
-          }
-        },
-        demand_compensation: (gameState) => {
-          const newPlayers = gameState.players.map(player => {
-            if (player.faction === 'Merchants') {
-              return { ...player, money: Math.max(0, player.money - 1) };
-            }
-            return player;
-          });
-          const rollFailed = Math.random() < 0.5;
-          if (rollFailed) {
-            const merchantWeaknessEffect = {
-              id: `merchant_weakness_${Date.now()}`,
-              type: 'strength_penalty',
-              target: 'Merchants',
-              value: -10, // TODO -50% strength implemented as flat -10 points for now
-              turnsRemaining: 3,
-              description: 'Merchant trading weakness'
-            };
-            return {
-              ...gameState,
-              players: newPlayers,
-              activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
-              lastEventResult: t('battle.compensationFailed')
-            };
-          } else {
-            return {
-              ...gameState,
-              players: newPlayers,
-              lastEventResult: t('battle.compensationReceived')
-            };
-          }
-        },
-        trade_risk: (gameState) => {
-          const merchantWeaknessEffect = {
-            id: `merchant_weakness_${Date.now()}`,
-            type: 'strength_penalty',
-            target: 'Merchants',
-            value: -10, // -50% strength
-            turnsRemaining: 3,
-            description: 'Trade route disruption'
-          };
-          return {
-            ...gameState,
-            activeEffects: [...gameState.activeEffects, merchantWeaknessEffect],
-            lastEventResult: t('battle.tradeDisrupted')
-          };
-        }
-      }
-    },
-    {
-      id: 'order_attack_95',
-      name: 'Order Attack (Weak)',
-      description: 'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
-      type: 'order_attack',
-      orderStrength: 95,
-      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
-      minCostPerPlayer: 1
-    },
-    {
-      id: 'order_attack_110',
-      name: 'Order Attack (Strong)',
-      description: 'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
-      type: 'order_attack',  // CHANGE FROM 'participation' TO 'order_attack'
-      orderStrength: 110,    // ADD THIS
-      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
-      minCostPerPlayer: 1
-    },
-    {
-      id: 'boyars_take_bribes',
-      name: 'Nobles Take Bribes',
-      description: 'Noble corruption has been discovered. How will you handle this?',
-      type: 'voting',
-      defaultOption: 'ignore',
-      options: [
-        { id: 'investigate', name: 'Investigate and punish', costText: 'Nobles: -2○', effectText: 'Nobles: -15 str/3 turns' },
-        { id: 'ignore', name: 'This is the way it is', effectText: '50% chance: Uprising (buildings destroyed)' }
-      ],
-      effects: {
-        investigate: (gameState) => {
-          const newPlayers = gameState.players.map((player, index) => {
-            if (player.faction === 'Nobles') {
-              return { ...player, money: Math.max(0, player.money - 2) };
-            }
-            return player;
-          });
-
-          // ADD: Noble strength penalty for corruption investigation
-          const nobleWeaknessEffect = {
-            id: `noble_corruption_penalty_${Date.now()}`,
-            type: 'strength_penalty',
-            target: 'Nobles',
-            value: -15,
-            turnsRemaining: 3,
-            description: 'Noble corruption investigation penalty'
-          };
-
-          return { 
-            ...gameState, 
-            players: newPlayers,
-            activeEffects: [...gameState.activeEffects, nobleWeaknessEffect],
-            lastEventResult: t('battle.noblesPunished')
-          };
-        },
-        ignore: (gameState) => {
-          // 50% chance of uprising
-          const uprisingRoll = Math.random();
-          if (uprisingRoll < 0.5) {
-            // Uprising occurs - destroy 2 random buildings in Pskov
-            const pskovRegion = gameState.regions.pskov;
-            const buildingTypes = Object.entries(pskovRegion.buildings).filter(([_, count]) => count > 0);
-
-            let newRegions = { ...gameState.regions };
-            let newPlayers = [...gameState.players];
-            let destroyedBuildings = [];
-
-            // Destroy up to 2 buildings
-            for (let i = 0; i < Math.min(2, buildingTypes.length); i++) {
-              if (buildingTypes.length > 0) {
-                const randomIndex = Math.floor(Math.random() * buildingTypes.length);
-                const [buildingType, _] = buildingTypes[randomIndex];
-
-                // Destroy the building
-                if (buildingType.startsWith('merchant_')) {
-                  newRegions.pskov.buildings[buildingType] = Math.max(0, newRegions.pskov.buildings[buildingType] - 1);
-                } else {
-                  newRegions.pskov.buildings[buildingType] = 0;
-                }
-
-                // Update player improvement count
-                newPlayers = newPlayers.map(player => {
-                  if ((buildingType.includes('commoner') && player.faction === 'Commoners') ||
-                      (buildingType.includes('noble') && player.faction === 'Nobles') ||
-                      (buildingType.includes('merchant') && player.faction === 'Merchants')) {
-                    return { ...player, improvements: Math.max(0, player.improvements - 1) };
-                  }
-                  return player;
-                });
-
-                // Track destroyed building for message
-                destroyedBuildings.push(t(`buildings.${buildingType}`) || buildingType);
-
-                // Remove from available buildings for next iteration
-                buildingTypes.splice(randomIndex, 1);
-              }
-            }
-
-            return { 
-              ...gameState, 
-              regions: newRegions,
-              players: newPlayers,
-              activeEffects: [...gameState.activeEffects, {
-                id: `uprising_penalty_${Date.now()}`,
-                type: 'strength_penalty',
-                target: 'all',
-                value: -7, // TODO -50% implemented as flat -25 points for now
-                turnsRemaining: 2,
-                description: 'Uprising strength penalty'
-              }],
-              lastEventResult: t('battle.uprising', { buildings: destroyedBuildings.join(', ') })
-            };
-          } else {
-            return { 
-              ...gameState,
-              lastEventResult: t('battle.corruptionIgnored')
-            };
-          }
-        }
-      }
-    },
-    {
-      id: 'embassy',
-      name: 'Embassy',
-      description: 'An embassy from the Grand Prince arrives. How will you receive them?',
-      type: 'voting',
-      defaultOption: 'modest',
-      options: [
-        { id: 'modest', name: 'Receive modestly', requiresMinMoney: 1, costText: '3○ split', effectText: 'Relations maintained' },
-        { id: 'luxurious', name: 'Receive luxuriously', requiresMinMoney: 2, costText: '6○ split', effectText: 'All: +3 str/3 turns' },
-        { id: 'refuse', name: 'Refuse to receive them', effectText: 'All: -15 str, -50% income/5 turns' }
-      ],
-      effects: {
-        modest: (gameState, votes) => {
-          const participants = votes.filter(v => v === 'modest').length;
-          const costPerParticipant = participants > 0 ? 3 / participants : 0;
-
-          let allCanAfford = true;
-          gameState.players.forEach((player, index) => {
-            if (votes[index] === 'modest' && player.money < costPerParticipant) {
-              allCanAfford = false;
-            }
-          });
-
-          if (!allCanAfford || participants === 0) {
-            // Fall back to refuse with proper effects
-            const refusalEffects = [
-              {
-                id: `embassy_strength_penalty_${Date.now()}`,
-                type: 'strength_penalty',
-                target: 'all',
-                value: -15,
-                turnsRemaining: 5,
-                description: 'Embassy refusal strength penalty'
-              },
-              {
-                id: `embassy_income_penalty_${Date.now()}`,
-                type: 'income_penalty',
-                target: 'all',
-                value: -0.5, // -50% income
-                turnsRemaining: 5,
-                description: 'Embassy refusal income penalty'
-              }
-            ];
-
-            return { 
-              ...gameState,
-              activeEffects: [...gameState.activeEffects, ...refusalEffects],
-              lastEventResult: t('battle.embassyRefused')
-            };
-          }
-
-          const newPlayers = gameState.players.map((player, index) => {
-            if (votes[index] === 'modest') {
-              return { ...player, money: player.money - costPerParticipant };
-            }
-            return player;
-          });
-
-          return { 
-            ...gameState, 
-            players: newPlayers,
-            lastEventResult: t('battle.embassyModest')
-          };
-        },
-        luxurious: (gameState, votes) => {
-          const participants = votes.filter(v => v === 'luxurious').length;
-          const costPerParticipant = participants > 0 ? 6 / participants : 0;
-
-          let allCanAfford = true;
-          gameState.players.forEach((player, index) => {
-            if (votes[index] === 'luxurious' && player.money < costPerParticipant) {
-              allCanAfford = false;
-            }
-          });
-
-          if (!allCanAfford || participants === 0) {
-            // Fall back to modest reception
-            return gameState.currentEvent.effects.modest(gameState, votes.map(() => 'modest'));
-          }
-
-          const newPlayers = gameState.players.map((player, index) => {
-            if (votes[index] === 'luxurious') {
-              return { ...player, money: player.money - costPerParticipant };
-            }
-            return player;
-          });
-
-          // Create the strength bonus effect
-          const strengthEffect = {
-            id: `embassy_strength_bonus_${Date.now()}`,
-            type: 'strength_bonus',
-            target: 'all',
-            value: 3,
-            turnsRemaining: 3,
-            description: 'Embassy reception boost'
-          };
-
-          return { 
-            ...gameState, 
-            players: newPlayers,
-            activeEffects: [...gameState.activeEffects, strengthEffect],
-            lastEventResult: t('battle.embassyLuxurious')
-          };
-        },
-        refuse: (gameState) => {
-          const newEffects = [
-            {
-              id: `embassy_strength_penalty_${Date.now()}`,
-              type: 'strength_penalty',
-              target: 'all',
-              value: -15, // Fixed strength penalty
-              turnsRemaining: 5,
-              description: 'Embassy refusal strength penalty'
-            },
-            {
-              id: `embassy_income_penalty_${Date.now()}`,
-              type: 'income_penalty',
-              target: 'all',
-              value: -0.5, // Fixed income penalty (-50%)
-              turnsRemaining: 5,
-              description: 'Embassy refusal income penalty'
-            }
-          ];
-
-          return { 
-            ...gameState,
-            activeEffects: [...gameState.activeEffects, ...newEffects],
-            lastEventResult: t('battle.embassyRefused')
-          };
-        }
-      }
-    },
-    {
-      id: 'relics_found',
-      name: 'Relics Found',
-      description: 'Holy relics have been discovered. Are they genuine or deception?',
-      type: 'voting',
-      options: [
-        { id: 'build_temple', name: 'Build a church', requiresMinMoney: 1, costText: 'All: -3○', effectText: 'All: +5 str/3 turns' },
-        { id: 'deception', name: 'It\'s all deception', effectText: 'All: -5 str/3 turns' }
-      ],
-      effects: {
-        build_temple: (gameState) => {
-          const newPlayers = gameState.players.map(player => ({
-            ...player,
-            money: Math.max(0, player.money - 3)
-          }));
-          // ADD: Morale boost from relics
-          const relicsBoostEffect = {
-            id: `relics_boost_${Date.now()}`,
-            type: 'strength_bonus',
-            target: 'all',
-            value: 5,
-            turnsRemaining: 3,
-            description: 'Holy relics morale boost'
-          };
-
-          return { 
-            ...gameState, 
-            players: newPlayers,
-            activeEffects: [...gameState.activeEffects, relicsBoostEffect],
-            lastEventResult: t('battle.relicsChurchBuilt')
-          };
-          },
-        deception: (gameState) => {
-          // ADD: Morale penalty from cynicism
-          const cynicismEffect = {
-            id: `cynicism_penalty_${Date.now()}`,
-            type: 'strength_penalty',
-            target: 'all',
-            value: -5,
-            turnsRemaining: 3,
-            description: 'Religious cynicism penalty'
-          };
-
-          return { 
-            ...gameState,
-            activeEffects: [...gameState.activeEffects, cynicismEffect],
-            lastEventResult: t('battle.relicsDeception')
-          };
-        }
-      }
-    },
-    {
-      id: 'izhorian_delegation',
-      name: 'Delegation from the Izhorians',
-      description: 'A delegation from the Izhorian people arrives at your gates seeking an audience.',
-      type: 'voting',
-      acceptCost: 6,
-      defaultOption: 'send_back',
-      options: [
-        { id: 'accept', name: 'Accept into service', requiresMinMoney: 2, costText: '6○ split', effectText: 'All: +5 str/6 turns' },
-        { id: 'rob', name: 'Rob them', effectText: 'All: +3○, then -5 str/6 turns' },
-        { id: 'send_back', name: 'Send them away', effectText: 'No effect' }
-      ],
-      effects: {
-        accept: (gameState, votes) => {
-          const participants = votes.filter(v => v === 'accept').length;
-          const costPerParticipant = participants > 0 ? 6 / participants : 0;
-
-          // ADD: Check if all participants can afford it
-          let allCanAfford = true;
-          gameState.players.forEach((player, index) => {
-            if (votes[index] === 'accept' && player.money < costPerParticipant) {
-              allCanAfford = false;
-            }
-          });
-
-          // ADD: Fallback if anyone can't afford it or no participants
-          if (!allCanAfford || participants === 0) {
-            return gameState.currentEvent.effects.send_back(gameState);
-          }
-          
-          const newPlayers = gameState.players.map((player, index) => {
-            if (votes[index] === 'accept') {
-              return { ...player, money: player.money - costPerParticipant };
-            }
-            return player;
-          });
-          // Alliance strength bonus
-          const izhoraAllianceEffect = {
-            id: `izhora_alliance_${Date.now()}`,
-            type: 'strength_bonus',
-            target: 'all',
-            value: 5,
-            turnsRemaining: 6,
-            description: 'Izhora allied forces'
-          };
-
-          return { 
-            ...gameState, 
-            players: newPlayers,
-            activeEffects: [...gameState.activeEffects, izhoraAllianceEffect],
-            lastEventResult: t('battle.izhorianAccepted')
-          };
-          },
-        rob: (gameState) => {
-          const newPlayers = gameState.players.map(player => ({
-            ...player,
-            money: player.money + 3
-          }));
-          // Izhora hostility penalty
-          const izhoraHostilityEffect = {
-            id: `chud_hostility_${Date.now()}`,
-            type: 'strength_penalty',
-            target: 'all',
-            value: -5,
-            turnsRemaining: 6,
-            description: 'Izhora hostility'
-          };
-
-          return { 
-            ...gameState, 
-            players: newPlayers,
-            activeEffects: [...gameState.activeEffects, izhoraHostilityEffect],
-            lastEventResult: t('battle.izhorianRobbed')
-          };
-        },
-        send_back: (gameState) => {
-          return gameState;
-        }
-      }
-    },
-    {
-      id: 'good_harvest',
-      name: 'Good Harvest',
-      description: 'The fields have produced an abundant harvest. All players receive +1○.',
-      type: 'immediate',
-      effect: (gameState) => {
-        const newPlayers = gameState.players.map(player => ({
-          ...player,
-          money: player.money + 1
-        }));
-        return { ...gameState, players: newPlayers };
-      }
-    },
-    {
-      id: 'drought',
-      name: 'Drought',
-      description: 'The crops are failing due to lack of rain. How will you respond?',
-      type: 'voting',
-      defaultOption: 'no_food',
-      options: [
-        { id: 'buy_food', name: 'Buy emergency food supplies', requiresMinMoney: 2, costText: '6○ split', effectText: 'Famine avoided' },
-        { id: 'no_food', name: 'Let the people endure', effectText: 'Commoners: -12 str/3 turns' }
-      ],
-      effects: {
-        buy_food: (gameState, votes) => {
-          const participants = votes.filter(v => v === 'buy_food').length;
-          const costPerParticipant = participants > 0 ? 6 / participants : 0;
-
-          // Check if all participants can afford it
-          let allCanAfford = true;
-          gameState.players.forEach((player, index) => {
-            if (votes[index] === 'buy_food' && player.money < costPerParticipant) {
-              allCanAfford = false;
-            }
-          });
-
-          // If anyone can't afford it or no participants, fall back to no food
-          if (!allCanAfford || participants === 0) {
-            return gameState.currentEvent.effects.no_food(gameState);
-          }
-
-          // Deduct money from participants
-          const newPlayers = gameState.players.map((player, index) => {
-            if (votes[index] === 'buy_food') {
-              return { ...player, money: player.money - costPerParticipant };
-            }
-            return player;
-          });
-
-          return { 
-            ...gameState, 
-            players: newPlayers,
-            lastEventResult: t('battle.droughtFoodPurchased')
-          };
-        },
-        no_food: (gameState) => {
-          const famineEffect = {
-            id: `drought_famine_${Date.now()}`,
-            type: 'strength_penalty',
-            target: 'Commoners',
-            value: -12, // Reduces Commoners from 25 to 13 strength (roughly -50%)
-            turnsRemaining: 3,
-            description: 'Famine weakens commoners'
-          };
-
-          return { 
-            ...gameState,
-            activeEffects: [...gameState.activeEffects, famineEffect],
-            lastEventResult: t('battle.droughtFamine')
-          };
-        }
-      }
-    },
-    {
-      id: 'fire',
-      name: 'Fire',
-      description: 'A fire breaks out in one of your regions, destroying a building.',
-      type: 'immediate',
-      effect: (gameState) => {
-        // Roll for region (1-6 for republic regions)
-        const republicRegions = Object.entries(gameState.regions).filter(([_, region]) => region.controller === 'republic');
-        if (republicRegions.length === 0) return gameState; // No regions to burn
-
-        const randomRegionIndex = Math.floor(Math.random() * republicRegions.length);
-        const [regionName, region] = republicRegions[randomRegionIndex];
-
-        // Find all buildings in this region
-        const buildingTypes = Object.entries(region.buildings).filter(([_, count]) => count > 0);
-        if (buildingTypes.length === 0) {
-          // No buildings to burn
-          return { 
-            ...gameState, 
-            lastEventResult: t('battle.fireNoBuildings', regionArgs(regionName))
-          };
-        }
-
-        // Roll for building type
-        const randomBuildingIndex = Math.floor(Math.random() * buildingTypes.length);
-        const [buildingType, _] = buildingTypes[randomBuildingIndex];
-
-        // Destroy the building
-        const newRegions = { ...gameState.regions };
-        if (buildingType.startsWith('merchant_')) {
-          newRegions[regionName].buildings[buildingType] = Math.max(0, newRegions[regionName].buildings[buildingType] - 1);
-        } else {
-          newRegions[regionName].buildings[buildingType] = 0;
-        }
-
-        // Update player improvement count
-        const newPlayers = gameState.players.map(player => {
-          if ((buildingType.includes('commoner') && player.faction === 'Commoners') ||
-              (buildingType.includes('noble') && player.faction === 'Nobles') ||
-              (buildingType.includes('merchant') && player.faction === 'Merchants')) {
-            return { ...player, improvements: Math.max(0, player.improvements - 1) };
-          }
-          return player;
-        });
-
-        const buildingName = t(`buildings.${buildingType}`) || buildingType;
-        return {
-          ...gameState,
-          regions: newRegions,
-          players: newPlayers,
-          lastEventResult: t('battle.fireDestroysBuilding', { building: buildingName, ...regionArgs(regionName) })
-        };
-      }
-    },
-    {
-      id: 'city_fire',
-      name: 'City Fire',
-      description: 'A fire breaks out in Pskov, destroying a building in the city.',
-      type: 'immediate',
-      effect: (gameState) => {
-        const pskovRegion = gameState.regions.pskov;
-
-        // Find all buildings in Pskov
-        const buildingTypes = Object.entries(pskovRegion.buildings).filter(([_, count]) => count > 0);
-        if (buildingTypes.length === 0) {
-          return { 
-            ...gameState, 
-            lastEventResult: t('battle.cityFireNoBuildings')
-          };
-        }
-
-        // Roll for building type
-        const randomBuildingIndex = Math.floor(Math.random() * buildingTypes.length);
-        const [buildingType, _] = buildingTypes[randomBuildingIndex];
-
-        // Destroy the building
-        const newRegions = { ...gameState.regions };
-        if (buildingType.startsWith('merchant_')) {
-          newRegions.pskov.buildings[buildingType] = Math.max(0, newRegions.pskov.buildings[buildingType] - 1);
-        } else {
-          newRegions.pskov.buildings[buildingType] = 0;
-        }
-
-        // Update player improvement count
-        const newPlayers = gameState.players.map(player => {
-          if ((buildingType.includes('commoner') && player.faction === 'Commoners') ||
-              (buildingType.includes('noble') && player.faction === 'Nobles') ||
-              (buildingType.includes('merchant') && player.faction === 'Merchants')) {
-            return { ...player, improvements: Math.max(0, player.improvements - 1) };
-          }
-          return player;
-        });
-
-        const buildingName = t(`buildings.${buildingType}`) || buildingType;
-
-        return {
-          ...gameState,
-          regions: newRegions,
-          players: newPlayers,
-          lastEventResult: t('battle.cityFireDestroysBuilding', { building: buildingName })
-        };
-      }
-    },
-    {
-      id: 'heresy',
-      name: 'Heresy',
-      description: 'Heretical ideas spread among the people, weakening military resolve.',
-      type: 'immediate',
-      effect: (gameState) => {
-        const heresyEffect = {
-          id: `heresy_penalty_${Date.now()}`,
-          type: 'strength_penalty',
-          target: 'all',
-          value: -10,
-          turnsRemaining: 2,
-          description: 'Heretical discord'
-        };
-    
-        return { 
-          ...gameState,
-          activeEffects: [...gameState.activeEffects, heresyEffect],
-          lastEventResult: t('battle.heresy')
-        };
-      }
-    },
-    {
-      id: 'order_attack_90',
-      name: 'Order Attack (Weak)',
-      description: 'The Teutonic Order launches a weak attack. Who will contribute to the defense?',
-      type: 'order_attack',
-      orderStrength: 90,
-      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
-      minCostPerPlayer: 1
-    },
-    {
-      id: 'order_attack_100',
-      name: 'Order Attack',
-      description: 'The Teutonic Order launches an attack. Who will contribute to the defense?',
-      type: 'order_attack',
-      orderStrength: 100,
-      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
-      minCostPerPlayer: 1
-    },
-    {
-      id: 'order_attack_105',
-      name: 'Order Attack (Strong)',
-      description: 'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
-      type: 'order_attack',
-      orderStrength: 105,
-      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
-      minCostPerPlayer: 1
-    },
-    {
-      id: 'order_attack_110',
-      name: 'Order Attack (Strong)',
-      description: 'The Teutonic Order launches a strong attack. Who will contribute to the defense?',
-      type: 'order_attack',
-      orderStrength: 110,
-      question: 'Who will help fund the defense? Each faction that funds the defense pays 1○.',
-      minCostPerPlayer: 1
-    },
-    {
-      id: 'plague',
-      name: 'Plague',
-      description: 'A plague spreads through the city. How will you respond?',
-      type: 'voting', // CHANGE: from 'participation' to 'voting'
-      defaultOption: 'no_isolation',
-      options: [
-        { id: 'fund_isolation', name: 'Fund isolation and treatment', requiresMinMoney: 1, costText: '3○ split', effectText: 'All: -5 str/2 turns' },
-        { id: 'no_isolation', name: 'Trust in God - no isolation', effectText: 'All: -25 str/2 turns' }
-      ],
-      effects: {
-        fund_isolation: (gameState, votes) => {
-          const participants = votes.filter(v => v === 'fund_isolation').length;
-          const costPerParticipant = participants > 0 ? 3 / participants : 0;
-
-          // Check if all participants can afford it
-          let allCanAfford = true;
-          gameState.players.forEach((player, index) => {
-            if (votes[index] === 'fund_isolation' && player.money < costPerParticipant) {
-              allCanAfford = false;
-            }
-          });
-
-          // If anyone can't afford it or no participants, fall back to no isolation
-          if (!allCanAfford || participants === 0) {
-            return gameState.currentEvent.effects.no_isolation(gameState);
-          }
-
-          // Deduct money from participants
-          const newPlayers = gameState.players.map((player, index) => {
-            if (votes[index] === 'fund_isolation') {
-              return { ...player, money: player.money - costPerParticipant };
-            }
-            return player;
-          });
-
-          // ADD: Even with isolation, there's still some plague impact
-          const mildPlagueEffect = {
-            id: `mild_plague_${Date.now()}`,
-            type: 'strength_penalty',
-            target: 'all',
-            value: -5, // -5 strength penalty even with isolation
-            turnsRemaining: 2,
-            description: 'Mild plague effects despite isolation'
-          };
-
-          return { 
-            ...gameState, 
-            players: newPlayers,
-            activeEffects: [...gameState.activeEffects, mildPlagueEffect],
-            lastEventResult: t('battle.plagueContained')
-          };
-        },
-        no_isolation: (gameState) => {
-          const plagueEffect = {
-            id: `severe_plague_${Date.now()}`,
-            type: 'strength_penalty',
-            target: 'all',
-            value: -25, // -25 strength penalty without isolation
-            turnsRemaining: 2,
-            description: 'Severe plague weakens population'
-          };
-
-          return { 
-            ...gameState,
-            activeEffects: [...gameState.activeEffects, plagueEffect],
-            lastEventResult: t('battle.plagueSpread')
-          };
-        }
-      }
-    }
-  ];
-
-  // Fisher-Yates shuffle for event deck indices
-  const shuffleEventIndices = () => {
-    const indices = Array.from({ length: eventDeck.length }, (_, i) => i);
-    for (let i = indices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [indices[i], indices[j]] = [indices[j], indices[i]];
-    }
-    return indices;
-  };
-
-  // Draw event using shuffle-without-replacement
-  const drawEvent = (shuffledOrder = [], drawIndex = 0) => {
-    let order = shuffledOrder;
-    let index = drawIndex;
-    if (order.length === 0 || index >= order.length) {
-      order = shuffleEventIndices();
-      index = 0;
-    }
-    return {
-      event: eventDeck[order[index]],
-      shuffledEventOrder: order,
-      eventDrawIndex: index + 1,
-    };
-  };
-
-  // Vote on current event
+  // ---- Veche: campaigns and fortresses ----
+  const initiateAttack = (targetRegion) => dispatch({ type: ActionTypes.INITIATE_ATTACK, targetRegion });
+  const voteOnAttack = (index, vote) => dispatch({ type: ActionTypes.VOTE_ATTACK, vote }, index);
+  const executeAttack = () => dispatch({ type: ActionTypes.EXECUTE_ATTACK });
+  const cancelAttack = () => dispatch({ type: ActionTypes.CANCEL_ATTACK });
+
+  const initiateFortressBuild = (targetRegion) => dispatch({ type: ActionTypes.INITIATE_FORTRESS, targetRegion });
+  const voteOnFortress = (index, vote) => dispatch({ type: ActionTypes.VOTE_FORTRESS, vote }, index);
+  const executeFortressBuild = () => dispatch({ type: ActionTypes.EXECUTE_FORTRESS });
+  const cancelFortress = () => dispatch({ type: ActionTypes.CANCEL_FORTRESS });
+
+  // ---- Events ----
   const voteOnEvent = (playerIndex, vote) => {
-    // In online mode, send action to server
     if (mode === 'online') {
       // Only allow voting for own faction
       if (playerIndex !== playerId) {
         console.warn('Cannot vote for another player');
         return;
       }
-      sendAction({ type: 'VOTE_EVENT', vote });
+      sendAction({ type: ActionTypes.VOTE_EVENT, vote });
 
-      // After voting, check if all players have voted and auto-resolve
-      // Note: We check the NEXT state since this vote will be added
+      // Once everyone has voted, ask the server to resolve the event
       setTimeout(() => {
         const currentState = useGameStore.getState().gameState;
-        if (currentState && currentState.eventVotes) {
-          const allVoted = currentState.eventVotes.every(v => v !== null);
-          if (allVoted && !currentState.eventResolved) {
-            // Auto-resolve when all players have voted
-            sendAction({ type: 'RESOLVE_EVENT' });
-          }
+        if (currentState?.eventVotes?.every(v => v !== null) && !currentState.eventResolved) {
+          sendAction({ type: ActionTypes.RESOLVE_EVENT });
         }
       }, 500); // Wait for server to broadcast updated votes
-    } else {
-      // Local mode: update state directly
-      setGameState(prev => {
-        const newVotes = [...prev.eventVotes];
-        newVotes[playerIndex] = vote;
-        return { ...prev, eventVotes: newVotes };
-      });
+      return;
     }
+    dispatch({ type: ActionTypes.VOTE_EVENT, vote }, playerIndex);
   };
 
-  // Get voting result for any multi-option event
-  const getVotingResult = () => {
-    const votes = gameState.eventVotes;
-    const completedVotes = votes.filter(v => v !== null);
+  const getVotingResult = () => getVotingResultPure(gameState.eventVotes, gameState.currentEvent?.defaultOption);
+  const getParticipationResult = () => getParticipationResultPure(gameState.eventVotes);
+  const getAuctionResult = () => getAuctionResultPure(gameState.eventVotes);
 
-    if (completedVotes.length === 3) {
-      const voteCounts = {};
-      votes.forEach(vote => {
-        if (vote) {
-          voteCounts[vote] = (voteCounts[vote] || 0) + 1;
-        }
-      });
+  const resolveEvent = () => dispatch({ type: ActionTypes.RESOLVE_EVENT });
 
-      let winningOption = null;
-      let maxVotes = 0;
-      Object.entries(voteCounts).forEach(([option, count]) => {
-        if (count >= 2) {
-          if (count > maxVotes) {
-            maxVotes = count;
-            winningOption = option;
-          }
-        }
-      });
+  // ---- Score ----
+  const calculateVictoryPoints = (player) => calculateVictoryPointsPure(player, rules);
+  const getGameResult = () => getGameResultPure(gameState);
 
-      return winningOption || 'send_back';
-    }
-    return null;
-  };
+  // ---- Construction ----
+  // Online, each player picks their own region (everyone builds at once); locally it is shared state
+  const selectedRegion = mode === 'online' ? onlineRegion : gameState.selectedRegion;
 
-  // Check if participation is complete and get result
-  const getParticipationResult = () => {
-    const votes = gameState.eventVotes;
-    const completedVotes = votes.filter(v => v !== null);
-
-    if (completedVotes.length === 3) {
-      const participants = votes.filter(v => v === true).length;
-      return participants > 0 ? 'success' : 'failed';
-    }
-    return null;
-  };
-
-  // Check if auction bidding is complete and get result
-  const getAuctionResult = () => {
-    const votes = gameState.eventVotes;
-    const completedVotes = votes.filter(v => v !== null);
-
-    if (completedVotes.length === 3) {
-      const bids = votes.map((v, i) => ({
-        playerIndex: i,
-        bid: v !== null ? parseFloat(v) : 0,
-      }));
-      const maxBid = Math.max(...bids.map(b => b.bid));
-
-      if (maxBid < 1) {
-        return { result: 'no_bids' };
-      }
-
-      const topBidders = bids.filter(b => b.bid === maxBid);
-      if (topBidders.length > 1) {
-        return { result: 'tie', amount: maxBid, tiedIndices: topBidders.map(b => b.playerIndex) };
-      }
-
-      return { result: 'winner', winnerIndex: topBidders[0].playerIndex, amount: maxBid };
-    }
-    return null;
-  };
-
-  // Calculate victory points for each player
-  // Religious buildings: +2 VP each (counted in both improvements and religiousBuildings)
-  // Secular buildings: +1 VP each (counted only in improvements)
-  const calculateVictoryPoints = (player) => {
-    return player.improvements + (player.religiousBuildings || 0) + (player.bonusPoints || 0);
-  };
-
-  // Check if game is over and determine winner
-  const getGameResult = () => {
-    if (gameState.turn > 20) {
-      const playerScores = gameState.players.map((player, index) => {
-        const religious = player.religiousBuildings || 0;
-        const secular = player.improvements - religious;
-        return {
-          faction: player.faction,
-          victoryPoints: calculateVictoryPoints(player),
-          money: player.money,
-          index,
-          breakdown: {
-            secular,
-            religious,
-            bonus: player.bonusPoints || 0,
-          },
-        };
-      });
-
-      playerScores.sort((a, b) => {
-        if (b.victoryPoints !== a.victoryPoints) {
-          return b.victoryPoints - a.victoryPoints;
-        }
-        return b.money - a.money;
-      });
-
-      return {
-        winner: playerScores[0],
-        rankings: playerScores
-      };
-    }
-    return null;
-  };
-
-  // Get available buildings for current player in selected region
-  const getAvailableBuildings = (playerIndex = gameState.currentPlayer) => {
-    const player = gameState.players[playerIndex];
-    const region = gameState.regions[gameState.selectedRegion];
-    const buildings = [];
-
-    if (player.faction === 'Commoners') {
-      buildings.push(
-        {
-          type: 'commoner_huts',
-          name: 'Huts',
-          cost: 2,
-          built: region.buildings.commoner_huts > 0,
-          canBuild: region.buildings.commoner_huts === 0,
-          isReligious: false,
-        },
-        {
-          type: 'commoner_church',
-          name: 'Village Church',
-          cost: 2,
-          built: region.buildings.commoner_church > 0,
-          canBuild: region.buildings.commoner_church === 0,
-          isReligious: true,
-        }
-      );
-    } else if (player.faction === 'Nobles') {
-      buildings.push(
-        {
-          type: 'noble_manor',
-          name: 'Manor',
-          cost: 2,
-          built: region.buildings.noble_manor > 0,
-          canBuild: region.buildings.noble_manor === 0,
-          isReligious: false,
-        },
-        {
-          type: 'noble_monastery',
-          name: 'Monastery',
-          cost: 2,
-          built: region.buildings.noble_monastery > 0,
-          canBuild: region.buildings.noble_monastery === 0,
-          isReligious: true,
-        }
-      );
-    } else if (player.faction === 'Merchants') {
-      if (gameState.selectedRegion === 'pskov') {
-        buildings.push(
-          {
-            type: 'merchant_mansion',
-            name: 'Mansion',
-            cost: 2,
-            built: region.buildings.merchant_mansion,
-            canBuild: region.buildings.merchant_mansion < 7,
-            isReligious: false,
-          },
-          {
-            type: 'merchant_church',
-            name: 'Church',
-            cost: 2,
-            built: region.buildings.merchant_church,
-            canBuild: region.buildings.merchant_church < 7,
-            isReligious: true,
-          }
-        );
-      }
-    }
-
-    return buildings;
-  };
+  const getAvailableBuildings = (playerIndex = gameState.currentPlayer) =>
+    getAvailableBuildingsPure(gameState, playerIndex, selectedRegion);
 
   const buildBuilding = (buildingType) => {
     playClink();
-    // In online mode, send action to server
     if (mode === 'online') {
-      sendAction({ type: 'BUILD_BUILDING', buildingType });
+      sendAction({ type: ActionTypes.BUILD_BUILDING, buildingType, regionName: selectedRegion });
       return;
     }
-
-    // Local mode: update state directly
-    setGameState(prev => {
-      const player = prev.players[prev.currentPlayer];
-
-      if (player.money < 2) {
-        return prev;
-      }
-
-      const isReligious = buildingType === 'commoner_church' || buildingType === 'noble_monastery' || buildingType === 'merchant_church';
-      const newPlayers = prev.players.map((p, i) =>
-        i === prev.currentPlayer
-          ? {
-              ...p,
-              money: p.money - 2,
-              improvements: p.improvements + 1,
-              religiousBuildings: (p.religiousBuildings || 0) + (isReligious ? 1 : 0),
-            }
-          : p
-      );
-
-      const newConstructionActions = prev.constructionActions.map((ca, i) =>
-        i === prev.currentPlayer
-          ? { ...ca, improvement: true }
-          : ca
-      );
-
-      const currentRegion = prev.regions[prev.selectedRegion];
-      const newBuildings = buildingType.startsWith('merchant_')
-        ? { ...currentRegion.buildings, [buildingType]: currentRegion.buildings[buildingType] + 1 }
-        : { ...currentRegion.buildings, [buildingType]: 1 };
-
-      const newRegions = {
-        ...prev.regions,
-        [prev.selectedRegion]: {
-          ...currentRegion,
-          buildings: newBuildings
-        }
-      };
-
-      return {
-        ...prev,
-        regions: newRegions,
-        players: newPlayers,
-        constructionActions: newConstructionActions
-      };
-    });
+    dispatch({ type: ActionTypes.BUILD_BUILDING, buildingType }, gameState.currentPlayer);
   };
 
   const nextPhase = () => {
     // The game is over: no more phases
     if (gameState.gameOver || gameState.turn > 20) return;
-
-    // In online mode, send action to server
-    if (mode === 'online') {
-      sendAction({ type: 'NEXT_PHASE' });
-      return;
-    }
-
-    // Local mode: update state directly
-    const currentPhaseIndex = phases.indexOf(gameState.phase);
-    const isLastPhase = currentPhaseIndex === phases.length - 1;
-
-    setGameState(prev => {
-      const isResourcesPhase = prev.phase === 'resources';
-      const isConstructionPhase = prev.phase === 'construction';
-      const nextPhase = isLastPhase ? phases[0] : phases[currentPhaseIndex + 1];
-
-      let newState = { ...prev };
-
-      // Auto-calculate income during resources phase
-      if (isResourcesPhase) {
-        const republicRegions = Object.values(prev.regions).filter(r => r.controller === 'republic').length;
-        newState.players = prev.players.map((player, index) => {
-          const baseIncome = 0.5 + (republicRegions * 0.25) + ((player.improvements - (player.religiousBuildings || 0)) * 0.25);
-          const incomeModifier = getIncomeModifier(player.faction);
-          const finalIncome = baseIncome * incomeModifier;
-          return {
-            ...player,
-            money: player.money + finalIncome
-          };
-        });
-      }
-
-      // Draw event when moving TO events phase
-      if (nextPhase === 'events') {
-        const drawn = drawEvent(prev.shuffledEventOrder, prev.eventDrawIndex);
-        newState.currentEvent = drawn.event;
-        newState.shuffledEventOrder = drawn.shuffledEventOrder;
-        newState.eventDrawIndex = drawn.eventDrawIndex;
-        newState.eventVotes = [null, null, null];
-        newState.eventResolved = false;
-        newState.eventImageRevealed = false; // Start with hidden image
-      }
-
-      // Reset current player and construction actions when leaving construction
-      if (isConstructionPhase) {
-        newState.currentPlayer = 0;
-        newState.selectedRegion = 'pskov';
-        newState.constructionActions = [
-          { improvement: false, equipment: false, expedition: false },
-          { improvement: false, equipment: false, expedition: false },
-          { improvement: false, equipment: false, expedition: false }
-        ];
-        newState.constructionReady = [false, false, false];
-        newState.lastExpeditionResult = null;
-      }
-
-      // Clear event when leaving events phase
-      if (prev.phase === 'events') {
-        newState.currentEvent = null;
-        newState.eventVotes = [null, null, null];
-        newState.eventResolved = false;
-        newState.lastEventResult = null;
-        newState.eventImageRevealed = false;
-      }
-
-      return {
-        ...newState,
-        phase: nextPhase,
-        turn: isLastPhase ? prev.turn + 1 : prev.turn
-      };
-    });
-
-    if (isLastPhase) {
-      setTimeout(() => updateEffects(), 100);
-    }
+    dispatch({ type: ActionTypes.NEXT_PHASE });
   };
 
-  const nextPlayer = () => {
-    // In online mode, send action to server
-    if (mode === 'online') {
-      sendAction({ type: 'NEXT_PLAYER' });
-      return;
-    }
+  const nextPlayer = () => dispatch({ type: ActionTypes.NEXT_PLAYER });
 
-    // Local mode: update state directly
-    setGameState(prev => {
-      const newReady = [...prev.constructionReady];
-      newReady[prev.currentPlayer] = true;
-      const nextPlayerIndex = (prev.currentPlayer + 1) % 3;
-      // Auto-select Pskov for Merchants since they can only build there
-      const nextFaction = prev.players[nextPlayerIndex].faction;
-      const nextRegion = nextFaction === 'Merchants' ? 'pskov' : prev.selectedRegion;
-      return {
-        ...prev,
-        currentPlayer: nextPlayerIndex,
-        selectedRegion: nextRegion,
-        constructionReady: newReady,
-      };
-    });
-  };
+  const setConstructionReady = () => dispatch({ type: ActionTypes.SET_CONSTRUCTION_READY }, mode === 'online' ? playerId : gameState.currentPlayer);
 
-  const setConstructionReady = () => {
-    // In online mode, send action to server
-    if (mode === 'online') {
-      sendAction({ type: 'SET_CONSTRUCTION_READY' });
-    } else {
-      // Local mode: mark current player as ready and check if all are ready
-      setGameState(prev => {
-        const newReady = [...prev.constructionReady];
-        newReady[prev.currentPlayer] = true;
-
-        // If all players are ready in local mode, auto-advance
-        if (newReady.every(r => r)) {
-          // Trigger nextPhase
-          nextPhase();
-          return prev; // nextPhase will handle the update
-        }
-
-        return { ...prev, constructionReady: newReady };
-      });
-    }
-  };
-
-  const buyItem = (playerIndex, item, cost) => {
+  const buyItem = (playerIndex, item) => {
     playClink();
-    // In online mode, send action to server
-    if (mode === 'online') {
-      // Only allow buying for own faction
-      if (playerIndex !== playerId) {
-        console.warn('Cannot buy for another player');
-        return;
-      }
-      sendAction({ type: 'BUY_EQUIPMENT', item });
+    if (mode === 'online' && playerIndex !== playerId) {
+      console.warn('Cannot buy for another player');
       return;
     }
-
-    // Local mode: update state directly
-    setGameState(prev => {
-      const player = prev.players[playerIndex];
-
-      if (player.money < cost || player[item] >= 2) {
-        return prev;
-      }
-
-      const newPlayers = prev.players.map((p, i) =>
-        i === playerIndex
-          ? { ...p, money: p.money - cost, [item]: p[item] + 1 }
-          : p
-      );
-
-      const newConstructionActions = (item === 'weapons' || item === 'armor')
-        ? prev.constructionActions.map((action, i) =>
-            i === playerIndex ? { ...action, equipment: true } : action
-          )
-        : prev.constructionActions;
-
-      return {
-        ...prev,
-        players: newPlayers,
-        constructionActions: newConstructionActions
-      };
-    });
+    dispatch({ type: ActionTypes.BUY_EQUIPMENT, item }, playerIndex);
   };
 
   // Send a trading expedition (Merchants only)
   const sendExpeditionAction = (playerIndex) => {
     playClink();
-    if (mode === 'online') {
-      if (playerIndex !== playerId) return;
-      sendAction({ type: 'SEND_EXPEDITION' });
-      return;
-    }
-
-    setGameState(prev => {
-      const player = prev.players[playerIndex];
-      if (player.faction !== 'Merchants' || player.money < EXPEDITION_COST
-          || player.expeditions >= EXPEDITION_MAX_PER_GAME
-          || prev.constructionActions[playerIndex].expedition) {
-        return prev;
-      }
-
-      const roll = Math.floor(Math.random() * 3);
-      let moneyChange = -EXPEDITION_COST;
-      let outcome;
-      if (roll === 0) {
-        outcome = 'loss';
-      } else if (roll === 1) {
-        outcome = 'profit';
-        moneyChange += 3;
-      } else {
-        outcome = 'windfall';
-        moneyChange += 6;
-      }
-
-      return {
-        ...prev,
-        players: prev.players.map((p, i) =>
-          i === playerIndex
-            ? { ...p, money: p.money + moneyChange, expeditions: p.expeditions + 1 }
-            : p
-        ),
-        constructionActions: prev.constructionActions.map((ca, i) =>
-          i === playerIndex ? { ...ca, expedition: true } : ca
-        ),
-        lastExpeditionResult: { outcome, moneyChange, playerIndex },
-      };
-    });
-  };
-
-  // Resolve current event using abstracted system
-  const resolveEvent = () => {
-    // In online mode, send resolve action to server
-    if (mode === 'online') {
-      sendAction({ type: 'RESOLVE_EVENT' });
-      return;
-    }
-
-    // Local mode: resolve using client-side logic.
-    // A restored save loses the deck's effect functions, so look the card up by id.
-    const event = eventDeck.find(e => e.id === gameState.currentEvent.id) || gameState.currentEvent;
-    const eventType = eventTypes[event.type];
-
-    if (!eventType) {
-      console.error('Unknown event type:', event.type);
-      return;
-    }
-
-    // Execute the resolution ONCE, outside of setGameState
-    // battleResult is cleared so the map only marks a battle this event actually caused
-    const liveState = { ...gameState, currentEvent: event, battleResult: null };
-    const newState = eventType.resolve(event, liveState, gameState.eventVotes);
-
-    // Check if a new event was triggered (nested event scenario)
-    const newEventTriggered = newState.currentEvent && newState.currentEvent.id !== event.id;
-
-    setGameState({
-      ...newState,
-      // Only mark as resolved if no new event was triggered
-      eventResolved: newEventTriggered ? false : true
-    });
+    if (mode === 'online' && playerIndex !== playerId) return;
+    dispatch({ type: ActionTypes.SEND_EXPEDITION }, playerIndex);
   };
 
   const resetGame = () => {
     // Use the store's initLocalGame to reset to initial state
-    initLocalGame();
+    initLocalGame(aiPlayers, { ruleset: gameState.ruleset });
   };
 
   const isGameOver = Boolean(gameState.gameOver) || gameState.turn > 20;
@@ -2245,10 +689,11 @@ const PskovGame = ({ onMenu }) => {
 
   // ---- Region selection for construction (region buttons and the map) ----
   const selectRegion = (regionName) => {
-    setGameState(prev => ({ ...prev, selectedRegion: regionName }));
     if (mode === 'online') {
-      sendAction({ type: 'SELECT_REGION', regionName });
+      setOnlineRegion(regionName);
+      return;
     }
+    dispatch({ type: ActionTypes.SELECT_REGION, regionName });
   };
 
   // ---- What the map should show for the current moment of the game ----
@@ -2264,21 +709,21 @@ const PskovGame = ({ onMenu }) => {
       && !(mode === 'local' && aiPlayers[gameState.currentPlayer])
       && !(mode === 'online' && gameState.constructionReady[playerId]);
     if (builderCanAct) {
-      props.selectedRegion = gameState.selectedRegion;
+      props.selectedRegion = selectedRegion;
       props.selectableRegions = Object.entries(gameState.regions)
         .filter(([name, region]) => region.controller === 'republic' && (builder.faction !== 'Merchants' || name === 'pskov'))
         .map(([name]) => name);
       props.onRegionClick = selectRegion;
     }
 
-    // Order attack pending: show where the Order may strike (same rule as the resolver:
-    // Pskov is only attacked when nothing else is reachable)
+    // Order attack pending: show where the Order may strike (the resolver's own rule)
     const ev = gameState.currentEvent;
     if (phase === 'events' && ev?.type === 'order_attack' && !gameState.eventResolved) {
-      const targets = getValidOrderAttackTargets(gameState.regions);
-      const nonPskov = targets.filter((r) => r !== 'pskov');
-      props.threatTargets = nonPskov.length > 0 ? nonPskov : targets;
+      props.threatTargets = getOrderAttackTargets(gameState.regions, rules);
     }
+
+    // Siege: the Order holds a region next to Pskov, so the capital itself can be attacked
+    props.capitalThreatened = isPskovThreatened(gameState.regions, rules);
 
     // Veche: the campaign being planned
     if (phase === 'veche' && gameState.attackPlanning === 'planning' && gameState.attackTarget) {
@@ -2287,7 +732,7 @@ const PskovGame = ({ onMenu }) => {
 
     // The battle just fought (its result text is still on screen)
     const br = gameState.battleResult;
-    if (gameState.lastEventResult && br?.region && (phase === 'events' || phase === 'veche')) {
+    if (outcomeText && br?.region && (phase === 'events' || phase === 'veche')) {
       props.battle = {
         region: br.region,
         outcome: br.type === 'defense_victory' || br.type === 'attack_victory' ? 'won' : 'lost',
@@ -2505,7 +950,15 @@ const PskovGame = ({ onMenu }) => {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-baseline gap-1 sm:block sm:text-right flex-shrink-0" title={t('game.victoryPoints')}>
+                  <div
+                    className="flex items-baseline gap-1 sm:block sm:text-right flex-shrink-0"
+                    title={[
+                      t('game.victoryPoints'),
+                      t('glory.vpBuildings', { count: Math.round(calculateBuildingVictoryPoints(player, rules) * 10) / 10 }),
+                      player.bonusPoints > 0 && t('glory.vpBonus', { count: Math.round(player.bonusPoints * 10) / 10 }),
+                      rules.glory && t('glory.vpGlory', { count: player.glory || 0 }),
+                    ].filter(Boolean).join('\n')}
+                  >
                     <div className="relative text-sm sm:text-lg font-bold text-ink leading-none lining-nums tabular-nums">
                       <AnimatedNumber value={calculateVictoryPoints(player)} format={(n) => Math.round(n)} />
                       <DeltaChips
@@ -2573,10 +1026,10 @@ const PskovGame = ({ onMenu }) => {
                   <button
                     key={regionName}
                     onClick={() => selectRegion(regionName)}
-                    aria-pressed={gameState.selectedRegion === regionName}
+                    aria-pressed={selectedRegion === regionName}
                     disabled={!isAvailable}
                     className={`px-3 py-1.5 rounded text-sm border transition-colors ${
-                      gameState.selectedRegion === regionName
+                      selectedRegion === regionName
                         ? 'bg-accent text-white border-accent'
                         : isAvailable
                         ? 'border-parchment-400 text-ink-light hover:border-accent hover:bg-parchment-100'
@@ -2589,7 +1042,7 @@ const PskovGame = ({ onMenu }) => {
                 );
               })}
             </div>
-            {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov' && (
+            {activePlayer.faction === 'Merchants' && selectedRegion !== 'pskov' && (
               <p className="text-sm text-accent mt-2">{t('game.merchantsPskovOnly')}</p>
             )}
           </div>
@@ -2600,7 +1053,7 @@ const PskovGame = ({ onMenu }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Available Buildings */}
             <div>
-              <h4 className="font-display text-base font-medium text-ink-light tracking-wide mb-2">{t('game.availableBuildings', regionArgs(gameState.selectedRegion))}</h4>
+              <h4 className="font-display text-base font-medium text-ink-light tracking-wide mb-2">{t('game.availableBuildings', regionArgs(selectedRegion))}</h4>
               <div className="space-y-2">
                 {getAvailableBuildings(activePlayerIndex).map(building => (
                   <button
@@ -2635,7 +1088,7 @@ const PskovGame = ({ onMenu }) => {
                 ))}
                 {getAvailableBuildings(activePlayerIndex).length === 0 && (
                   <p className="text-ink-muted text-center py-4 text-sm">
-                    {activePlayer.faction === 'Merchants' && gameState.selectedRegion !== 'pskov'
+                    {activePlayer.faction === 'Merchants' && selectedRegion !== 'pskov'
                       ? t('game.merchantsPskovOnly')
                       : t('game.noBuildingsRegion')
                     }
@@ -2649,7 +1102,7 @@ const PskovGame = ({ onMenu }) => {
               <h4 className="font-display text-base font-medium text-ink-light tracking-wide mb-2">{t('game.equipment')}</h4>
               <div className="space-y-2">
                 <button
-                  onClick={() => buyItem(activePlayerIndex, 'weapons', 1)}
+                  onClick={() => buyItem(activePlayerIndex, 'weapons')}
                   disabled={
                     activePlayer.money < 1 ||
                     gameState.constructionActions[activePlayerIndex].equipment ||
@@ -2674,7 +1127,7 @@ const PskovGame = ({ onMenu }) => {
                   </div>
                 </button>
                 <button
-                  onClick={() => buyItem(activePlayerIndex, 'armor', 1)}
+                  onClick={() => buyItem(activePlayerIndex, 'armor')}
                   disabled={
                     activePlayer.money < 1 ||
                     gameState.constructionActions[activePlayerIndex].equipment ||
@@ -3122,6 +1575,9 @@ const PskovGame = ({ onMenu }) => {
                     const { strength, level } = getOrderAttackInfo(gameState.currentEvent);
                     return t(`game.orderAttackBody.${level}`, { strength, cost: gameState.currentEvent.minCostPerPlayer || 1 });
                   })()}</p>
+                  {getOrderAttackTargets(gameState.regions, rules).includes('pskov') && (
+                    <p className="text-sm font-semibold text-war mb-3" role="alert">{t('siege.pskovInReach')}</p>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                     {gameState.players.map((player, index) => {
@@ -3148,7 +1604,12 @@ const PskovGame = ({ onMenu }) => {
                               >
                                 {gameState.eventVotes[index] === true ? t('game.defending') :
                                  !canAfford ? coinify(t('events.needMoney', { amount: gameState.currentEvent.minCostPerPlayer })) :
-                                 t('game.fundDefense')}
+                                 rules.glory ? (
+                                   <>
+                                     {t('game.fundDefense')}
+                                     <span className="block text-[11px] font-normal opacity-90">{coinify(t('glory.ifWeWin', { cost: gameState.currentEvent.minCostPerPlayer || DEFENSE_COST_PER_PLAYER, glory: (gameState.currentEvent.minCostPerPlayer || DEFENSE_COST_PER_PLAYER) * GLORY_PER_COIN }))}</span>
+                                   </>
+                                 ) : t('game.fundDefense')}
                               </button>
                               <button
                                 onClick={() => voteOnEvent(index, false)}
@@ -3202,26 +1663,8 @@ const PskovGame = ({ onMenu }) => {
                     <div className="text-center">
                       <p className="text-sm text-ink-light mb-2">
                         {(() => {
-                          // Iteratively determine actual defenders (same logic as resolution)
-                          let candidates = [];
-                          gameState.players.forEach((player, index) => {
-                            if (gameState.eventVotes[index] === true) {
-                              candidates.push(index);
-                            }
-                          });
-                          let stable = false;
-                          while (!stable && candidates.length > 0) {
-                            const cost = 1;
-                            const affordable = candidates.filter(
-                              (i) => gameState.players[i].money >= cost
-                            );
-                            if (affordable.length === candidates.length) {
-                              stable = true;
-                            } else {
-                              candidates = affordable;
-                            }
-                          }
-                          return candidates.length > 0 ? t('events.defendersReady', { count: candidates.length }) : t('events.noDefenders');
+                          const defenders = getDefenders(gameState, gameState.eventVotes, gameState.currentEvent.minCostPerPlayer || DEFENSE_COST_PER_PLAYER);
+                          return defenders.length > 0 ? t('events.defendersReady', { count: defenders.length }) : t('events.noDefenders');
                         })()}
                       </p>
                     </div>
@@ -3242,11 +1685,12 @@ const PskovGame = ({ onMenu }) => {
                         theirs={gameState.battleResult.orderStrength}
                         chance={gameState.battleResult.chancePercent}
                         outcome={battleOutcome(gameState.battleResult)}
+                        glory={gloryChips(gameState.battleResult)}
                       />
                     </div>
                   )}
-                  {gameState.lastEventResult && (
-                    <p className="text-sm text-ink-light mb-2 font-medium">{coinify(gameState.lastEventResult)}</p>
+                  {outcomeText && (
+                    <p className="text-sm text-ink-light mb-2 font-medium">{coinify(outcomeText)}</p>
                   )}
                 </div>
               )}
@@ -3315,7 +1759,7 @@ const PskovGame = ({ onMenu }) => {
 
               {(() => {
                 const target = gameState.regions[gameState.attackTarget];
-                const orderStrength = 100 + getOrderTurnBonus(gameState.turn) + (target?.fortress ? FORTRESS_DEFENSE_BONUS : 0);
+                const orderStrength = getOrderDefenseStrength(gameState, gameState.attackTarget);
                 const ours = strengthOf(votersFor(gameState.attackVotes));
                 return (
                   <div className="mb-3">
@@ -3333,7 +1777,7 @@ const PskovGame = ({ onMenu }) => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                 {gameState.players.map((player, index) => {
                   const hasDecided = gameState.attackVotes[index] !== null;
-                  const canAfford = player.money >= 2;
+                  const canAfford = player.money >= ATTACK_COST_PER_PLAYER;
                   // AI factions vote on their own; only your own faction's buttons are clickable
                   const canControl = mode === 'online' ? index === playerId : !aiPlayers[index];
 
@@ -3342,7 +1786,7 @@ const PskovGame = ({ onMenu }) => {
                           {renderVoteHeader(index)}
                       <div className="space-y-1.5">
                         <button
-                          onClick={() => { setGameState(prev => { const nv = [...prev.attackVotes]; nv[index] = true; return { ...prev, attackVotes: nv }; }); }}
+                          onClick={() => voteOnAttack(index, true)}
                           disabled={!canControl || hasDecided || !canAfford}
                           className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                             gameState.attackVotes[index] === true ? 'btn-chosen'
@@ -3351,10 +1795,17 @@ const PskovGame = ({ onMenu }) => {
                           }`}
                         >
                           {gameState.attackVotes[index] === true ? t('veche.joiningAttack') :
-                           !canAfford ? coinify(t('events.needMoney', { amount: 2 })) : t('veche.joinAttack')}
+                           !canAfford ? coinify(t('events.needMoney', { amount: ATTACK_COST_PER_PLAYER }))
+                           : rules.glory ? (
+                             <>
+                               {t('veche.joinAttack')}
+                               <span className="block text-[11px] font-normal opacity-90">{coinify(t('glory.ifWeWin', { cost: ATTACK_COST_PER_PLAYER, glory: ATTACK_COST_PER_PLAYER * GLORY_PER_COIN }))}</span>
+                             </>
+                           )
+                           : t('veche.joinAttack')}
                         </button>
                         <button
-                          onClick={() => { setGameState(prev => { const nv = [...prev.attackVotes]; nv[index] = false; return { ...prev, attackVotes: nv }; }); }}
+                          onClick={() => voteOnAttack(index, false)}
                           disabled={!canControl || hasDecided}
                           className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                             gameState.attackVotes[index] === false ? 'btn-chosen' : 'btn-secondary'
@@ -3371,17 +1822,12 @@ const PskovGame = ({ onMenu }) => {
               {gameState.attackVotes.filter(v => v !== null).length === 3 && (
                 <div className="text-center">
                   {(() => {
-                    const participants = gameState.attackVotes.filter(v => v === true).length;
-                    const costPerParticipant = 2;
-                    let allCanAfford = true;
-                    let insufficientFunds = [];
-                    gameState.players.forEach((player, index) => {
-                      if (gameState.attackVotes[index] === true && player.money < costPerParticipant) {
-                        allCanAfford = false;
-                        insufficientFunds.push(player.faction);
-                      }
-                    });
-                    const attackSucceeds = participants > 0 && allCanAfford;
+                    const funding = getAttackFunding(gameState);
+                    const participants = funding.participants.length;
+                    const costPerParticipant = funding.costPerParticipant;
+                    const allCanAfford = funding.cannotAfford.length === 0;
+                    const insufficientFunds = funding.cannotAfford.map((i) => gameState.players[i].faction);
+                    const attackSucceeds = funding.funded;
 
                     return (
                       <div className="mb-3">
@@ -3398,7 +1844,7 @@ const PskovGame = ({ onMenu }) => {
                           <button onClick={() => executeAttack()} disabled={!attackSucceeds} className="btn-danger px-4 py-2 text-sm">
                             {attackSucceeds ? t('veche.launchAttack') : t('veche.cannotLaunch')}
                           </button>
-                          <button onClick={() => { setGameState(prev => ({ ...prev, attackPlanning: null, attackTarget: null, attackVotes: [null, null, null] })); }} className="btn-secondary px-4 py-2 text-sm">
+                          <button onClick={cancelAttack} className="btn-secondary px-4 py-2 text-sm">
                             {t('veche.cancel')}
                           </button>
                         </div>
@@ -3411,7 +1857,7 @@ const PskovGame = ({ onMenu }) => {
           )}
 
           {/* Attack Result */}
-          {battleOutcome(gameState.battleResult) && gameState.lastEventResult && (
+          {battleOutcome(gameState.battleResult) && outcomeText && (
             <div className="mb-3">
               <BattleReport
                 key={`${gameState.turn}-${gameState.battleResult.region}`}
@@ -3420,16 +1866,17 @@ const PskovGame = ({ onMenu }) => {
                 theirs={gameState.battleResult.orderStrength}
                 chance={gameState.battleResult.chancePercent}
                 outcome={battleOutcome(gameState.battleResult)}
+                glory={gloryChips(gameState.battleResult)}
               />
             </div>
           )}
-          {gameState.lastEventResult && (
+          {outcomeText && (
             <div className={`p-3 rounded mb-4 text-sm font-medium ${
               gameState.battleResult?.type === 'attack_victory' ? 'bg-good/10 text-good border border-good/30'
               : gameState.battleResult?.type === 'attack_defeat' ? 'bg-war/10 text-war border border-war/30'
               : 'bg-parchment-50 text-ink border border-parchment-400'
             }`}>
-              {coinify(gameState.lastEventResult)}
+              {coinify(outcomeText)}
             </div>
           )}
 
@@ -3479,7 +1926,7 @@ const PskovGame = ({ onMenu }) => {
                           {renderVoteHeader(index)}
                         <div className="space-y-1.5">
                           <button
-                            onClick={() => { setGameState(prev => { const nv = [...prev.fortressVotes]; nv[index] = true; return { ...prev, fortressVotes: nv }; }); }}
+                            onClick={() => voteOnFortress(index, true)}
                             disabled={!canControl || hasDecided || !canAfford}
                             className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                               gameState.fortressVotes[index] === true ? 'btn-chosen'
@@ -3488,10 +1935,17 @@ const PskovGame = ({ onMenu }) => {
                             }`}
                           >
                             {gameState.fortressVotes[index] === true ? t('veche.contributing') :
-                             !canAfford ? coinify(t('events.needMoney', { amount: 2 })) : t('veche.contribute')}
+                             !canAfford ? coinify(t('events.needMoney', { amount: 2 }))
+                             : rules.glory ? (
+                               <>
+                                 {t('veche.contribute')}
+                                 <span className="block text-[11px] font-normal opacity-90">{t('glory.perCoin')}</span>
+                               </>
+                             )
+                             : t('veche.contribute')}
                           </button>
                           <button
-                            onClick={() => { setGameState(prev => { const nv = [...prev.fortressVotes]; nv[index] = false; return { ...prev, fortressVotes: nv }; }); }}
+                            onClick={() => voteOnFortress(index, false)}
                             disabled={!canControl || hasDecided}
                             className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                               gameState.fortressVotes[index] === false ? 'btn-chosen' : 'btn-secondary'
@@ -3508,38 +1962,36 @@ const PskovGame = ({ onMenu }) => {
                 {gameState.fortressVotes.filter(v => v !== null).length === 3 && (
                   <div className="text-center">
                     {(() => {
-                      const participants = gameState.fortressVotes.filter(v => v === true).length;
-                      const costPerParticipant = participants > 0 ? (6 / participants) : 0;
-                      let allCanAfford = true;
-                      let insufficientFunds = [];
-                      gameState.players.forEach((player, index) => {
-                        if (gameState.fortressVotes[index] === true && player.money < costPerParticipant) {
-                          allCanAfford = false;
-                          insufficientFunds.push(player.faction);
-                        }
-                      });
+                      const funding = getFortressFunding(gameState);
+                      const participants = funding.participants.length;
+                      const costPerParticipant = funding.costPerParticipant;
+                      const allCanAfford = funding.cannotAfford.length === 0;
+                      const insufficientFunds = funding.cannotAfford.map((i) => gameState.players[i].faction);
 
                       if (participants === 0) {
                         return (
                           <div>
                             <p className="text-ink-muted mb-2 text-sm">{t('veche.noFortressFunding')}</p>
-                            <button onClick={() => { setGameState(prev => ({ ...prev, fortressPlanning: null, fortressTarget: null, fortressVotes: [null, null, null] })); }} className="btn-secondary px-4 py-2 text-sm">{t('veche.cancelConstruction')}</button>
+                            <button onClick={cancelFortress} className="btn-secondary px-4 py-2 text-sm">{t('veche.cancelConstruction')}</button>
                           </div>
                         );
                       } else if (!allCanAfford) {
                         return (
                           <div>
                             <p className="text-war mb-2 text-sm">{coinify(t('veche.cannotAffordShare', { factions: insufficientFunds.map(f => t(`factions.${f}`)).join(', '), cost: fmtCoins(costPerParticipant, i18n.language) }))}</p>
-                            <button onClick={() => { setGameState(prev => ({ ...prev, fortressPlanning: null, fortressTarget: null, fortressVotes: [null, null, null] })); }} className="btn-secondary px-4 py-2 text-sm">{t('veche.cancelConstruction')}</button>
+                            <button onClick={cancelFortress} className="btn-secondary px-4 py-2 text-sm">{t('veche.cancelConstruction')}</button>
                           </div>
                         );
                       } else {
                         return (
                           <div>
                             <p className="text-good mb-2 text-sm">{coinify(t('veche.contributors', { count: participants, cost: fmtCoins(costPerParticipant, i18n.language) }))}</p>
+                            {rules.glory && (
+                              <p className="text-xs text-ink-light mb-2">{t('glory.fortressStake', { glory: costPerParticipant * GLORY_PER_COIN })}</p>
+                            )}
                             <div className="flex gap-2 justify-center">
                               <button onClick={executeFortressBuild} className="btn-accent px-4 py-2 text-sm">{t('veche.buildFortressButton')}</button>
-                              <button onClick={() => { setGameState(prev => ({ ...prev, fortressPlanning: null, fortressTarget: null, fortressVotes: [null, null, null] })); }} className="btn-secondary px-4 py-2 text-sm">{t('veche.cancelFortress')}</button>
+                              <button onClick={cancelFortress} className="btn-secondary px-4 py-2 text-sm">{t('veche.cancelFortress')}</button>
                             </div>
                           </div>
                         );
@@ -3575,7 +2027,7 @@ const PskovGame = ({ onMenu }) => {
             </div>
             <div className="flex gap-2 justify-center">
               {mode === 'local' && (
-                <button onClick={() => initLocalGame(aiPlayers)} className="btn-accent px-6 py-2.5">
+                <button onClick={resetGame} className="btn-accent px-6 py-2.5">
                   {t('end.playAgain')}
                 </button>
               )}
@@ -3628,9 +2080,25 @@ const PskovGame = ({ onMenu }) => {
                     </div>
                     <div className="text-sm text-ink-light">{fmtCoins(player.money, i18n.language)}<CoinIcon /></div>
                     <div className="text-xs text-ink-muted mt-0.5 flex flex-wrap sm:justify-center gap-x-2">
-                      {player.breakdown.secular > 0 && <span>{t('end.secular', { count: player.breakdown.secular })}</span>}
-                      {player.breakdown.religious > 0 && <span>{t('end.religious', { count: player.breakdown.religious, vp: player.breakdown.religious * 2 })}</span>}
-                      {player.breakdown.bonus > 0 && <span>{t('end.bonus', { count: player.breakdown.bonus })}</span>}
+                      {player.faction === 'Merchants' ? (
+                        // Merchant buildings score at a reduced rate: show it in one line
+                        player.breakdown.buildingVP > 0 && (
+                          <span>{t('end.merchantBuildings', {
+                            secular: player.breakdown.secular,
+                            religious: player.breakdown.religious,
+                            raw: player.breakdown.secular + player.breakdown.religious * 2,
+                            vp: Math.round(player.breakdown.buildingVP * 10) / 10,
+                            rate: getMerchantVpMultiplier(rules),
+                          })}</span>
+                        )
+                      ) : (
+                        <>
+                          {player.breakdown.secular > 0 && <span>{t('end.secular', { count: player.breakdown.secular })}</span>}
+                          {player.breakdown.religious > 0 && <span>{t('end.religious', { count: player.breakdown.religious, vp: player.breakdown.religious * 2 })}</span>}
+                        </>
+                      )}
+                      {player.breakdown.bonus > 0 && <span>{t('end.bonus', { count: Math.round(player.breakdown.bonus * 10) / 10 })}</span>}
+                      {player.breakdown.glory > 0 && <span className="text-accent font-medium">{t('end.glory', { count: player.breakdown.glory })}</span>}
                     </div>
                   </div>
                   {/* Plinth */}
@@ -3644,7 +2112,7 @@ const PskovGame = ({ onMenu }) => {
 
             <div className="flex gap-2 justify-center">
               {mode === 'local' && (
-                <button onClick={() => initLocalGame(aiPlayers)} className="btn-accent px-6 py-2.5">
+                <button onClick={resetGame} className="btn-accent px-6 py-2.5">
                   {t('end.playAgain')}
                 </button>
               )}
@@ -3703,6 +2171,9 @@ const PskovGame = ({ onMenu }) => {
           {/* Map: capped on tablets so the portrait image does not fill the screen */}
           <div className="max-w-sm mx-auto lg:max-w-none">
             <GameMap gameState={gameState} {...getMapProps()} />
+            {!isGameOver && isPskovThreatened(gameState.regions, rules) && (
+              <p className="mt-2 text-xs sm:text-sm font-semibold text-war text-center" role="status">{t('siege.capitalWarning')}</p>
+            )}
           </div>
         </aside>
 
@@ -3791,17 +2262,17 @@ const App = () => {
   }, [mode, room?.gameStarted, gameState, roomId, screen]);
 
   // Start solo game (1 human + 2 AI) with faction intro
-  const handleStartSolo = (factionIndex) => {
+  const handleStartSolo = (factionIndex, options) => {
     const aiConfig = [true, true, true];
     aiConfig[factionIndex] = false;
-    initLocalGame(aiConfig);
+    initLocalGame(aiConfig, options);
     setSoloFaction(FACTIONS_LIST[factionIndex]);
     setScreen('faction');
   };
 
   // Start local hotseat game (with optional AI config)
-  const handleStartLocal = (aiConfig) => {
-    initLocalGame(aiConfig);
+  const handleStartLocal = (aiConfig, options) => {
+    initLocalGame(aiConfig, options);
     setScreen(hasSeenRules() ? 'game' : 'howtoplay');
   };
 

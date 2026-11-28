@@ -1,12 +1,22 @@
 // AI Player decision engine
 // Simple heuristic-based AI for filling empty player slots
 
-import { FACTION_BASE_STRENGTH, BUILDING_TYPES, EXPEDITION_COST, EXPEDITION_MAX_PER_GAME } from './state.js';
-import { getValidRepublicAttackTargets, getRegionsForFortress, canSelectRegion } from './regions.js';
-import { calculatePlayerStrength, calculateTotalStrength } from './combat.js';
+import { EXPEDITION_COST, EXPEDITION_MAX_PER_GAME, getRules } from './state.js';
+import {
+  getValidRepublicAttackTargets,
+  getRegionsForFortress,
+  canSelectRegion,
+  isPskovThreatened,
+  PSKOV_NEIGHBOURS,
+} from './regions.js';
+import { calculateTotalStrength } from './combat.js';
+import { randomInt } from './random.js';
 
-// Defense costs 3 total split among defenders. Reserve enough to cover our share.
+// Defense costs 1 per defender. Reserve enough to cover our share.
 const DEFENSE_RESERVE = 1;
+
+// In the last turns equipment has no time to pay off, but a funded defence still earns Glory
+const LATE_GAME_TURN = 18;
 
 /**
  * Decide what to build during the construction phase.
@@ -34,7 +44,8 @@ export const decideConstruction = (state, playerIndex) => {
 
   // Buy equipment only if we still have enough left over after the reserve
   const moneyAfterBuild = result.buildingType ? player.money - buildCost : player.money;
-  if (moneyAfterBuild >= equipCost + DEFENSE_RESERVE) {
+  const keepForDefence = getRules(state).glory && state.turn >= LATE_GAME_TURN;
+  if (!keepForDefence && moneyAfterBuild >= equipCost + DEFENSE_RESERVE) {
     if (player.weapons < 2 && player.weapons <= player.armor) {
       result.equipmentType = 'weapons';
     } else if (player.armor < 2) {
@@ -132,6 +143,12 @@ export const decideEventVote = (state, playerIndex, event) => {
  */
 const decideDefenseVote = (state, playerIndex, event) => {
   const player = state.players[playerIndex];
+
+  // Pskov itself may be struck: always defend if we can pay at all
+  if (isPskovThreatened(state.regions, getRules(state))) {
+    return player.money >= (event.minCostPerPlayer || 1);
+  }
+
   // Minimum possible cost if all 3 players defend (3/3 = 1).
   // Actual cost may be higher if fewer participate (3/2 = 1.5 or 3/1 = 3).
   // The resolution logic will gracefully exclude us if we can't afford the final cost.
@@ -149,7 +166,7 @@ const decideDefenseVote = (state, playerIndex, event) => {
 /**
  * Pick a random element from an array.
  */
-const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const pickRandom = (arr) => arr[randomInt(arr.length)];
 
 /**
  * Get the options the AI can afford for a voting event.
@@ -221,8 +238,36 @@ const decideAuctionBid = (state, playerIndex, event) => {
 
   // Bid between 1 and half of available money (randomized)
   const maxBid = Math.max(1, Math.floor(available / 2));
-  const bid = Math.floor(Math.random() * maxBid) + 1;
+  const bid = randomInt(maxBid) + 1;
   return String(bid);
+};
+
+// Order-held regions next to Pskov: while the Order sits there, it can besiege the capital
+const isSiegeBase = (state, regionName) =>
+  getRules(state).siege && PSKOV_NEIGHBOURS.includes(regionName) && state.regions[regionName]?.controller === 'order';
+
+/**
+ * Pick which Order-held region to campaign against, or null if none can be reached.
+ * Driving the Order out of a region next to Pskov comes before anything else.
+ */
+export const decideAttackTarget = (state) => {
+  const targets = getValidRepublicAttackTargets(state.regions);
+  if (targets.length === 0) return null;
+  const siegeBases = targets.filter((name) => isSiegeBase(state, name));
+  const pool = siegeBases.length > 0 ? siegeBases : targets;
+  return pool[randomInt(pool.length)];
+};
+
+/**
+ * Pick where to build a fortress, or null if every region has one.
+ * With Pskov in reach of the Order, the regions that guard it come first.
+ */
+export const decideFortressTarget = (state) => {
+  const sites = getRegionsForFortress(state.regions);
+  if (sites.length === 0) return null;
+  const guards = getRules(state).siege ? sites.filter((name) => PSKOV_NEIGHBOURS.includes(name)) : [];
+  const pool = guards.length > 0 ? guards : sites;
+  return pool[randomInt(pool.length)];
 };
 
 /**
@@ -236,6 +281,11 @@ export const decideAttackVote = (state, playerIndex) => {
   // Don't attack if we can't afford it
   if (player.money < costPerParticipant) {
     return false;
+  }
+
+  // Lifting a siege of Pskov is worth any odds
+  if (state.attackTarget && isSiegeBase(state, state.attackTarget)) {
+    return true;
   }
 
   // Calculate our total strength
